@@ -132,9 +132,9 @@ function ensureCy(){
  if(window.cytoscapeCoseBilkent) cytoscape.use(cytoscapeCoseBilkent);
  if(window.cytoscapeLayoutUtilities) cytoscape.use(window.cytoscapeLayoutUtilities);
 
- cy=cytoscape({
-   container:document.getElementById('cy'),
-   style:[
+cy=cytoscape({
+  container:document.getElementById('cy'),
+  style:[
      {selector:'node',style:{
        label:'data(label)','text-wrap':'wrap','text-max-width':'240px',
        'text-valign':'center','text-halign':'center',
@@ -150,13 +150,14 @@ function ensureCy(){
        'text-background-opacity':0.9,'text-background-color':'var(--panel)',
        'text-background-padding':'2px'}},
      {selector:'edge[label=""]',style:{label:'','text-background-opacity':0}}
-   ]
- });
+  ]
+});
 
- /* overlap util */
- if(cytoscape.layoutUtilities){
-   lu=cy.layoutUtilities({desiredAspectRatio:1.2,nodeSpacing:40});
- }
+/* overlap util */
+if(cytoscape.layoutUtilities){
+  lu=cy.layoutUtilities({desiredAspectRatio:1.2,nodeSpacing:40});
+}
+
 
  /* tap‑to‑extend */
  cy.on('tap','node',evt=>{
@@ -173,7 +174,64 @@ function ensureCy(){
  });
 
  /* after dragging, push overlaps away */
- cy.on('dragfree','node',()=>{if(lu) lu.run('prevent-overlap');});
+cy.on('dragfree','node',()=>{
+  if(lu) lu.run('prevent-overlap');
+  resolveCollisions();
+  adjustLabels();
+});
+}
+
+/* helpers for collision checks */
+const rectsOverlap=(a,b)=>a.x1<=b.x2&&a.x2>=b.x1&&a.y1<=b.y2&&a.y2>=b.y1;
+const unit=v=>{const l=Math.hypot(v.x,v.y)||1;return{x:v.x/l,y:v.y/l}};
+const push=(n,v,d)=>n.position({x:n.position('x')+v.x*d,y:n.position('y')+v.y*d});
+
+/* push nodes away from edges and edge labels */
+function resolveCollisions(iter=4){
+  for(let k=0;k<iter;k++){
+    let moved=false;
+    cy.nodes().forEach(n=>{
+      const nb=n.boundingBox();
+      cy.edges().forEach(e=>{
+        if(e.source().id()===n.id()||e.target().id()===n.id()) return;
+        const eb=e.boundingBox();
+        if(rectsOverlap(nb,eb)){
+          const v=unit({x:nb.x1+nb.w/2-e.midpoint().x,y:nb.y1+nb.h/2-e.midpoint().y});
+          push(n,v,10);moved=true;
+        }
+        const lb=e.boundingBox({includeEdges:false,includeLabels:true,includeNodes:false});
+        if(rectsOverlap(nb,lb)){
+          const v=unit({x:nb.x1+nb.w/2-e.midpoint().x,y:nb.y1+nb.h/2-e.midpoint().y});
+          push(n,v,10);moved=true;
+        }
+      });
+    });
+    if(!moved) break;
+    if(lu) lu.run('prevent-overlap');
+  }
+}
+
+/* shift edge labels to avoid nodes and other labels */
+function adjustLabels(){
+  const edges=cy.edges();
+  edges.forEach(e=>e.style('text-margin-y','-10px'));
+  for(let i=0;i<edges.length;i++){
+    const ei=edges[i];
+    let bb=ei.boundingBox({includeEdges:false,includeLabels:true,includeNodes:false});
+    cy.nodes().forEach(n=>{
+      if(rectsOverlap(bb,n.boundingBox())){
+        const sign=n.position('y')>ei.midpoint().y?-1:1;
+        ei.style('text-margin-y',parseFloat(ei.style('text-margin-y'))+sign*14);
+        bb=ei.boundingBox({includeEdges:false,includeLabels:true,includeNodes:false});
+      }
+    });
+    for(let j=i+1;j<edges.length;j++){
+      const ej=edges[j];
+      const bj=ej.boundingBox({includeEdges:false,includeLabels:true,includeNodes:false});
+      if(rectsOverlap(bb,bj))
+        ej.style('text-margin-y',parseFloat(ej.style('text-margin-y'))+14);
+    }
+  }
 }
 
 /* physics layout + overlap pass */
@@ -185,6 +243,8 @@ function layout(full){
     edgeElasticity:0.25,nodeDimensionsIncludeLabels:true
   }).run();
   if(lu) lu.run('prevent-overlap');
+  resolveCollisions();
+  adjustLabels();
   if(full) cy.animate({fit:{eles:cy,padding:40}}, {duration:400});
 }
 
