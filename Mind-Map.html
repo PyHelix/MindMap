@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mobile Mind‑Map</title>
+
+<!-- Cytoscape core -->
+<script src="https://unpkg.com/cytoscape@3/dist/cytoscape.min.js"></script>
+<!-- Physics layout (optional) -->
+<script src="https://unpkg.com/cytoscape-cose-bilkent@4/dist/cytoscape-cose-bilkent.js"></script>
+<!-- Overlap‑buster plug‑in -->
+<script src="https://unpkg.com/cytoscape-layout-utilities/cytoscape-layout-utilities.js"></script>
+
+<style>
+:root{
+  --bg:#0e1117;--panel:#161b22;--node:#9ca3af;--root:#3b82f6;
+  --edge:#818cf8;--btn:#2563eb;--btn-h:#1d4ed8
+}
+html,body{
+  height:100%;margin:0;display:flex;flex-direction:column;
+  font-family:system-ui,sans-serif;background:var(--bg);color:#e2e8f0
+}
+#controls{padding:8px;background:var(--panel)}
+#jsonInput{
+  width:100%;height:150px;box-sizing:border-box;font-family:monospace;
+  background:#0f172a;color:#cbd5e1;border:1px solid #334155;border-radius:6px
+}
+button{
+  padding:6px 14px;margin-top:6px;border:0;border-radius:6px;
+  background:var(--btn);color:#fff;font-weight:600;cursor:pointer
+}
+button:hover{background:var(--btn-h)}
+#cy{flex:1;border-top:1px solid #334155}
+details{margin-top:6px}
+summary{cursor:pointer;font-weight:600}
+code{
+  background:#1e293b;padding:2px 4px;border-radius:4px;white-space:pre-line
+}
+</style>
+</head>
+<body>
+<div id="controls">
+  <details>
+    <summary>Prompt builder (click to open)</summary>
+    <p>Enter a topic → <b>Copy Prompt</b> → paste into ChatGPT.<br>
+       Copy ChatGPT’s <i>raw JSON</i> reply (no ``` fences) into the box below.</p>
+    <input id="topicInput" placeholder="Topic e.g. Renormalization"
+           style="width:60%;padding:6px;border-radius:6px;border:1px solid #334155;
+                  background:#0f172a;color:#cbd5e1">
+    <button id="copyPromptBtn">Copy Prompt</button>
+    <p style="margin:6px 0 2px">Preview:</p>
+    <code id="promptPreview">prompt you make:</code>
+  </details>
+
+  <textarea id="jsonInput"
+    placeholder="Paste ChatGPT’s JSON here, then hit Render Map"></textarea>
+  <br><button id="renderBtn">Render Map</button>
+</div>
+
+<div id="cy"></div>
+
+<script>
+/* ---------- prompt builder ---------- */
+function tmpl(topic){
+return `prompt you make:
+For the topic "${topic}" reply with ONLY raw JSON (no Markdown, no code fences).
+
+Schema:
+{
+  "root":"${topic}",
+  "nodes":[{ "id":"...", "text":"...", "parent":"..." }],
+  "edges":[{ "source":"...", "target":"...", "label":"...", "direction":"out" }]
+}
+
+Rules:
+• Every node needs id, text, parent
+• Every edge needs source, target, label, direction ("out" | "in")
+• Keep each text ≤ 30 chars
+Return only the JSON object.`;}
+const tIn=document.getElementById('topicInput');
+const pPrev=document.getElementById('promptPreview');
+const cBtn=document.getElementById('copyPromptBtn');
+function upd(){pPrev.textContent=tmpl(tIn.value.trim()||'<topic>');}
+upd(); tIn.addEventListener('input',upd);
+cBtn.addEventListener('click',()=>{
+ if(!tIn.value.trim()){alert('Enter a topic');return;}
+ navigator.clipboard.writeText(tmpl(tIn.value.trim()))
+  .then(()=>{cBtn.textContent='Copied!';setTimeout(()=>cBtn.textContent='Copy Prompt',1200);});
+});
+
+/* ---------- helpers ---------- */
+const ZWSP="\u200B", WRAP=10;
+const wrap=t=>t.includes(' ')||t.length<=WRAP?t:t.replace(new RegExp(`(.{${WRAP}})`,'g'),`$1${ZWSP}`);
+
+/* ---------- JSON → elements ---------- */
+function jsonToEls(d){
+  const els=[], explicit=new Set();
+
+  (d.edges||[]).forEach(e=>{
+    const src=e.direction!=='in'?e.source:e.target;
+    const tgt=e.direction!=='in'?e.target:e.source;
+    explicit.add(src+'→'+tgt);
+  });
+
+  if(d.root && !(d.nodes||[]).some(n=>n.id===d.root))
+    els.push({data:{id:d.root,label:wrap(d.root)},classes:'root'});
+
+  (d.nodes||[]).forEach(n=>{
+    els.push({data:{id:n.id,label:wrap(n.text)},classes:n.id===d.root?'root':''});
+  });
+
+  (d.nodes||[]).forEach(n=>{
+    if(n.parent && !explicit.has(n.parent+'→'+n.id)){
+      els.push({data:{source:n.parent,target:n.id,label:'parent'}});
+    }
+  });
+
+  (d.edges||[]).forEach(e=>{
+    const src=e.direction!=='in'?e.source:e.target;
+    const tgt=e.direction!=='in'?e.target:e.source;
+    els.push({data:{source:src,target:tgt,label:e.label||'rel'}});
+  });
+  return els;
+}
+
+/* ---------- Cytoscape + overlap utility ---------- */
+let cy, lu;
+function ensureCy(){
+ if(cy) return;
+
+ if(window.cytoscapeCoseBilkent) cytoscape.use(cytoscapeCoseBilkent);
+ if(window.cytoscapeLayoutUtilities) cytoscape.use(window.cytoscapeLayoutUtilities);
+
+ cy=cytoscape({
+   container:document.getElementById('cy'),
+   style:[
+     {selector:'node',style:{
+       label:'data(label)','text-wrap':'wrap','text-max-width':'240px',
+       'text-valign':'center','text-halign':'center',
+       'background-color':'var(--node)','color':'#fff',
+       'shape':'round-rectangle','padding':'8px',
+       width:'label',height:'label','font-size':'13px'}},
+     {selector:'node.root',style:{'background-color':'var(--root)'}},
+     {selector:'edge',style:{
+       width:2,'line-color':'var(--edge)','target-arrow-color':'var(--edge)',
+       'target-arrow-shape':'triangle','curve-style':'bezier',
+       label:'data(label)','font-size':'11px','color':'#e2e8f0',
+       'text-rotation':'autorotate','text-margin-y':'-10px',
+       'text-background-opacity':0.9,'text-background-color':'var(--panel)',
+       'text-background-padding':'2px'}},
+     {selector:'edge[label=""]',style:{label:'','text-background-opacity':0}}
+   ]
+ });
+
+ /* overlap util */
+ if(cytoscape.layoutUtilities){
+   lu=cy.layoutUtilities({desiredAspectRatio:1.2,nodeSpacing:40});
+ }
+
+ /* tap‑to‑extend */
+ cy.on('tap','node',evt=>{
+   const n=evt.target;
+   const eg=`{"nodes":[{"id":"newId","text":"New","parent":"${n.id()}"}],
+"edges":[{"source":"${n.id()}","target":"newId","label":"rel","direction":"out"}]}`;
+   const raw=prompt('Add JSON to expand this node:\n'+eg);
+   if(!raw) return;
+   try{
+     const extra=JSON.parse(raw);
+     cy.add(jsonToEls(extra));
+     layout(true);
+   }catch{alert('Bad JSON');}
+ });
+
+ /* after dragging, push overlaps away */
+ cy.on('dragfree','node',()=>{if(lu) lu.run('prevent-overlap');});
+}
+
+/* physics layout + overlap pass */
+function layout(full){
+  const name=window.cytoscapeCoseBilkent?'cose-bilkent':'cose';
+  cy.layout({
+    name,animate:false,random:false,fit:true,padding:40,
+    idealEdgeLength:220,nodeRepulsion:25000,gravity:0.3,
+    edgeElasticity:0.25,nodeDimensionsIncludeLabels:true
+  }).run();
+  if(lu) lu.run('prevent-overlap');
+  if(full) cy.animate({fit:{eles:cy,padding:40}}, {duration:400});
+}
+
+/* ---------- render button ---------- */
+document.getElementById('renderBtn').addEventListener('click',()=>{
+  let raw=document.getElementById('jsonInput').value.trim();
+  if(raw.startsWith('```')) raw=raw.replace(/^```[a-z]*\s*/i,'').replace(/```$/,'');
+  raw=raw.replace(/\\\[/g,'[').replace(/\\\]/g,']');
+
+  let data; try{data=JSON.parse(raw);}catch{alert('Invalid JSON');return;}
+
+  ensureCy();
+  cy.elements().remove();
+  cy.add(jsonToEls(data));
+  layout();
+});
+</script>
+</body>
+</html>
