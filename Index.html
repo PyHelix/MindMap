@@ -16,279 +16,146 @@
       --node:#8b949e;--node-h:#c9d1d9;--root:#3b82f6;--edge:#8b949e;
       --edge-bg:#0f172a;--btn:#238636;--btn-h:#2ea043;--btn-d:#3d434a}
 *{box-sizing:border-box;margin:0}
-html,body{height:100%;display:flex;flex-direction:column;font-family:system-ui,sans-serif;
-          background:var(--bg);color:var(--txt)}
-#controls{padding:8px;background:var(--panel);border-bottom:1px solid var(--border);
-          display:flex;flex-direction:column;gap:6px}
-#jsonInput{width:100%;height:150px;font-family:monospace;background:#0f172a;color:#c9d1d9;
-           border:1px solid var(--border);border-radius:6px}
+html,body{height:100%;display:flex;flex-direction:column;font-family:system-ui,sans-serif;background:var(--bg);color:var(--txt)}
+#controls{padding:8px;background:var(--panel);border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:6px}
+#jsonInput{width:100%;height:150px;font-family:monospace;background:#0f172a;color:#c9d1d9;border:1px solid var(--border);border-radius:6px}
 .btn{padding:6px 14px;border:0;border-radius:6px;font-weight:600;cursor:pointer}
-.btn.main{background:var(--btn);color:#fff}
-.btn.main:hover{background:var(--btn-h)}
+.btn.main{background:var(--btn);color:#fff}.btn.main:hover{background:var(--btn-h)}
 .btn.aux{background:var(--node-h);color:#111;padding:6px 10px}
 .btn.aux:disabled{background:var(--btn-d);color:#666;cursor:not-allowed}
 #actionRow{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 #cy{flex:1;touch-action:none}
 details{margin-top:6px}summary{cursor:pointer;font-weight:600}
 code{background:#1e293b;padding:2px 4px;border-radius:4px;white-space:pre-line}
-#nodeMenu{position:absolute;background:var(--panel);border:1px solid var(--border);
-          border-radius:6px;padding:6px;box-shadow:0 4px 12px rgba(0,0,0,.4);
-          display:none;z-index:1000}
-#nodeMenu button{margin:4px 0;width:140px;font-size:13px;padding:4px 10px}
-#donate{padding:10px 12px;font-size:13px;background:var(--panel);
-        border-top:1px solid var(--border);cursor:pointer;line-height:1.45}
+#nodeMenu{position:absolute;background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:6px;box-shadow:0 4px 12px rgba(0,0,0,.4);display:none;z-index:1000}
+#nodeMenu button{margin:4px 0;width:150px;font-size:13px;padding:4px 10px}
+#donate{padding:10px 12px;font-size:13px;background:var(--panel);border-top:1px solid var(--border);cursor:pointer;line-height:1.45}
 #donate.hide{opacity:0;height:0;padding:0;border:none;overflow:hidden;transition:all .25s}
-#donate b{color:#c9d1d9} #donate a{color:#58a6ff;text-decoration:none}
+#donate b{color:#c9d1d9}#donate a{color:#58a6ff;text-decoration:none}
 </style>
 </head>
 <body>
 <div id="controls">
   <details id="builder">
     <summary>Prompt builder (click to open)</summary>
-    <p>Enter a topic → <b>Copy Prompt</b> → paste into ChatGPT.<br>
-       ChatGPT returns complete JSON → paste into box below.</p>
-    <input id="topicInput" placeholder="Topic e.g. Renormalization"
-           style="width:60%;padding:6px;border-radius:6px;border:1px solid var(--border);
-                  background:#0f172a;color:#c9d1d9">
+    <p>Enter a topic → <b>Copy Prompt</b> → paste into ChatGPT.<br>ChatGPT returns complete JSON → paste into box below.</p>
+    <input id="topicInput" placeholder="Topic e.g. Renormalization" style="width:60%;padding:6px;border-radius:6px;border:1px solid var(--border);background:#0f172a;color:#c9d1d9">
     <button id="copyPromptBtn" class="btn main">Copy Prompt</button>
-    <p style="margin:6px 0 2px">Preview:</p>
-    <code id="promptPreview">prompt you make:</code>
+    <p style="margin:6px 0 2px">Preview:</p><code id="promptPreview">prompt you make:</code>
   </details>
 
-  <textarea id="jsonInput"
-    placeholder="Paste ChatGPT’s JSON here, then hit Render Map"></textarea>
+  <textarea id="jsonInput" placeholder="Paste ChatGPT’s JSON here, then hit Render Map"></textarea>
 
   <div id="actionRow">
     <button id="renderBtn" class="btn main" style="flex:1">Render Map</button>
     <button id="pasteBtn"  class="btn aux" title="Paste JSON to overwrite">📋</button>
-    <button id="undoBtn"   class="btn aux" title="Undo (Ctrl‑Z)" disabled>⟲</button>
-    <button id="redoBtn"   class="btn aux" title="Redo (Ctrl‑Y)" disabled>⟳</button>
+    <button id="undoBtn"   class="btn aux" title="Undo node add/remove (Ctrl‑Z)" disabled>⟲</button>
+    <button id="redoBtn"   class="btn aux" title="Redo node add/remove (Ctrl‑Y)" disabled>⟳</button>
   </div>
 </div>
 
 <div id="cy"></div>
 
-<!-- node menu -->
 <div id="nodeMenu">
   <button id="nodeCopy">Copy Prompt for this node</button>
 </div>
 
-<!-- donation (tap to hide) -->
-<section id="donate" title="Tap to hide">
-  <h3 style="margin:0 0 4px;font-size:14px">Support citizen‑science projects <span style="font-size:11px;opacity:.6">(tap to hide)</span></h3>
-  <p><b>Gridcoin</b> — rewards BOINC distributed‑computing research.<br>
-     Address: <code>SG5RCw9cf2RhbopCuXLzYYpXciARaZNCF8</code></p>
-  <p><b>Curecoin</b> — rewards Folding@home protein‑folding research.<br>
-     Address: <code>BRaK31UtcWKM6wqbFFU8bXDSc1b8NkvP7h</code></p>
-  <p>Suggestions / feedback → <a href="mailto:Foxes.owo@gmaill.com">Foxes.owo@gmaill.com</a></p>
-</section>
+<section id="donate" title="Tap to hide"><h3 style="margin:0 0 4px;font-size:14px">Support citizen‑science projects <span style="font-size:11px;opacity:.6">(tap to hide)</span></h3><p><b>Gridcoin</b> — rewards BOINC distributed‑computing research.<br>Address: <code>SG5RCw9cf2RhbopCuXLzYYpXciARaZNCF8</code></p><p><b>Curecoin</b> — rewards Folding@home protein‑folding research.<br>Address: <code>BRaK31UtcWKM6wqbFFU8bXDSc1b8NkvP7h</code></p><p>Suggestions / feedback → <a href="mailto:Foxes.owo@gmaill.com">Foxes.owo@gmaill.com</a></p></section>
 
 <script>
-/* tap‑to‑hide banner */
-document.getElementById('donate').addEventListener('click',e=>e.currentTarget.classList.add('hide'));
-
-/* ---------- flags ---------- */
-const hasCola = typeof cytoscapeCola!=='undefined';
-if(hasCola) cytoscape.use(cytoscapeCola);
-if(typeof cytoscapeLayoutUtilities!=='undefined') cytoscape.use(cytoscapeLayoutUtilities);
-
-/* clipboard copy helper (for prompts) */
-const copyText = txt => navigator.clipboard?.writeText
-      ? navigator.clipboard.writeText(txt)
-      : new Promise(r=>{const t=document.createElement('textarea');
-         t.value=txt;t.style.position='fixed';t.style.opacity=0;
-         document.body.appendChild(t);t.select();document.execCommand('copy');
-         document.body.removeChild(t);r();});
-
-/* ---------- helpers ---------- */
-const ZWSP="\u200B",WRAP=10;
-const wrap=t=>t.includes(' ')||t.length<=WRAP?t:t.replace(new RegExp(`(.{${WRAP}})`,'g'),`$1${ZWSP}`);
-const strip=s=>s.replace(/\u200B/g,'');
-const clean=r=>r.replace(/^```[^\n]*\n?|```$/g,'').replace(/\\(?=[\[\]{}])/g,'').replace(/,\s*(\]|\})/g,'$1');
+/* ---------- helpers & sanitation ---------- */
+const ZWSP="\u200B",WRAP=10,wrap=t=>t.includes(' ')||t.length<=WRAP?t:t.replace(new RegExp(`(.{${WRAP}})`,'g'),`$1${ZWSP}`),strip=s=>s.replace(/\u200B/g,'');
+const clean=t=>t.replace(/^```[^\n]*\n?|```$/g,'').replace(/\\(?=[\[\]{}])/g,'').replace(/,\s*(\]|\})/g,'$1');
 const parseJSON=t=>{t=clean(t);try{return JSON.parse(t);}catch{try{return Function('return '+t)();}catch{return null;}}};
 
-/* remove duplicate labels */
+/* de‑duplicate nodes with identical label */
 function normalize(d){
-  const seen={},out=[];
+  const seen={},keep=[];
   (d.nodes||[]).forEach(n=>{
     const k=n.text.trim();
-    if(seen[k]){
-      (d.edges||[]).forEach(e=>{
-        if(e.source===n.id) e.source=seen[k];
-        if(e.target===n.id) e.target=seen[k];
-      });
-    }else{seen[k]=n.id;out.push(n);}
+    if(seen[k]) (d.edges||[]).forEach(e=>{if(e.source===n.id) e.source=seen[k];if(e.target===n.id) e.target=seen[k];});
+    else {seen[k]=n.id;keep.push(n);}
   });
-  d.nodes=out;
-  if(d.root&&!out.some(n=>n.id===d.root))
-    d.root=seen[d.root]||out[0]?.id||"";
+  d.nodes=keep;if(d.root&&!keep.some(n=>n.id===d.root)) d.root=seen[d.root]||keep[0]?.id||"";
   return d;
 }
 
-/* ---------- history ---------- */
-let hist=[],pos=-1;
-function pushHist(str){hist=hist.slice(0,pos+1);hist.push(str);pos=hist.length-1;updateUR();}
-function undo(){if(pos>0){pos--;loadHist();}}
-function redo(){if(pos<hist.length-1){pos++;loadHist();}}
-function loadHist(){jsonInput.value=hist[pos]; render(false);updateUR();}
-function updateUR(){undoBtn.disabled=pos<=0;redoBtn.disabled=pos>=hist.length-1;}
+/* ---------- history (only node‑set changes) ---------- */
+let hist=[],idx=-1;
+function keyOf(o){return (o.nodes||[]).map(n=>n.id).sort().join(',');}
+function pushHist(txt,obj){
+  const k=keyOf(obj);
+  if(!hist.length||k!==hist[hist.length-1].key){
+    hist.splice(idx+1);hist.push({text:txt,key:k});idx=hist.length-1;updateUR();
+  }
+}
+function applyHist(){jsonInput.value=hist[idx].text;render(false,false);updateUR();}
+function undo(){if(idx>0){idx--;applyHist();}}
+function redo(){if(idx<hist.length-1){idx++;applyHist();}}
+function updateUR(){undoBtn.disabled=idx<=0;redoBtn.disabled=idx>=hist.length-1;}
 
 /* ---------- DOM refs ---------- */
-const jsonInput=document.getElementById('jsonInput');
-const renderBtn=document.getElementById('renderBtn');
-const pasteBtn=document.getElementById('pasteBtn');
-const undoBtn=document.getElementById('undoBtn');
-const redoBtn=document.getElementById('redoBtn');
+const jsonInput=document.getElementById('jsonInput'),renderBtn=document.getElementById('renderBtn'),
+      pasteBtn=document.getElementById('pasteBtn'),undoBtn=document.getElementById('undoBtn'),
+      redoBtn=document.getElementById('redoBtn');
 
-/* ---------- paste button ---------- */
-pasteBtn.onclick=()=>{
-  const txt=prompt('Paste JSON here to overwrite:');
-  if(txt) jsonInput.value=txt.trim();
-};
+/* overwrite paste */
+pasteBtn.onclick=()=>{const raw=prompt('Paste JSON here to overwrite:');if(raw) jsonInput.value=clean(raw.trim());};
 
-/* ---------- export graph ---------- */
-function exportJSON(){
-  if(!cy) return null;
-  const nodes=cy.nodes().map(n=>{
-    const p=cy.edges('[label="parent"][target="'+n.id()+'"]')[0];
-    return {id:n.id(),text:strip(n.data('label')),parent:p?p.source().id():""};
-  });
-  const edges=cy.edges().filter(e=>e.data('label')!=='parent').map(e=>({
-    source:e.source().id(),target:e.target().id(),label:e.data('label'),direction:'out'}));
-  return {root:cy.nodes('.root')[0]?.id()||"",nodes,edges};
-}
-
-/* ---------- prompts ---------- */
-const initPrompt=t=>`prompt you make:
-For the topic "${t}" reply with ONLY raw JSON (no Markdown, no code fences).
-
-Schema:{ "root":"${t}",
-  "nodes":[{ "id":"...","text":"...","parent":"..." }],
-  "edges":[{ "source":"...","target":"...","label":"...","direction":"out" }] }
-
-Rules: Every node needs id, text, parent. Every edge needs source, target, label,
-direction ("out" | "in"). Keep each text ≤ 30 chars. Return only the JSON object.`;
-
-const extPrompt=(id,lab,json)=>`You are updating a mind‑map.
-
-• Extend node id "${id}" (label "${lab}") by appending children / edges.
-• Do NOT delete or rename existing nodes.
-
-Current full JSON:
-
-${json}
-
-Return the ENTIRE updated JSON object only (no Markdown).`;
-
-/* ---------- builder ---------- */
-const topicIn=document.getElementById('topicInput');
-const prev=document.getElementById('promptPreview');
-const copyBtn=document.getElementById('copyPromptBtn');
-const builder=document.getElementById('builder');
-topicIn.addEventListener('input',()=>prev.textContent=initPrompt(topicIn.value.trim()||'<topic>'));
-prev.textContent=initPrompt('<topic>');
-copyBtn.onclick=()=>{
-  const t=topicIn.value.trim();
-  if(!t){alert('Enter a topic');return;}
-  copyText(initPrompt(t)).then(()=>{
-    copyBtn.textContent='Copied!';setTimeout(()=>copyBtn.textContent='Copy Prompt',1200);
-    builder.removeAttribute('open');
-  });
-};
+/* prompt builder */
+const topicIn=document.getElementById('topicInput'),prev=document.getElementById('promptPreview'),
+      copyBtn=document.getElementById('copyPromptBtn'),builder=document.getElementById('builder');
+const buildPrompt=t=>`prompt you make:\nFor the topic "${t}" reply with ONLY raw JSON (no Markdown, no code fences).\nSchema:{ "root":"${t}","nodes":[{ "id":"...","text":"...","parent":"..." }],"edges":[{ "source":"...","target":"...","label":"...","direction":"out" }] }\nRules: Every node needs id,text,parent; each edge needs source,target,label,direction.\nKeep each text ≤ 30 chars. Return only the JSON object.`;
+topicIn.addEventListener('input',()=>prev.textContent=buildPrompt(topicIn.value.trim()||'<topic>'));prev.textContent=buildPrompt('<topic>');
+copyBtn.onclick=()=>{const t=topicIn.value.trim();if(!t)return alert('Enter a topic');navigator.clipboard?.writeText(buildPrompt(t));copyBtn.textContent='Copied!';setTimeout(()=>copyBtn.textContent='Copy Prompt',1200);builder.removeAttribute('open');};
 
 /* ---------- Cytoscape ---------- */
+const hasCola=typeof cytoscapeCola!=='undefined';if(hasCola) cytoscape.use(cytoscapeCola);
+if(typeof cytoscapeLayoutUtilities!=='undefined') cytoscape.use(cytoscapeLayoutUtilities);
 let cy,lu;
-function ensureCy(){
-  if(cy) return;
-  cy=cytoscape({
-    container:document.getElementById('cy'),
-    style:[
-      {selector:'node',style:{
-        label:'data(label)','text-wrap':'wrap','text-max-width':'240px',
-        'text-valign':'center','text-halign':'center',
-        'background-color':'var(--node)',color:'#fff',
-        'shape':'round-rectangle','padding':'8px',
-        width:'label',height:'label','font-size':'13px'}},
-      {selector:'node:hover',style:{'background-color':'var(--node-h)'}},
-      {selector:'node.root',style:{'background-color':'var(--root)'}},
-      {selector:'edge',style:{
-        width:2,'line-color':'var(--edge)','target-arrow-color':'var(--edge)',
-        'target-arrow-shape':'triangle','curve-style':'bezier',
-        label:'data(label)','font-size':'11px','color':'#e6edf3',
-        'text-rotation':'autorotate','text-margin-y':'-10px',
-        'text-background-opacity':0.9,'text-background-color':'var(--edge-bg)',
-        'text-background-padding':'2px'}},
-      {selector:'edge[label=""]',style:{label:'','text-background-opacity':0}}
-    ]
-  });
-  if(cytoscape.layoutUtilities) lu=cy.layoutUtilities({desiredAspectRatio:1.2,nodeSpacing:30});
-  cy.on('tap',e=>{if(e.target===cy)hideMenu();});
-  cy.on('tap','node',e=>showMenu(e.target,e.renderedPosition));
-}
-
-function layout(){
-  cy.layout({
-    name:hasCola?'cola':'cose',animate:true,refresh:2,maxSimulationTime:4000,
-    nodeSpacing:20,edgeLength:200,avoidOverlap:true,fit:true,padding:40
-  }).run();
-}
+function ensureCy(){if(cy) return;cy=cytoscape({container:document.getElementById('cy'),wheelSensitivity:0.25,style:[
+  {selector:'node',style:{label:'data(label)','text-wrap':'wrap','text-max-width':'240px','text-valign':'center','text-halign':'center','background-color':'var(--node)',color:'#fff','shape':'round-rectangle','padding':'8px',width:'label',height:'label','font-size':'13px'}},
+  {selector:'node:hover',style:{'background-color':'var(--node-h)'}},
+  {selector:'node.root',style:{'background-color':'var(--root)'}},
+  {selector:'edge',style:{width:2,'line-color':'var(--edge)','target-arrow-color':'var(--edge)','target-arrow-shape':'triangle','curve-style':'bezier',label:'data(label)','font-size':'11px',color:'#e6edf3','text-rotation':'autorotate','text-margin-y':'-10px','text-background-opacity':0.9,'text-background-color':'var(--edge-bg)','text-background-padding':'2px'}},
+  {selector:'edge[label=""]',style:{label:'','text-background-opacity':0}}
+]});if(cytoscape.layoutUtilities) lu=cy.layoutUtilities({desiredAspectRatio:1.2,nodeSpacing:30});
+cy.on('tap',e=>{if(e.target===cy)menu.style.display='none';});cy.on('tap','node',e=>showMenu(e.target,e.renderedPosition));}
+function runLayout(){cy.layout({name:hasCola?'cola':'cose',animate:true,refresh:1,fit:false,padding:40,nodeSpacing:20,edgeLength:200,avoidOverlap:true}).run();}
 
 /* node menu */
 const menu=document.getElementById('nodeMenu');
-function hideMenu(){menu.style.display='none';}
-function showMenu(node,pos){
-  menu.dataset.id=node.id();
-  menu.style.left=pos.x+20+'px';
-  menu.style.top=pos.y+20+'px';
-  menu.style.display='block';
-}
-document.getElementById('nodeCopy').onclick=()=>{
-  const id=menu.dataset.id,n=cy.getElementById(id);
-  copyText(extPrompt(id,strip(n.data('label')),JSON.stringify(exportJSON(),null,2)))
-    .then(hideMenu);
-};
+function showMenu(node,pos){menu.dataset.id=node.id();menu.style.left=pos.x+20+'px';menu.style.top=pos.y+20+'px';menu.style.display='block';}
+document.getElementById('nodeCopy').onclick=()=>{const id=menu.dataset.id,n=cy.getElementById(id);navigator.clipboard?.writeText(`Extend node "${strip(n.data('label'))}" (id "${id}") …\n\nCurrent JSON:\n${jsonInput.value}`);menu.style.display='none';};
 
-/* JSON→elements */
-function buildEls(d){
-  const els=[],seen=new Set();
-  (d.edges||[]).forEach(e=>{
-    const s=e.direction!=='in'?e.source:e.target,t=e.direction!=='in'?e.target:e.source;
-    seen.add(s+'→'+t);
-  });
-  if(d.root && !(d.nodes||[]).some(n=>n.id===d.root))
-    els.push({data:{id:d.root,label:wrap(d.root)},classes:'root'});
-  (d.nodes||[]).forEach(n=>els.push({data:{id:n.id,label:wrap(n.text)},classes:n.id===d.root?'root':''}));
-  (d.nodes||[]).forEach(n=>{
-    if(n.parent&&!seen.has(n.parent+'→'+n.id))
-      els.push({data:{source:n.parent,target:n.id,label:'parent'}});
-  });
-  (d.edges||[]).forEach(e=>{
-    const s=e.direction!=='in'?e.source:e.target,t=e.direction!=='in'?e.target:e.source;
-    els.push({data:{source:s,target:t,label:e.label||'rel'}});
-  });
-  return els;
-}
+/* build Cytoscape elements */
+function toEls(d){const els=[],seen=new Set();
+(d.edges||[]).forEach(e=>{const s=e.direction!=='in'?e.source:e.target,t=e.direction!=='in'?e.target:e.source;seen.add(s+'→'+t);});
+if(d.root&&!((d.nodes||[]).some(n=>n.id===d.root))) els.push({data:{id:d.root,label:wrap(d.root)},classes:'root'});
+(d.nodes||[]).forEach(n=>els.push({data:{id:n.id,label:wrap(n.text)},classes:n.id===d.root?'root':''}));
+(d.nodes||[]).forEach(n=>{if(n.parent&&!seen.has(n.parent+'→'+n.id))els.push({data:{source:n.parent,target:n.id,label:'parent'}});});
+(d.edges||[]).forEach(e=>{const s=e.direction!=='in'?e.source:e.target,t=e.direction!=='in'?e.target:e.source;els.push({data:{source:s,target:t,label:e.label||'rel'}});});
+return els;}
 
 /* ---------- render ---------- */
-renderBtn.onclick=()=>render(true);
-function render(store){
-  let data=parseJSON(jsonInput.value.trim());
-  if(!data){alert('Invalid JSON');return;}
-  data=normalize(data);
-  const str=JSON.stringify(data,null,2);
-  if(store) pushHist(str);
-  ensureCy();
-  cy.elements().remove();
-  cy.add(buildEls(data));
-  layout();
+function render(storeSnap=true,showAlert=true){
+  const obj=parseJSON(jsonInput.value);if(!obj){if(showAlert)alert('Invalid JSON');return;}
+  normalize(obj);ensureCy();cy.elements().remove();cy.add(toEls(obj));runLayout();
+  if(storeSnap) pushHist(jsonInput.value,obj);
 }
+renderBtn.onclick=()=>render(true);
 
-/* keyboard shortcuts */
-undoBtn.onclick=undo; redoBtn.onclick=redo;
-document.addEventListener('keydown',e=>{
+/* overwrite & initial render if user pastes before first click */
+if(jsonInput.value.trim()) render(true,false);
+
+/* undo / redo handlers */
+undoBtn.onclick=undo;redoBtn.onclick=redo;document.addEventListener('keydown',e=>{
   if(e.ctrlKey&&!e.shiftKey&&e.key==='z'){e.preventDefault();undo();}
   if(e.ctrlKey&&(e.key==='y'||(e.shiftKey&&e.key==='Z'))){e.preventDefault();redo();}
 });
+
+/* hide donate banner */
+document.getElementById('donate').onclick=e=>e.currentTarget.classList.add('hide');
 </script>
 </body>
 </html>
