@@ -82,16 +82,21 @@ details{margin-top:6px}summary{cursor:pointer;font-weight:600}
 const ZWSP="\u200B",WRAP=12;
 const wrap=s=>s.includes(' ')||s.length<=WRAP?s:s.replace(new RegExp(`(.{${WRAP}})`,'g'),`$1${ZWSP}`);
 function clean(t){
-  return t.trim()
-    .replace(/^```[^\n]*\n?|```$/g,'')            // strip fences
-    .replace(/\\(?!["\/bfnrtu])/g,'')             // strip extraneous backslashes
-    .replace(/\\(?=[\[\]{}])/g,'');               // strip \ before braces / brackets
+  t=t.trim()
+       .replace(/^```[^\n]*\n?|```$/g,'');          // strip fences
+  const m=t.match(/({[\s\S]*})/m);                  // keep first {...}
+  t=m?m[1]:'';
+  t=t.replace(/\\(?!["\/bfnrtu])/g,'')              // extraneous backslash
+       .replace(/\\(?=[\[\]{}])/g,'');              // backslash before []{}
+  return t;
 }
 const parseJSON=t=>{try{return JSON.parse(t);}catch{return null;}};
 
-/* ---------- prompt builder (unchanged text) ---------- */
-const topicInput=document.getElementById('topicInput'),promptPreview=document.getElementById('promptPreview'),
-      copyPromptBtn=document.getElementById('copyPromptBtn'),builderDetails=document.getElementById('builder');
+/* ---------- prompt builder ---------- */
+const topicInput=document.getElementById('topicInput'),
+      promptPreview=document.getElementById('promptPreview'),
+      copyPromptBtn=document.getElementById('copyPromptBtn'),
+      builderDetails=document.getElementById('builder');
 const isURL=s=>/^https?:\/\//i.test(s.trim());
 const mkPrompt=t=>{
   const pre=isURL(t)?`Analyse ${t} and output ONLY raw JSON.`:`Create a mind‑map for "${t}" and output ONLY raw JSON.`;
@@ -132,17 +137,15 @@ function ensureCy(){
   if(cy)return;
   cy=cytoscape({container:document.getElementById('cy'),wheelSensitivity:.25,
     style:[
-      {selector:'node',style:{label:'data(label)','text-wrap':'wrap','text-max-width':'240px',
-        'text-valign':'center','text-halign':'center','background-color':'var(--node)',
-        'shape':'round-rectangle','padding':'6px',width:'label',height:'label','font-size':'13px',
-        color:'#fff','text-outline-color':'#000','text-outline-width':1}},
+      {selector:'node',style:{label:'data(label)','text-wrap':'wrap','text-max-width':'240px','text-valign':'center','text-halign':'center',
+        'background-color':'var(--node)','shape':'round-rectangle','padding':'6px',width:'label',height:'label',
+        'font-size':'13px',color:'#fff','text-outline-color':'#000','text-outline-width':1}},
       {selector:'node:hover',style:{'background-color':'var(--node-h)'}},
       {selector:'node.root',style:{'background-color':'var(--root)','border-width':4,'border-color':'var(--root-outline)',
         'text-outline-color':'#000','text-outline-width':3,'font-size':'15px','font-weight':'700'}},
-      {selector:'edge',style:{width:2,'line-color':'var(--edge)','target-arrow-color':'var(--edge)',
-        'target-arrow-shape':'triangle','curve-style':'bezier',label:'data(label)','font-size':'11px',color:'#e6edf3',
-        'text-rotation':'autorotate','text-margin-y':'-10px','text-background-opacity':.9,
-        'text-background-color':'var(--edge-bg)','text-background-padding':'2px'}},
+      {selector:'edge',style:{width:2,'line-color':'var(--edge)','target-arrow-color':'var(--edge)','target-arrow-shape':'triangle',
+        'curve-style':'bezier',label:'data(label)','font-size':'11px',color:'#e6edf3','text-rotation':'autorotate','text-margin-y':'-10px',
+        'text-background-opacity':.9,'text-background-color':'var(--edge-bg)','text-background-padding':'2px'}},
       {selector:'edge[label=""]',style:{label:'','text-background-opacity':0}}
     ]});
   cy.on('tap',e=>{if(e.target===cy)nodeMenu.style.display='none'});
@@ -150,10 +153,10 @@ function ensureCy(){
 }
 function lay(){cy.layout({name:'cola',animate:true,fit:false,padding:40,nodeSpacing:25,edgeLength:200}).run();}
 
-/* ---------- fix root id ---------- */
-function fixRoot(){if(dataObj.root!=="n0"){dataObj.root="n0";}}
+/* fix root */
+function fixRoot(){if(dataObj.root!=="n0")dataObj.root="n0";}
 
-/* ---------- elements ---------- */
+/* build elements */
 const els=()=>{const arr=[],dup=new Set(dataObj.edges?.map(e=>e.source+'→'+e.target)||[]);
   (dataObj.nodes||[]).forEach(n=>{arr.push({data:{id:n.id,label:wrap(n.text)},classes:n.id==="n0"?'root':''});
     if(n.parent&&!dup.has(n.parent+'→'+n.id))arr.push({data:{source:n.parent,target:n.id,label:'parent'}});});
@@ -175,7 +178,7 @@ document.getElementById('nodeCopy').onclick=()=>{
   const id=nodeMenu.dataset.id,n=cy.getElementById(id);
   const p=`Extend and refactor node "${n.data('label')}" (id "${id}") and its sub‑graph.
 
-IDs MUST remain n0 (root), n1, n2 … in order.
+IDs MUST remain n0 (root), n1, n2 …
 
 Schema (return ONLY JSON):
 {
@@ -193,15 +196,13 @@ ${jsonInput.value}`;
 function subtree(i,inc){const s=new Set(inc?[i]:[]),q=[i];while(q.length){const id=q.pop();
   dataObj.edges.filter(e=>e.source===id).forEach(e=>{if(!s.has(e.target)){s.add(e.target);q.push(e.target);}});
   dataObj.nodes.filter(n=>n.parent===id).forEach(n=>{if(!s.has(n.id)){s.add(n.id);q.push(n.id);}});}return s;}
-function remove(set){dataObj.nodes=dataObj.nodes.filter(n=>!set.has(n.id));dataObj.edges=dataObj.edges.filter(e=>!set.has(e.source)&&!set.has(e.target));
-  if(set.has("n0"))dataObj.root=dataObj.nodes[0]?.id||"";}
+function remove(set){dataObj.nodes=dataObj.nodes.filter(n=>!set.has(n.id));dataObj.edges=dataObj.edges.filter(e=>!set.has(e.source)&&!set.has(e.target));if(set.has("n0"))dataObj.root=dataObj.nodes[0]?.id||"";}
 delBtn.onclick=()=>{
   const id=nodeMenu.dataset.id,isRoot=id==="n0";if(isRoot){if(!confirm('Delete entire graph?'))return;
     dataObj={};jsonInput.value='';cy.elements().remove();pushHist('');nodeMenu.style.display='none';return;}
   remove(subtree(id,true));jsonInput.value=JSON.stringify(dataObj,null,2);nodeMenu.style.display='none';render(true,false);
 };
-childBtn.onclick=()=>{remove(subtree(nodeMenu.dataset.id,false));jsonInput.value=JSON.stringify(dataObj,null,2);
-  nodeMenu.style.display='none';render(true,false);};
+childBtn.onclick=()=>{remove(subtree(nodeMenu.dataset.id,false));jsonInput.value=JSON.stringify(dataObj,null,2);nodeMenu.style.display='none';render(true,false);};
 
 /* ---------- render ---------- */
 function render(store=true){
