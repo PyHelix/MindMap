@@ -2,195 +2,248 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=yes">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=yes">
 <title>Mobile Mind‑Map</title>
 
-<!-- libs -->
 <script src="https://unpkg.com/cytoscape@3/dist/cytoscape.min.js"></script>
 <script src="https://unpkg.com/webcola@3.4.0/WebCola/cola.min.js"></script>
 <script src="https://unpkg.com/cytoscape-cola@2/cytoscape-cola.js"></script>
-<script src="https://unpkg.com/cytoscape-layout-utilities/cytoscape-layout-utilities.js"></script>
 
 <style>
-:root{--bg:#0d1117;--panel:#161b22;--border:#30363d;--txt:#e6edf3;
-      --node:#8b949e;--node-h:#c9d1d9;--root:#3b82f6;--edge:#8b949e;
-      --edge-bg:#0f172a;--btn:#238636;--btn-h:#2ea043;--btn-d:#3d434a}
+:root{
+  --bg:#0d1117;  --panel:#161b22;  --border:#30363d;  --txt:#e6edf3;
+  --node:#475569; --node-h:#64748b;
+  --root:#3b82f6; --root-outline:#facc15;
+  --edge:#cbd5e1; --edge-bg:#0f172a;
+  --btn:#238636;  --btn-h:#2ea043; --btn-d:#3d434a;
+}
 *{box-sizing:border-box;margin:0}
 html,body{height:100%;display:flex;flex-direction:column;font-family:system-ui,sans-serif;background:var(--bg);color:var(--txt)}
-#controls{padding:8px;background:var(--panel);border-bottom:1px solid var(--border);
-          display:flex;flex-direction:column;gap:6px}
-#jsonInput{width:100%;height:150px;font-family:monospace;background:#0f172a;
-           color:#c9d1d9;border:1px solid var(--border);border-radius:6px}
+#controls{padding:8px;background:var(--panel);border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:6px}
+details{margin-top:6px}summary{cursor:pointer;font-weight:600}
+#jsonBox textarea{width:100%;height:150px;font-family:monospace;background:#0f172a;color:#c9d1d9;border:1px solid var(--border);border-radius:6px}
 .btn{padding:6px 14px;border:0;border-radius:6px;font-weight:600;cursor:pointer}
 .btn.main{background:var(--btn);color:#fff}.btn.main:hover{background:var(--btn-h)}
 .btn.aux{background:var(--node-h);color:#111;padding:6px 10px}
 .btn.aux:disabled{background:var(--btn-d);color:#666;cursor:not-allowed}
 #actionRow{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 #cy{flex:1;touch-action:none}
-details{margin-top:6px}summary{cursor:pointer;font-weight:600}
-code{background:#1e293b;padding:2px 4px;border-radius:4px;white-space:pre-line}
-#nodeMenu{position:absolute;background:var(--panel);border:1px solid var(--border);
-          border-radius:6px;padding:6px;box-shadow:0 4px 10px rgba(0,0,0,.4);
-          display:none;z-index:1000}
-#nodeMenu button{margin:4px 0;width:170px;font-size:13px;padding:4px 10px}
-#donate{padding:10px 12px;font-size:13px;background:var(--panel);
-        border-top:1px solid var(--border);cursor:pointer;line-height:1.45}
+#nodeMenu{position:absolute;background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:6px;box-shadow:0 4px 10px rgba(0,0,0,.4);display:none;z-index:1000}
+#nodeMenu button{margin:4px 0;width:190px;font-size:13px;padding:4px 10px}
+#donate{padding:10px;background:var(--panel);border-top:1px solid var(--border);cursor:pointer;font-size:13px}
 #donate.hide{opacity:0;height:0;padding:0;border:none;overflow:hidden;transition:.25s}
-#donate b{color:#c9d1d9} #donate a{color:#58a6ff;text-decoration:none}
+#donate b{color:#c9d1d9}#donate a{color:#58a6ff;text-decoration:none}
 </style>
 </head>
 <body>
 <div id="controls">
+  <!-- Prompt builder (collapsed by default) -->
   <details id="builder">
     <summary>Prompt builder (click to open)</summary>
-    <p>Enter a topic or link → <b>Copy Prompt</b> → paste into ChatGPT.<br>
-       ChatGPT returns complete JSON → paste into box below.</p>
-    <input id="topicInput" placeholder="Topic or https://…" style="width:60%;padding:6px;
-           border-radius:6px;border:1px solid var(--border);background:#0f172a;color:#c9d1d9">
+    <p>Enter a topic or link → <b>Copy Prompt</b> → paste into ChatGPT.<br>ChatGPT returns complete JSON → paste into box below.</p>
+    <input id="topicInput" placeholder="Topic or https://…" style="width:60%;padding:6px;border-radius:6px;border:1px solid var(--border);background:#0f172a;color:#c9d1d9">
     <button id="copyPromptBtn" class="btn main">Copy Prompt</button>
-    <p style="margin:6px 0 2px">Preview:</p><code id="promptPreview">prompt you make:</code>
+    <p style="margin:6px 0 2px">Preview:</p><code id="promptPreview"></code>
   </details>
 
-  <textarea id="jsonInput" placeholder="Paste ChatGPT’s JSON here, then hit Render Map"></textarea>
+  <!-- JSON area -->
+  <details id="jsonBox" open>
+    <summary>JSON (click to show / hide)</summary>
+    <textarea id="jsonInput" placeholder="Paste ChatGPT’s JSON here, then hit Render Map"></textarea>
+  </details>
 
   <div id="actionRow">
-    <button id="renderBtn" class="btn main" style="flex:1">Render Map</button>
+    <button id="renderBtn" class="btn main" style="flex:1">Render Map</button>
     <button id="pasteBtn"  class="btn aux" title="Paste JSON to overwrite">📋</button>
-    <button id="undoBtn"   class="btn aux" title="Undo node add/remove (Ctrl‑Z)" disabled>⟲</button>
-    <button id="redoBtn"   class="btn aux" title="Redo node add/remove (Ctrl‑Y)" disabled>⟳</button>
+    <button id="undoBtn"   class="btn aux" title="Undo" disabled>⟲</button>
+    <button id="redoBtn"   class="btn aux" title="Redo" disabled>⟳</button>
   </div>
 </div>
 
 <div id="cy"></div>
 
+<!-- floating node menu -->
 <div id="nodeMenu">
   <button id="nodeCopy">Copy Prompt for this node</button>
   <button id="nodeDelete">Delete node & subtree</button>
+  <button id="childDelete">Delete ONLY children</button>
 </div>
 
-<section id="donate" title="Tap to hide">
-  <h3 style="margin:0 0 4px;font-size:14px">
-    Support citizen‑science projects <span style="font-size:11px;opacity:.6">(tap to hide)</span>
-  </h3>
-  <p><b>Gridcoin</b> — rewards BOINC distributed‑computing research.<br>
-     Address: <code>SG5RCw9cf2RhbopCuXLzYYpXciARaZNCF8</code></p>
-  <p><b>Curecoin</b> — rewards Folding@home protein‑folding research.<br>
-     Address: <code>BRaK31UtcWKM6wqbFFU8bXDSc1b8NkvP7h</code></p>
+<!-- donation -->
+<section id="donate" title="Tap to hide"><h3 style="margin:0 0 4px;font-size:14px">
+  Support citizen‑science projects <span style="font-size:11px;opacity:.6">(tap to hide)</span></h3>
+  <p><b>Gridcoin</b> — rewards BOINC distributed‑computing research.<br>Address: <code>SG5RCw9cf2RhbopCuXLzYYpXciARaZNCF8</code></p>
+  <p><b>Curecoin</b> — rewards Folding@home protein‑folding research.<br>Address: <code>BRaK31UtcWKM6wqbFFU8bXDSc1b8NkvP7h</code></p>
   <p>Suggestions / feedback → <a href="mailto:Foxes.owo@gmaill.com">Foxes.owo@gmaill.com</a></p>
 </section>
 
 <script>
-/* ---------- sanitation ---------- */
-function clean(raw){
-  raw=raw.trim().replace(/^```[^\n]*\n?|```$/g,'').replace(/\\(?=[\[\]{}])/g,'');
-  const start=raw.indexOf('{'); if(start===-1) return '';
-  let depth=0,inStr=false,esc=false,end=-1;
-  for(let i=start;i<raw.length;i++){
-    const c=raw[i];
-    if(inStr){ esc?esc=false:(c==='\\'?esc=true:(c==='"'&&(inStr=false))); }
-    else{ if(c==='"') inStr=true;
-          else if(c==='{') depth++;
-          else if(c==='}'&&--depth===0){end=i;break;} }
-  }
-  if(end===-1) return '';
-  return raw.slice(start,end+1).replace(/,\s*(\]|\})/g,'$1');
-}
-const parseJSON=t=>{try{return JSON.parse(t);}catch{try{return Function('return '+t)();}catch{return null;}}};
-
-/* ---------- misc helpers ---------- */
-const ZWSP="\u200B",WRAP=10,
-      wrap=t=>t.includes(' ')||t.length<=WRAP?t:t.replace(new RegExp(`(.{${WRAP}})`,'g'),`$1${ZWSP}`),
-      strip=s=>s.replace(/\u200B/g,''),
-      isURL=s=>/^https?:\/\//i.test(s.trim());
-
-function normalize(d){
-  const seen={},out=[];
-  (d.nodes||[]).forEach(n=>{
-    const k=n.text.trim();
-    if(seen[k]) (d.edges||[]).forEach(e=>{if(e.source===n.id) e.source=seen[k];if(e.target===n.id) e.target=seen[k];});
-    else {seen[k]=n.id;out.push(n);}
-  });
-  d.nodes=out;if(d.root&&!out.some(n=>n.id===d.root)) d.root=seen[d.root]||out[0]?.id||"";
-  return d;
-}
-
-/* ---------- history ---------- */
-let hist=[],idx=-1;
-const keyOf=o=>(o.nodes||[]).map(n=>n.id).sort().join(',');
-function pushHist(txt,obj){const k=keyOf(obj);if(!hist.length||k!==hist[idx]?.key){hist.splice(idx+1);hist.push({text:txt,key:k});idx=hist.length-1;updateUR();}}
-function updateUR(){undoBtn.disabled=idx<=0;redoBtn.disabled=idx>=hist.length-1;}
-function applyHist(){jsonInput.value=hist[idx].text;render(false);updateUR();}
-const undo=()=>{if(idx>0){idx--;applyHist();}}, redo=()=>{if(idx<hist.length-1){idx++;applyHist();}};
-
-/* ---------- DOM refs ---------- */
-const jsonInput=document.getElementById('jsonInput'),renderBtn=document.getElementById('renderBtn'),
-      pasteBtn=document.getElementById('pasteBtn'),undoBtn=document.getElementById('undoBtn'),
-      redoBtn=document.getElementById('redoBtn');
-
-/* paste overwrite */
-pasteBtn.onclick=()=>{const raw=prompt('Paste JSON (or ChatGPT output)');if(raw){const j=clean(raw);if(!j)alert('No JSON found');else jsonInput.value=j;}};
+/* ---------- helpers ---------- */
+const ZWSP="\u200B",WRAP=12;
+const wrap=s=>s.includes(' ')||s.length<=WRAP?s:s.replace(new RegExp(`(.{${WRAP}})`,'g'),`$1${ZWSP}`);
+const clean=t=>t.trim().replace(/^```[^\n]*\n?|```$/g,'').replace(/\\(?=[\[\]{}])/g,'');
+const parseJSON=t=>{try{return JSON.parse(t);}catch{return null;}};
 
 /* ---------- prompt builder ---------- */
-const topicIn=document.getElementById('topicInput'),prev=document.getElementById('promptPreview'),
-      copyBtn=document.getElementById('copyPromptBtn'),builder=document.getElementById('builder');
+const topicInput=document.getElementById('topicInput'),
+      promptPreview=document.getElementById('promptPreview'),
+      copyPromptBtn=document.getElementById('copyPromptBtn'),
+      builderDetails=document.getElementById('builder');
+const isURL=s=>/^https?:\/\//i.test(s.trim());
 const mkPrompt=t=>isURL(t)
-  ?`Visit the link below, analyse its content, extract the main ideas and relationships, then output ONLY raw JSON following the schema.\n\nLink: ${t}\n\nSchema:{ "root":"<overall topic>","nodes":[{ "id":"...","text":"...","parent":"..." }],"edges":[{ "source":"...","target":"...","label":"...","direction":"out" }] }\nRules: return the JSON object only.`
-  :`prompt you make:\nFor the topic "${t}" reply with ONLY raw JSON (no Markdown, no code fences).\nSchema:{ "root":"${t}","nodes":[{ "id":"...","text":"...","parent":"..." }],"edges":[{ "source":"...","target":"...","label":"...","direction":"out" }] }\nRules: Every node needs id,text,parent; each edge needs source,target,label,direction.\nReturn only the JSON object.`;
-topicIn.addEventListener('input',()=>prev.textContent=mkPrompt(topicIn.value.trim()||'<topic>'));prev.textContent=mkPrompt('<topic>');
-copyBtn.onclick=()=>{const t=topicIn.value.trim();if(!t)return alert('Enter a topic or link');navigator.clipboard?.writeText(mkPrompt(t));copyBtn.textContent='Copied!';setTimeout(()=>copyBtn.textContent='Copy Prompt',1200);builder.removeAttribute('open');};
+?`Visit ${t} , analyse its content & relationships, then output ONLY raw JSON:
 
-/* ---------- Cytoscape ---------- */
-const hasCola=typeof cytoscapeCola!=='undefined';hasCola&&cytoscape.use(cytoscapeCola);
-typeof cytoscapeLayoutUtilities!=='undefined'&&cytoscape.use(cytoscapeLayoutUtilities);
-let cy;
-function ensureCy(){if(cy)return;cy=cytoscape({container:document.getElementById('cy'),wheelSensitivity:.25,style:[
-{selector:'node',style:{label:'data(label)','text-wrap':'wrap','text-max-width':'240px','text-valign':'center','text-halign':'center','background-color':'var(--node)',color:'#fff','shape':'round-rectangle','padding':'8px',width:'label',height:'label','font-size':'13px'}},
-{selector:'node:hover',style:{'background-color':'var(--node-h)'}},
-{selector:'node.root',style:{'background-color':'var(--root)'}},
-{selector:'edge',style:{width:2,'line-color':'var(--edge)','target-arrow-color':'var(--edge)','target-arrow-shape':'triangle','curve-style':'bezier',label:'data(label)','font-size':'11px',color:'#e6edf3','text-rotation':'autorotate','text-margin-y':'-10px','text-background-opacity':0.9,'text-background-color':'var(--edge-bg)','text-background-padding':'2px'}},
-{selector:'edge[label=""]',style:{label:'','text-background-opacity':0}}
-]});cy.on('tap',e=>{if(e.target===cy)menu.style.display='none'});cy.on('tap','node',e=>showMenu(e.target,e.renderedPosition));}
-const runLayout=()=>cy.layout({name:hasCola?'cola':'cose',animate:true,refresh:1,fit:false,padding:40,nodeSpacing:20,edgeLength:200,avoidOverlap:true}).run();
-
-/* export graph */
-function exportGraph(){const nodes=cy.nodes().map(n=>{const p=cy.edges('[label="parent"][target="'+n.id()+'"]')[0];return {id:n.id(),text:strip(n.data('label')),parent:p?p.source().id():""}});const edges=cy.edges().filter(e=>e.data('label')!=='parent').map(e=>({source:e.source().id(),target:e.target().id(),label:e.data('label'),direction:'out'}));return {root:cy.nodes('.root')[0]?.id()||"",nodes,edges};}
-
-/* node menu positioning within viewport */
-const menu=document.getElementById('nodeMenu'),delBtn=document.getElementById('nodeDelete');
-function showMenu(node,pos){
-  menu.dataset.id=node.id();
-  /* ensure visible to measure size */
-  menu.style.visibility='hidden';menu.style.display='block';
-  const mw=menu.offsetWidth,mh=menu.offsetHeight,
-        cyRect=cy.container().getBoundingClientRect(),
-        vw=window.innerWidth,vh=window.innerHeight;
-  let x=cyRect.left+pos.x+20, y=cyRect.top+pos.y+20;
-  if(x+mw>vw-10) x=cyRect.left+pos.x-mw-20;
-  if(x<10) x=10;
-  if(y+mh>vh-10) y=cyRect.top+pos.y-mh-20;
-  if(y<10) y=10;
-  menu.style.left=x+'px';menu.style.top=y+'px';
-  delBtn.style.display=cy.edges('[label="parent"][source="'+node.id()+'"]').length?'block':'none';
-  menu.style.visibility='visible';
+{
+ "root":"<overall topic>",
+ "nodes":[{ "id":"...","text":"...","parent":"..." }],
+ "edges":[{ "source":"...","target":"...","label":"...","direction":"out" }]
 }
-document.getElementById('nodeCopy').onclick=()=>{const id=menu.dataset.id,n=cy.getElementById(id);navigator.clipboard?.writeText(`Extend node "${strip(n.data('label'))}" (id "${id}") …\n\nCurrent JSON:\n${jsonInput.value}`);menu.style.display='none'};
-delBtn.onclick=()=>{const root=menu.dataset.id,toDel=new Set();(function collect(id){toDel.add(id);cy.edges('[label="parent"][source="'+id+'"]').forEach(e=>collect(e.target().id()));})(root);cy.remove(cy.nodes().filter(n=>toDel.has(n.id())));cy.remove(cy.edges().filter(e=>toDel.has(e.source().id())||toDel.has(e.target().id())));menu.style.display='none';jsonInput.value=JSON.stringify(exportGraph(),null,2);render(true,false)};
 
-/* JSON → elements */
-function toEls(d){const els=[],seen=new Set();(d.edges||[]).forEach(e=>{const s=e.direction!=='in'?e.source:e.target,t=e.direction!=='in'?e.target:e.source;seen.add(s+'→'+t)});if(d.root&&!d.nodes.some(n=>n.id===d.root))els.push({data:{id:d.root,label:wrap(d.root)},classes:'root'});d.nodes.forEach(n=>els.push({data:{id:n.id,label:wrap(n.text)},classes:n.id===d.root?'root':''}));d.nodes.forEach(n=>{if(n.parent&&!seen.has(n.parent+'→'+n.id))els.push({data:{source:n.parent,target:n.id,label:'parent'}})});(d.edges||[]).forEach(e=>{const s=e.direction!=='in'?e.source:e.target,t=e.direction!=='in'?e.target:e.source;els.push({data:{source:s,target:t,label:e.label||'rel'}})});return els}
+No Markdown, no code fences – JSON only.`
+:`Create a mind‑map for "${t}" and output ONLY raw JSON:
 
-/* render */
-function render(store=true,alertBad=true){
-  const sanitized=clean(jsonInput.value);jsonInput.value=sanitized;
-  const obj=parseJSON(sanitized);if(!obj){if(alertBad)alert('Invalid JSON');return;}
-  normalize(obj);ensureCy();cy.elements().remove();cy.add(toEls(obj));runLayout();store&&pushHist(sanitized,obj);
+{
+ "root":"${t}",
+ "nodes":[{ "id":"...","text":"...","parent":"..." }],
+ "edges":[{ "source":"...","target":"...","label":"...","direction":"out" }]
+}
+
+No Markdown, no fences – JSON only.`;
+topicInput.oninput=()=>promptPreview.textContent=mkPrompt(topicInput.value.trim()||'<topic>');
+promptPreview.textContent=mkPrompt('<topic>');
+copyPromptBtn.onclick=()=>{
+  const t=topicInput.value.trim();if(!t){alert('Enter topic or URL');return;}
+  navigator.clipboard.writeText(mkPrompt(t));
+  builderDetails.removeAttribute('open');   // collapse after copy
+};
+
+/* ---------- global data & history ---------- */
+let dataObj={},hist=[],idx=-1;
+function pushHist(text){hist.splice(idx+1);hist.push(text);idx=hist.length-1;updateUR();}
+function updateUR(){undoBtn.disabled=idx<=0;redoBtn.disabled=idx>=hist.length-1;}
+
+/* ---------- DOM refs ---------- */
+const jsonInput=document.getElementById('jsonInput'),
+      renderBtn=document.getElementById('renderBtn'),
+      pasteBtn=document.getElementById('pasteBtn'),
+      undoBtn=document.getElementById('undoBtn'),
+      redoBtn=document.getElementById('redoBtn');
+
+/* ---------- paste overwrite ---------- */
+pasteBtn.onclick=()=>{const r=prompt('Paste JSON / ChatGPT output');if(r)jsonInput.value=clean(r);};
+
+/* ---------- cytoscape ---------- */
+let cy; cytoscape.use(cytoscapeCola);
+function ensureCy(){
+  if(cy)return;
+  cy=cytoscape({container:document.getElementById('cy'),wheelSensitivity:.25,
+    style:[
+      {selector:'node',style:{
+        label:'data(label)','text-wrap':'wrap','text-max-width':'240px',
+        'text-valign':'center','text-halign':'center',
+        'background-color':'var(--node)','shape':'round-rectangle','padding':'6px',
+        width:'label',height:'label','font-size':'13px',color:'#fff',
+        'text-outline-color':'#000','text-outline-width':1}},
+      {selector:'node:hover',style:{'background-color':'var(--node-h)'}},
+      {selector:'node.root',style:{
+        'background-color':'var(--root)','border-width':4,'border-color':'var(--root-outline)',
+        'text-outline-color':'#000','text-outline-width':3,'font-size':'15px','font-weight':'700'}},
+      {selector:'edge',style:{
+        width:2,'line-color':'var(--edge)','target-arrow-color':'var(--edge)','target-arrow-shape':'triangle',
+        'curve-style':'bezier',label:'data(label)','font-size':'11px',color:'#e6edf3',
+        'text-rotation':'autorotate','text-margin-y':'-10px',
+        'text-background-opacity':.9,'text-background-color':'var(--edge-bg)','text-background-padding':'2px'}},
+      {selector:'edge[label=""]',style:{label:'','text-background-opacity':0}}
+    ]});
+  cy.on('tap',e=>{if(e.target===cy)nodeMenu.style.display='none'});
+  cy.on('tap','node',e=>openMenu(e.target,e.renderedPosition));
+}
+function lay(){cy.layout({name:'cola',animate:true,fit:false,padding:40,edgeLength:200,nodeSpacing:25}).run();}
+
+/* ---------- helpers ---------- */
+function fixRoot(){
+  if(!dataObj.root||!dataObj.nodes)return;
+  if(!dataObj.nodes.some(n=>n.id===dataObj.root)){
+    const t=dataObj.nodes.find(n=>n.text===dataObj.root);
+    if(t) dataObj.root=t.id;
+  }
+}
+function els(){
+  const out=[],dup=new Set(dataObj.edges?.map(e=>e.source+'→'+e.target)||[]);
+  (dataObj.nodes||[]).forEach(n=>{
+    out.push({data:{id:n.id,label:wrap(n.text)},classes:n.id===dataObj.root?'root':''});
+    if(n.parent&&!dup.has(n.parent+'→'+n.id))
+      out.push({data:{source:n.parent,target:n.id,label:'parent'}});
+  });
+  (dataObj.edges||[]).forEach(e=>out.push({data:{source:e.source,target:e.target,label:e.label||'rel'}}));
+  return out;
+}
+
+/* ---------- node menu ---------- */
+const nodeMenu=document.getElementById('nodeMenu'),
+      delBtn=document.getElementById('nodeDelete'),
+      childBtn=document.getElementById('childDelete');
+function openMenu(node,pos){
+  nodeMenu.dataset.id=node.id();
+  const isRoot=node.id()===dataObj.root,kids=!node.outgoers('edge').empty();
+  delBtn.textContent=isRoot?'Delete entire graph':'Delete node & subtree';
+  delBtn.style.display=(isRoot||kids)?'block':'none';
+  childBtn.style.display=!isRoot && kids?'block':'none';
+
+  nodeMenu.style.display='block';nodeMenu.style.visibility='hidden';
+  const r=cy.container().getBoundingClientRect(),mw=nodeMenu.offsetWidth,mh=nodeMenu.offsetHeight;
+  let x=r.left+pos.x+20,y=r.top+pos.y+20;
+  if(x+mw>innerWidth-10)x-=mw+40;if(y+mh>innerHeight-10)y-=mh+40;if(x<10)x=10;if(y<10)y=10;
+  nodeMenu.style.left=x+'px';nodeMenu.style.top=y+'px';nodeMenu.style.visibility='visible';
+}
+
+/* copy prompt for node */
+document.getElementById('nodeCopy').onclick=()=>{
+  const id=nodeMenu.dataset.id,n=cy.getElementById(id);
+  const p=`Extend and refactor node "${n.data('label')}" (id "${id}") and its sub‑graph.
+
+Return ONLY raw JSON with schema
+{
+ "root":"<root id>",
+ "nodes":[{ "id":"...","text":"...","parent":"..." }],
+ "edges":[{ "source":"...","target":"...","label":"...","direction":"out" }]
+}
+No Markdown / fences.
+
+Current JSON:
+${jsonInput.value}`;
+  navigator.clipboard.writeText(p); nodeMenu.style.display='none';
+};
+
+/* deletion helpers */
+function subtree(i,inc){const s=new Set(inc?[i]:[]),q=[i];while(q.length){const id=q.pop();dataObj.edges.filter(e=>e.source===id).forEach(e=>{if(!s.has(e.target)){s.add(e.target);q.push(e.target);}});dataObj.nodes.filter(n=>n.parent===id).forEach(n=>{if(!s.has(n.id)){s.add(n.id);q.push(n.id);}});}return s;}
+function remove(set){dataObj.nodes=dataObj.nodes.filter(n=>!set.has(n.id));dataObj.edges=dataObj.edges.filter(e=>!set.has(e.source)&&!set.has(e.target));if(set.has(dataObj.root))dataObj.root=dataObj.nodes[0]?.id||"";}
+delBtn.onclick=()=>{
+  const id=nodeMenu.dataset.id,isRoot=id===dataObj.root;
+  if(isRoot){if(!confirm('Delete entire graph?'))return;dataObj={};jsonInput.value='';cy.elements().remove();pushHist('');nodeMenu.style.display='none';return;}
+  remove(subtree(id,true));jsonInput.value=JSON.stringify(dataObj,null,2);nodeMenu.style.display='none';render(true,false);
+};
+childBtn.onclick=()=>{
+  remove(subtree(nodeMenu.dataset.id,false));jsonInput.value=JSON.stringify(dataObj,null,2);nodeMenu.style.display='none';render(true,false);
+};
+
+/* ---------- render ---------- */
+function render(store=true){
+  const txt=clean(jsonInput.value);if(!txt){cy&&cy.elements().remove();dataObj={};return;}
+  const obj=parseJSON(txt);if(!obj){alert('Invalid JSON');return;}
+  dataObj=obj;fixRoot();ensureCy();cy.elements().remove();cy.add(els());lay();if(store)pushHist(JSON.stringify(dataObj,null,2));
 }
 renderBtn.onclick=()=>render(true);
 
-/* shortcuts */
-undoBtn.onclick=undo;redoBtn.onclick=redo;document.addEventListener('keydown',e=>{if(e.ctrlKey&&!e.shiftKey&&e.key==='z'){e.preventDefault();undo();}if(e.ctrlKey&&(e.key==='y'||(e.shiftKey&&e.key==='Z'))){e.preventDefault();redo();}});
+/* undo/redo */
+undoBtn.onclick=()=>{if(idx>0){idx--;jsonInput.value=hist[idx];render(false);updateUR();}};
+redoBtn.onclick=()=>{if(idx<hist.length-1){idx++;jsonInput.value=hist[idx];render(false);updateUR();}};
+addEventListener('keydown',e=>{
+  if(e.ctrlKey&&!e.shiftKey&&e.key==='z'){e.preventDefault();undoBtn.onclick();}
+  if(e.ctrlKey&&(e.key==='y'||(e.shiftKey&&e.key==='Z'))){e.preventDefault();redoBtn.onclick();}
+});
 
-/* banner hide */
+/* hide banner */
 document.getElementById('donate').onclick=e=>e.currentTarget.classList.add('hide');
 </script>
 </body>
