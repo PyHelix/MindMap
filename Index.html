@@ -14,16 +14,20 @@
 <style>
 :root{--bg:#0d1117;--panel:#161b22;--border:#30363d;--txt:#e6edf3;
       --node:#8b949e;--node-h:#c9d1d9;--root:#3b82f6;--edge:#8b949e;
-      --edge-bg:#0f172a;--btn:#238636;--btn-h:#2ea043}
+      --edge-bg:#0f172a;--btn:#238636;--btn-h:#2ea043;--btn-d:#3d434a}
 *{box-sizing:border-box;margin:0}
-html,body{height:100%;display:flex;flex-direction:column;
-          font-family:system-ui,sans-serif;background:var(--bg);color:var(--txt)}
-#controls{padding:8px;background:var(--panel);border-bottom:1px solid var(--border)}
+html,body{height:100%;display:flex;flex-direction:column;font-family:system-ui,sans-serif;
+          background:var(--bg);color:var(--txt)}
+#controls{padding:8px;background:var(--panel);border-bottom:1px solid var(--border);
+          display:flex;flex-direction:column;gap:6px}
 #jsonInput{width:100%;height:150px;font-family:monospace;background:#0f172a;color:#c9d1d9;
            border:1px solid var(--border);border-radius:6px}
-button{padding:6px 14px;margin-top:6px;border:0;border-radius:6px;
-       background:var(--btn);color:#fff;font-weight:600;cursor:pointer}
-button:hover{background:var(--btn-h)}
+.btn{padding:6px 14px;border:0;border-radius:6px;font-weight:600;cursor:pointer}
+.btn.main{background:var(--btn);color:#fff}
+.btn.main:hover{background:var(--btn-h)}
+.btn.aux{background:var(--node-h);color:#111;padding:6px 10px}
+.btn.aux:disabled{background:var(--btn-d);color:#666;cursor:not-allowed}
+#actionRow{display:flex;gap:6px;align-items:center}
 #cy{flex:1;touch-action:none}
 details{margin-top:6px}summary{cursor:pointer;font-weight:600}
 code{background:#1e293b;padding:2px 4px;border-radius:4px;white-space:pre-line}
@@ -31,14 +35,10 @@ code{background:#1e293b;padding:2px 4px;border-radius:4px;white-space:pre-line}
           border-radius:6px;padding:6px;box-shadow:0 4px 12px rgba(0,0,0,.4);
           display:none;z-index:1000}
 #nodeMenu button{margin:4px 0;width:140px;font-size:13px;padding:4px 10px}
-/* donation banner */
 #donate{padding:10px 12px;font-size:13px;background:var(--panel);
         border-top:1px solid var(--border);cursor:pointer;line-height:1.45}
-#donate.tap-hide{transition:opacity .25s,height .25s,padding .25s}
-#donate.tap-hide.hide{opacity:0;height:0;padding:0;border:none;overflow:hidden}
-#donate b{color:#c9d1d9}
-#donate a{color:#58a6ff;text-decoration:none}
-#donate small{opacity:.7;font-size:11px}
+#donate.hide{opacity:0;height:0;padding:0;border:none;overflow:hidden;transition:all .25s}
+#donate b{color:#c9d1d9} #donate a{color:#58a6ff;text-decoration:none}
 </style>
 </head>
 <body>
@@ -50,36 +50,40 @@ code{background:#1e293b;padding:2px 4px;border-radius:4px;white-space:pre-line}
     <input id="topicInput" placeholder="Topic e.g. Renormalization"
            style="width:60%;padding:6px;border-radius:6px;border:1px solid var(--border);
                   background:#0f172a;color:#c9d1d9">
-    <button id="copyPromptBtn">Copy Prompt</button>
+    <button id="copyPromptBtn" class="btn main">Copy Prompt</button>
     <p style="margin:6px 0 2px">Preview:</p>
     <code id="promptPreview">prompt you make:</code>
   </details>
 
   <textarea id="jsonInput"
     placeholder="Paste ChatGPT’s JSON here, then hit Render Map"></textarea>
-  <br><button id="renderBtn">Render Map</button>
+
+  <div id="actionRow">
+    <button id="renderBtn"  class="btn main" style="flex:1">Render Map</button>
+    <button id="undoBtn"    class="btn aux" title="Undo (Ctrl‑Z)" disabled>⟲</button>
+    <button id="redoBtn"    class="btn aux" title="Redo (Ctrl‑Y)" disabled>⟳</button>
+  </div>
 </div>
 
 <div id="cy"></div>
 
-<!-- floating menu -->
+<!-- node menu -->
 <div id="nodeMenu">
   <button id="nodeCopy">Copy Prompt for this node</button>
 </div>
 
-<!-- donation (tap to hide) --------------------------------------------->
-<section id="donate" class="tap-hide" title="Tap to hide">
-  <h3 style="margin:0 0 4px;font-size:14px">Support citizen‑science projects <small>(tap to hide)</small></h3>
-  <p><b>Gridcoin</b> — rewards BOINC distributed‑computing research.<br>
+<!-- donation (tap to hide) -->
+<section id="donate" title="Tap to hide">
+  <h3 style="margin:0 0 4px;font-size:14px">Support citizen‑science projects <span style="font-size:11px;opacity:.6">(tap to hide)</span></h3>
+  <p><b>Gridcoin</b> — rewards BOINC distributed‑computing research.<br>
      Address: <code>SG5RCw9cf2RhbopCuXLzYYpXciARaZNCF8</code></p>
-  <p><b>Curecoin</b> — rewards Folding@home protein‑folding research.<br>
+  <p><b>Curecoin</b> — rewards Folding@home protein‑folding research.<br>
      Address: <code>BRaK31UtcWKM6wqbFFU8bXDSc1b8NkvP7h</code></p>
-  <p>Suggestions / feedback → <a href="mailto:Foxes.owo@gmaill.com">Foxes.owo@gmaill.com</a></p>
+  <p>Suggestions / feedback → <a href="mailto:Foxes.owo@gmaill.com">Foxes.owo@gmaill.com</a></p>
 </section>
-<!-- -------------------------------------------------------------------->
 
 <script>
-/* collapse donate banner on first tap */
+/* tap‑to‑hide banner */
 document.getElementById('donate').addEventListener('click',function(){
   this.classList.add('hide');
 });
@@ -89,7 +93,7 @@ const hasCola = typeof cytoscapeCola!=='undefined';
 if(hasCola) cytoscape.use(cytoscapeCola);
 if(typeof cytoscapeLayoutUtilities!=='undefined') cytoscape.use(cytoscapeLayoutUtilities);
 
-/* ---------- clipboard ---------- */
+/* ---------- clipboard helper ---------- */
 const copyText = t => navigator.clipboard?.writeText
       ? navigator.clipboard.writeText(t)
       : new Promise(r=>{const ta=document.createElement('textarea');
@@ -104,25 +108,50 @@ const strip=s=>s.replace(/\u200B/g,'');
 const clean=r=>r.replace(/^```[^\n]*\n?|```$/g,'').replace(/\\(?=[\[\]{}])/g,'').replace(/,\s*(\]|\})/g,'$1');
 const parseJSON=t=>{t=clean(t);try{return JSON.parse(t);}catch{try{return Function('return '+t)();}catch{return null;}}};
 
-/* normalise duplicates */
-function normalize(data){
-  const seen={},nodesOut=[];
-  (data.nodes||[]).forEach(n=>{
-    const key=n.text.trim();
-    if(seen[key]){
-      (data.edges||[]).forEach(e=>{
-        if(e.source===n.id) e.source=seen[key];
-        if(e.target===n.id) e.target=seen[key];
+/* duplicate label removal */
+function normalize(d){
+  const seen={},out=[];
+  (d.nodes||[]).forEach(n=>{
+    const k=n.text.trim();
+    if(seen[k]){
+      (d.edges||[]).forEach(e=>{
+        if(e.source===n.id) e.source=seen[k];
+        if(e.target===n.id) e.target=seen[k];
       });
-    }else{seen[key]=n.id;nodesOut.push(n);}
+    }else{seen[k]=n.id;out.push(n);}
   });
-  data.nodes=nodesOut;
-  if(data.root&&!nodesOut.some(n=>n.id===data.root))
-    data.root=seen[data.root]||nodesOut[0]?.id||"";
-  return data;
+  d.nodes=out;
+  if(d.root&&!out.some(n=>n.id===d.root))
+    d.root=seen[d.root]||out[0]?.id||"";
+  return d;
 }
 
-/* export graph */
+/* ---------- history ---------- */
+let history=[], idx=-1;
+function pushHistory(jsonStr){
+  /* drop any redo part */
+  history=history.slice(0,idx+1);
+  history.push(jsonStr);
+  idx=history.length-1;
+  updateUndoRedo();
+}
+function undo(){
+  if(idx>0){idx--;loadFromHistory();}
+}
+function redo(){
+  if(idx<history.length-1){idx++;loadFromHistory();}
+}
+function loadFromHistory(){
+  document.getElementById('jsonInput').value=history[idx];
+  renderFromTextarea(false);
+  updateUndoRedo();
+}
+function updateUndoRedo(){
+  undoBtn.disabled = idx<=0;
+  redoBtn.disabled = idx>=history.length-1;
+}
+
+/* ---------- export current JSON ---------- */
 function exportJSON(){
   if(!cy) return null;
   const nodes=cy.nodes().map(n=>{
@@ -130,12 +159,12 @@ function exportJSON(){
     return {id:n.id(),text:strip(n.data('label')),parent:p?p.source().id():""};
   });
   const edges=cy.edges().filter(e=>e.data('label')!=='parent').map(e=>({
-    source:e.source().id(),target:e.target().id(),
-    label:e.data('label'),direction:'out'}));
+    source:e.source().id(),target:e.target().id(),label:e.data('label'),direction:'out'
+  }));
   return {root:cy.nodes('.root')[0]?.id()||"",nodes,edges};
 }
 
-/* prompts */
+/* ---------- prompts ---------- */
 const initialPrompt=t=>`prompt you make:
 For the topic "${t}" reply with ONLY raw JSON (no Markdown, no code fences).
 
@@ -161,7 +190,7 @@ ${json}
 
 Return the ENTIRE updated JSON object only (no Markdown).`;
 
-/* builder */
+/* ---------- builder UI ---------- */
 const tIn=document.getElementById('topicInput');
 const prev=document.getElementById('promptPreview');
 const cbtn=document.getElementById('copyPromptBtn');
@@ -177,7 +206,7 @@ cbtn.onclick=()=>{
   });
 };
 
-/* cytoscape */
+/* ---------- Cytoscape ---------- */
 let cy,lu;
 function ensureCy(){
   if(cy) return;
@@ -186,8 +215,9 @@ function ensureCy(){
     style:[
       {selector:'node',style:{
         label:'data(label)','text-wrap':'wrap','text-max-width':'240px',
-        'text-valign':'center','text-halign':'center','background-color':'var(--node)',
-        color:'#fff','shape':'round-rectangle','padding':'8px',
+        'text-valign':'center','text-halign':'center',
+        'background-color':'var(--node)',color:'#fff',
+        'shape':'round-rectangle','padding':'8px',
         width:'label',height:'label','font-size':'13px'}},
       {selector:'node:hover',style:{'background-color':'var(--node-h)'}},
       {selector:'node.root',style:{'background-color':'var(--root)'}},
@@ -228,7 +258,7 @@ document.getElementById('nodeCopy').onclick=()=>{
     .then(hideMenu);
 };
 
-/* JSON → elements */
+/* build elements */
 function buildEls(d){
   const els=[],seen=new Set();
   (d.edges||[]).forEach(e=>{
@@ -249,16 +279,31 @@ function buildEls(d){
   return els;
 }
 
-/* render */
-document.getElementById('renderBtn').onclick=()=>{
+/* ---------- render & history ---------- */
+const renderBtn=document.getElementById('renderBtn');
+const undoBtn  =document.getElementById('undoBtn');
+const redoBtn  =document.getElementById('redoBtn');
+undoBtn.onclick=undo;
+redoBtn.onclick=redo;
+
+renderBtn.onclick=()=>renderFromTextarea(true);
+
+function renderFromTextarea(push=true){
   let data=parseJSON(document.getElementById('jsonInput').value.trim());
   if(!data){alert('Invalid JSON');return;}
   data=normalize(data);
+  const jsonStr=JSON.stringify(data,null,2);
+  if(push) pushHistory(jsonStr);         /* store snapshot */
   ensureCy();
   cy.elements().remove();
   cy.add(buildEls(data));
   layout();
-};
+}
+/* keyboard shortcuts */
+document.addEventListener('keydown',e=>{
+  if(e.ctrlKey&&!e.shiftKey&&e.key==='z'){e.preventDefault();undo();}
+  if(e.ctrlKey&&(e.key==='y'||(e.shiftKey&&e.key==='Z'))){e.preventDefault();redo();}
+});
 </script>
 </body>
 </html>
