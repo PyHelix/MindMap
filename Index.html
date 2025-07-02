@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=yes">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=yes">
 <title>Mobile Mind‑Map</title>
 
 <!-- libs -->
@@ -17,8 +17,10 @@
       --edge-bg:#0f172a;--btn:#238636;--btn-h:#2ea043;--btn-d:#3d434a}
 *{box-sizing:border-box;margin:0}
 html,body{height:100%;display:flex;flex-direction:column;font-family:system-ui,sans-serif;background:var(--bg);color:var(--txt)}
-#controls{padding:8px;background:var(--panel);border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:6px}
-#jsonInput{width:100%;height:150px;font-family:monospace;background:#0f172a;color:#c9d1d9;border:1px solid var(--border);border-radius:6px}
+#controls{padding:8px;background:var(--panel);border-bottom:1px solid var(--border);
+          display:flex;flex-direction:column;gap:6px}
+#jsonInput{width:100%;height:150px;font-family:monospace;background:#0f172a;
+           color:#c9d1d9;border:1px solid var(--border);border-radius:6px}
 .btn{padding:6px 14px;border:0;border-radius:6px;font-weight:600;cursor:pointer}
 .btn.main{background:var(--btn);color:#fff}.btn.main:hover{background:var(--btn-h)}
 .btn.aux{background:var(--node-h);color:#111;padding:6px 10px}
@@ -27,19 +29,24 @@ html,body{height:100%;display:flex;flex-direction:column;font-family:system-ui,s
 #cy{flex:1;touch-action:none}
 details{margin-top:6px}summary{cursor:pointer;font-weight:600}
 code{background:#1e293b;padding:2px 4px;border-radius:4px;white-space:pre-line}
-#nodeMenu{position:absolute;background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:6px;box-shadow:0 4px 12px rgba(0,0,0,.4);display:none;z-index:1000}
+#nodeMenu{position:absolute;background:var(--panel);border:1px solid var(--border);
+          border-radius:6px;padding:6px;box-shadow:0 4px 10px rgba(0,0,0,.4);
+          display:none;z-index:1000}
 #nodeMenu button{margin:4px 0;width:170px;font-size:13px;padding:4px 10px}
-#donate{padding:10px 12px;font-size:13px;background:var(--panel);border-top:1px solid var(--border);cursor:pointer;line-height:1.45}
-#donate.hide{opacity:0;height:0;padding:0;border:none;overflow:hidden;transition:all .25s}
-#donate b{color:#c9d1d9}#donate a{color:#58a6ff;text-decoration:none}
+#donate{padding:10px 12px;font-size:13px;background:var(--panel);
+        border-top:1px solid var(--border);cursor:pointer;line-height:1.45}
+#donate.hide{opacity:0;height:0;padding:0;border:none;overflow:hidden;transition:.25s}
+#donate b{color:#c9d1d9} #donate a{color:#58a6ff;text-decoration:none}
 </style>
 </head>
 <body>
 <div id="controls">
   <details id="builder">
     <summary>Prompt builder (click to open)</summary>
-    <p>Enter a topic or link → <b>Copy Prompt</b> → paste into ChatGPT.<br>ChatGPT returns complete JSON → paste into box below.</p>
-    <input id="topicInput" placeholder="Topic or https://…" style="width:60%;padding:6px;border-radius:6px;border:1px solid var(--border);background:#0f172a;color:#c9d1d9">
+    <p>Enter a topic or link → <b>Copy Prompt</b> → paste into ChatGPT.<br>
+       ChatGPT returns complete JSON → paste into box below.</p>
+    <input id="topicInput" placeholder="Topic or https://…" style="width:60%;padding:6px;
+           border-radius:6px;border:1px solid var(--border);background:#0f172a;color:#c9d1d9">
     <button id="copyPromptBtn" class="btn main">Copy Prompt</button>
     <p style="margin:6px 0 2px">Preview:</p><code id="promptPreview">prompt you make:</code>
   </details>
@@ -61,42 +68,41 @@ code{background:#1e293b;padding:2px 4px;border-radius:4px;white-space:pre-line}
   <button id="nodeDelete">Delete node & subtree</button>
 </div>
 
-<section id="donate" title="Tap to hide"><h3 style="margin:0 0 4px;font-size:14px">Support citizen‑science projects <span style="font-size:11px;opacity:.6">(tap to hide)</span></h3><p><b>Gridcoin</b> — rewards BOINC distributed‑computing research.<br>Address: <code>SG5RCw9cf2RhbopCuXLzYYpXciARaZNCF8</code></p><p><b>Curecoin</b> — rewards Folding@home protein‑folding research.<br>Address: <code>BRaK31UtcWKM6wqbFFU8bXDSc1b8NkvP7h</code></p><p>Suggestions / feedback → <a href="mailto:Foxes.owo@gmaill.com">Foxes.owo@gmaill.com</a></p></section>
+<section id="donate" title="Tap to hide">
+  <h3 style="margin:0 0 4px;font-size:14px">
+    Support citizen‑science projects <span style="font-size:11px;opacity:.6">(tap to hide)</span>
+  </h3>
+  <p><b>Gridcoin</b> — rewards BOINC distributed‑computing research.<br>
+     Address: <code>SG5RCw9cf2RhbopCuXLzYYpXciARaZNCF8</code></p>
+  <p><b>Curecoin</b> — rewards Folding@home protein‑folding research.<br>
+     Address: <code>BRaK31UtcWKM6wqbFFU8bXDSc1b8NkvP7h</code></p>
+  <p>Suggestions / feedback → <a href="mailto:Foxes.owo@gmaill.com">Foxes.owo@gmaill.com</a></p>
+</section>
 
 <script>
-/* ---------- helpers & smart‑clean ---------- */
+/* ---------- sanitation ---------- */
 function clean(raw){
-  raw=raw.trim()
-          .replace(/^```[^\n]*\n?|```$/g,'')          /* strip fences */
-          .replace(/\\(?=[\[\]{}])/g,'');             /* de‑escape braces */
-
-  const start=raw.indexOf('{');
-  if(start===-1) return '';
-
-  /* walk and find matching brace */
+  raw=raw.trim().replace(/^```[^\n]*\n?|```$/g,'').replace(/\\(?=[\[\]{}])/g,'');
+  const start=raw.indexOf('{'); if(start===-1) return '';
   let depth=0,inStr=false,esc=false,end=-1;
   for(let i=start;i<raw.length;i++){
     const c=raw[i];
-    if(inStr){
-      esc?esc=false:(c==='\\'?esc=true:(c==='"'&&(inStr=false)));
-    }else{
-      if(c==='"') inStr=true;
-      else if(c==='{') depth++;
-      else if(c==='}') if(--depth===0){end=i;break;}
-    }
+    if(inStr){ esc?esc=false:(c==='\\'?esc=true:(c==='"'&&(inStr=false))); }
+    else{ if(c==='"') inStr=true;
+          else if(c==='{') depth++;
+          else if(c==='}'&&--depth===0){end=i;break;} }
   }
-  if(end===-1) return '';      /* unmatched */
-  const json=raw.slice(start,end+1)
-                .replace(/,\s*(\]|\})/g,'$1');        /* trailing commas */
-  return json;
+  if(end===-1) return '';
+  return raw.slice(start,end+1).replace(/,\s*(\]|\})/g,'$1');
 }
 const parseJSON=t=>{try{return JSON.parse(t);}catch{try{return Function('return '+t)();}catch{return null;}}};
 
+/* ---------- misc helpers ---------- */
 const ZWSP="\u200B",WRAP=10,
       wrap=t=>t.includes(' ')||t.length<=WRAP?t:t.replace(new RegExp(`(.{${WRAP}})`,'g'),`$1${ZWSP}`),
-      strip=s=>s.replace(/\u200B/g,'');
+      strip=s=>s.replace(/\u200B/g,''),
+      isURL=s=>/^https?:\/\//i.test(s.trim());
 
-/* duplicate‑label guard */
 function normalize(d){
   const seen={},out=[];
   (d.nodes||[]).forEach(n=>{
@@ -110,79 +116,81 @@ function normalize(d){
 
 /* ---------- history ---------- */
 let hist=[],idx=-1;
-function keyOf(o){return (o.nodes||[]).map(n=>n.id).sort().join(',');}
-function pushHist(txt,obj){const k=keyOf(obj);if(!hist.length||k!==hist[hist.length-1].key){hist.splice(idx+1);hist.push({text:txt,key:k});idx=hist.length-1;updateUR();}}
+const keyOf=o=>(o.nodes||[]).map(n=>n.id).sort().join(',');
+function pushHist(txt,obj){const k=keyOf(obj);if(!hist.length||k!==hist[idx]?.key){hist.splice(idx+1);hist.push({text:txt,key:k});idx=hist.length-1;updateUR();}}
 function updateUR(){undoBtn.disabled=idx<=0;redoBtn.disabled=idx>=hist.length-1;}
 function applyHist(){jsonInput.value=hist[idx].text;render(false);updateUR();}
-function undo(){if(idx>0){idx--;applyHist();}}
-function redo(){if(idx<hist.length-1){idx++;applyHist();}}
+const undo=()=>{if(idx>0){idx--;applyHist();}}, redo=()=>{if(idx<hist.length-1){idx++;applyHist();}};
 
 /* ---------- DOM refs ---------- */
-const jsonInput=document.getElementById('jsonInput'),
-      renderBtn=document.getElementById('renderBtn'),
-      pasteBtn=document.getElementById('pasteBtn'),
-      undoBtn=document.getElementById('undoBtn'),
+const jsonInput=document.getElementById('jsonInput'),renderBtn=document.getElementById('renderBtn'),
+      pasteBtn=document.getElementById('pasteBtn'),undoBtn=document.getElementById('undoBtn'),
       redoBtn=document.getElementById('redoBtn');
 
-/* overwrite paste */
-pasteBtn.onclick=()=>{
-  const raw=prompt('Paste JSON (or ChatGPT output) here:');
-  if(raw){
-    const j=clean(raw);
-    if(!j) alert('No JSON found in pasted text.');
-    else jsonInput.value=j;
-  }
-};
+/* paste overwrite */
+pasteBtn.onclick=()=>{const raw=prompt('Paste JSON (or ChatGPT output)');if(raw){const j=clean(raw);if(!j)alert('No JSON found');else jsonInput.value=j;}};
 
 /* ---------- prompt builder ---------- */
 const topicIn=document.getElementById('topicInput'),prev=document.getElementById('promptPreview'),
       copyBtn=document.getElementById('copyPromptBtn'),builder=document.getElementById('builder');
-const isURL=s=>/^https?:\/\//i.test(s.trim());
-function buildPrompt(t){
-  if(isURL(t)) return `Visit the link below, analyse its content, extract the main ideas and relationships, then output ONLY raw JSON following the schema.\n\nLink: ${t}\n\nSchema:{ "root":"<overall topic>","nodes":[{ "id":"...","text":"...","parent":"..." }],"edges":[{ "source":"...","target":"...","label":"...","direction":"out" }] }\nRules: return the JSON object only.`;
-  return `prompt you make:\nFor the topic "${t}" reply with ONLY raw JSON (no Markdown, no code fences).\nSchema:{ "root":"${t}","nodes":[{ "id":"...","text":"...","parent":"..." }],"edges":[{ "source":"...","target":"...","label":"...","direction":"out" }] }\nRules: Every node needs id,text,parent; each edge needs source,target,label,direction.\nReturn only the JSON object.`;}
-topicIn.addEventListener('input',()=>prev.textContent=buildPrompt(topicIn.value.trim()||'<topic>'));prev.textContent=buildPrompt('<topic>');
-copyBtn.onclick=()=>{const t=topicIn.value.trim();if(!t)return alert('Enter a topic or link');navigator.clipboard?.writeText(buildPrompt(t));copyBtn.textContent='Copied!';setTimeout(()=>copyBtn.textContent='Copy Prompt',1200);builder.removeAttribute('open');};
+const mkPrompt=t=>isURL(t)
+  ?`Visit the link below, analyse its content, extract the main ideas and relationships, then output ONLY raw JSON following the schema.\n\nLink: ${t}\n\nSchema:{ "root":"<overall topic>","nodes":[{ "id":"...","text":"...","parent":"..." }],"edges":[{ "source":"...","target":"...","label":"...","direction":"out" }] }\nRules: return the JSON object only.`
+  :`prompt you make:\nFor the topic "${t}" reply with ONLY raw JSON (no Markdown, no code fences).\nSchema:{ "root":"${t}","nodes":[{ "id":"...","text":"...","parent":"..." }],"edges":[{ "source":"...","target":"...","label":"...","direction":"out" }] }\nRules: Every node needs id,text,parent; each edge needs source,target,label,direction.\nReturn only the JSON object.`;
+topicIn.addEventListener('input',()=>prev.textContent=mkPrompt(topicIn.value.trim()||'<topic>'));prev.textContent=mkPrompt('<topic>');
+copyBtn.onclick=()=>{const t=topicIn.value.trim();if(!t)return alert('Enter a topic or link');navigator.clipboard?.writeText(mkPrompt(t));copyBtn.textContent='Copied!';setTimeout(()=>copyBtn.textContent='Copy Prompt',1200);builder.removeAttribute('open');};
 
 /* ---------- Cytoscape ---------- */
-const hasCola=typeof cytoscapeCola!=='undefined';if(hasCola) cytoscape.use(cytoscapeCola);
-if(typeof cytoscapeLayoutUtilities!=='undefined') cytoscape.use(cytoscapeLayoutUtilities);
+const hasCola=typeof cytoscapeCola!=='undefined';hasCola&&cytoscape.use(cytoscapeCola);
+typeof cytoscapeLayoutUtilities!=='undefined'&&cytoscape.use(cytoscapeLayoutUtilities);
 let cy;
-function ensureCy(){if(cy)return;cy=cytoscape({container:document.getElementById('cy'),wheelSensitivity:0.25,style:[
+function ensureCy(){if(cy)return;cy=cytoscape({container:document.getElementById('cy'),wheelSensitivity:.25,style:[
 {selector:'node',style:{label:'data(label)','text-wrap':'wrap','text-max-width':'240px','text-valign':'center','text-halign':'center','background-color':'var(--node)',color:'#fff','shape':'round-rectangle','padding':'8px',width:'label',height:'label','font-size':'13px'}},
 {selector:'node:hover',style:{'background-color':'var(--node-h)'}},
 {selector:'node.root',style:{'background-color':'var(--root)'}},
 {selector:'edge',style:{width:2,'line-color':'var(--edge)','target-arrow-color':'var(--edge)','target-arrow-shape':'triangle','curve-style':'bezier',label:'data(label)','font-size':'11px',color:'#e6edf3','text-rotation':'autorotate','text-margin-y':'-10px','text-background-opacity':0.9,'text-background-color':'var(--edge-bg)','text-background-padding':'2px'}},
 {selector:'edge[label=""]',style:{label:'','text-background-opacity':0}}
-]});
-cy.on('tap',e=>{if(e.target===cy)menu.style.display='none';});
-cy.on('tap','node',e=>showMenu(e.target,e.renderedPosition));}
-function runLayout(){cy.layout({name:hasCola?'cola':'cose',animate:true,refresh:1,fit:false,padding:40,nodeSpacing:20,edgeLength:200,avoidOverlap:true}).run();}
+]});cy.on('tap',e=>{if(e.target===cy)menu.style.display='none'});cy.on('tap','node',e=>showMenu(e.target,e.renderedPosition));}
+const runLayout=()=>cy.layout({name:hasCola?'cola':'cose',animate:true,refresh:1,fit:false,padding:40,nodeSpacing:20,edgeLength:200,avoidOverlap:true}).run();
 
 /* export graph */
-function exportGraph(){const nodes=cy.nodes().map(n=>{const p=cy.edges('[label=\"parent\"][target=\"'+n.id()+'\"]')[0];return {id:n.id(),text:strip(n.data('label')),parent:p?p.source().id():""}});const edges=cy.edges().filter(e=>e.data('label')!=='parent').map(e=>({source:e.source().id(),target:e.target().id(),label:e.data('label'),direction:'out'}));return {root:cy.nodes('.root')[0]?.id()||"",nodes,edges};}
+function exportGraph(){const nodes=cy.nodes().map(n=>{const p=cy.edges('[label="parent"][target="'+n.id()+'"]')[0];return {id:n.id(),text:strip(n.data('label')),parent:p?p.source().id():""}});const edges=cy.edges().filter(e=>e.data('label')!=='parent').map(e=>({source:e.source().id(),target:e.target().id(),label:e.data('label'),direction:'out'}));return {root:cy.nodes('.root')[0]?.id()||"",nodes,edges};}
 
-/* node menu */
+/* node menu positioning within viewport */
 const menu=document.getElementById('nodeMenu'),delBtn=document.getElementById('nodeDelete');
-function showMenu(node,pos){menu.dataset.id=node.id();menu.style.left=pos.x+20+'px';menu.style.top=pos.y+20+'px';delBtn.style.display=cy.edges('[label=\"parent\"][source=\"'+node.id()+'\"]').length?'block':'none';menu.style.display='block';}
-document.getElementById('nodeCopy').onclick=()=>{const id=menu.dataset.id,n=cy.getElementById(id);navigator.clipboard?.writeText(`Extend node \"${strip(n.data('label'))}\" (id \"${id}\") …\n\nCurrent JSON:\n${jsonInput.value}`);menu.style.display='none';};
-delBtn.onclick=()=>{const root=menu.dataset.id,toDel=new Set();(function collect(id){toDel.add(id);cy.edges('[label=\"parent\"][source=\"'+id+'\"]').forEach(e=>collect(e.target().id()));})(root);cy.remove(cy.nodes().filter(n=>toDel.has(n.id())));cy.remove(cy.edges().filter(e=>toDel.has(e.source().id())||toDel.has(e.target().id())));menu.style.display='none';const newObj=exportGraph();jsonInput.value=JSON.stringify(newObj,null,2);render(true,false);};
+function showMenu(node,pos){
+  menu.dataset.id=node.id();
+  /* ensure visible to measure size */
+  menu.style.visibility='hidden';menu.style.display='block';
+  const mw=menu.offsetWidth,mh=menu.offsetHeight,
+        cyRect=cy.container().getBoundingClientRect(),
+        vw=window.innerWidth,vh=window.innerHeight;
+  let x=cyRect.left+pos.x+20, y=cyRect.top+pos.y+20;
+  if(x+mw>vw-10) x=cyRect.left+pos.x-mw-20;
+  if(x<10) x=10;
+  if(y+mh>vh-10) y=cyRect.top+pos.y-mh-20;
+  if(y<10) y=10;
+  menu.style.left=x+'px';menu.style.top=y+'px';
+  delBtn.style.display=cy.edges('[label="parent"][source="'+node.id()+'"]').length?'block':'none';
+  menu.style.visibility='visible';
+}
+document.getElementById('nodeCopy').onclick=()=>{const id=menu.dataset.id,n=cy.getElementById(id);navigator.clipboard?.writeText(`Extend node "${strip(n.data('label'))}" (id "${id}") …\n\nCurrent JSON:\n${jsonInput.value}`);menu.style.display='none'};
+delBtn.onclick=()=>{const root=menu.dataset.id,toDel=new Set();(function collect(id){toDel.add(id);cy.edges('[label="parent"][source="'+id+'"]').forEach(e=>collect(e.target().id()));})(root);cy.remove(cy.nodes().filter(n=>toDel.has(n.id())));cy.remove(cy.edges().filter(e=>toDel.has(e.source().id())||toDel.has(e.target().id())));menu.style.display='none';jsonInput.value=JSON.stringify(exportGraph(),null,2);render(true,false)};
 
-/* JSON → Cytoscape elements */
-function toEls(d){const els=[],seen=new Set();(d.edges||[]).forEach(e=>{const s=e.direction!=='in'?e.source:e.target,t=e.direction!=='in'?e.target:e.source;seen.add(s+'→'+t);});if(d.root&&!((d.nodes||[]).some(n=>n.id===d.root))) els.push({data:{id:d.root,label:wrap(d.root)},classes:'root'});(d.nodes||[]).forEach(n=>els.push({data:{id:n.id,label:wrap(n.text)},classes:n.id===d.root?'root':''}));(d.nodes||[]).forEach(n=>{if(n.parent&&!seen.has(n.parent+'→'+n.id))els.push({data:{source:n.parent,target:n.id,label:'parent'}});});(d.edges||[]).forEach(e=>{const s=e.direction!=='in'?e.source:e.target,t=e.direction!=='in'?e.target:e.source;els.push({data:{source:s,target:t,label:e.label||'rel'}});});return els;}
+/* JSON → elements */
+function toEls(d){const els=[],seen=new Set();(d.edges||[]).forEach(e=>{const s=e.direction!=='in'?e.source:e.target,t=e.direction!=='in'?e.target:e.source;seen.add(s+'→'+t)});if(d.root&&!d.nodes.some(n=>n.id===d.root))els.push({data:{id:d.root,label:wrap(d.root)},classes:'root'});d.nodes.forEach(n=>els.push({data:{id:n.id,label:wrap(n.text)},classes:n.id===d.root?'root':''}));d.nodes.forEach(n=>{if(n.parent&&!seen.has(n.parent+'→'+n.id))els.push({data:{source:n.parent,target:n.id,label:'parent'}})});(d.edges||[]).forEach(e=>{const s=e.direction!=='in'?e.source:e.target,t=e.direction!=='in'?e.target:e.source;els.push({data:{source:s,target:t,label:e.label||'rel'}})});return els}
 
 /* render */
 function render(store=true,alertBad=true){
-  const sanitized=clean(jsonInput.value);
-  jsonInput.value=sanitized;
-  const obj=parseJSON(sanitized);
-  if(!obj){if(alertBad)alert('Invalid JSON');return;}
-  normalize(obj);ensureCy();cy.elements().remove();cy.add(toEls(obj));runLayout();if(store) pushHist(sanitized,obj);
+  const sanitized=clean(jsonInput.value);jsonInput.value=sanitized;
+  const obj=parseJSON(sanitized);if(!obj){if(alertBad)alert('Invalid JSON');return;}
+  normalize(obj);ensureCy();cy.elements().remove();cy.add(toEls(obj));runLayout();store&&pushHist(sanitized,obj);
 }
 renderBtn.onclick=()=>render(true);
 
-/* undo/redo shortcuts */
+/* shortcuts */
 undoBtn.onclick=undo;redoBtn.onclick=redo;document.addEventListener('keydown',e=>{if(e.ctrlKey&&!e.shiftKey&&e.key==='z'){e.preventDefault();undo();}if(e.ctrlKey&&(e.key==='y'||(e.shiftKey&&e.key==='Z'))){e.preventDefault();redo();}});
+
+/* banner hide */
 document.getElementById('donate').onclick=e=>e.currentTarget.classList.add('hide');
 </script>
 </body>
