@@ -78,17 +78,14 @@ details{margin-top:6px}summary{cursor:pointer;font-weight:600}
 </section>
 
 <script>
-/* ---------- helpers (UPDATED sanitizer) ---------- */
+/* ---------- helpers (sanitizer) ---------- */
 const ZWSP="\u200B",WRAP=12;
 const wrap=s=>s.includes(' ')||s.length<=WRAP?s:s.replace(new RegExp(`(.{${WRAP}})`,'g'),`$1${ZWSP}`);
 function clean(t){
-  t=t.trim()
-       .replace(/^```[^\n]*\n?|```$/g,'');          // strip fences
-  const m=t.match(/({[\s\S]*})/m);                  // keep first {...}
-  t=m?m[1]:'';
-  t=t.replace(/\\(?!["\/bfnrtu])/g,'')              // extraneous backslash
-       .replace(/\\(?=[\[\]{}])/g,'');              // backslash before []{}
-  return t;
+  t=t.trim().replace(/^```[^\n]*\n?|```$/g,'');      /* strip fences */
+  const m=t.match(/({[\s\S]*})/m); t=m?m[1]:'';       /* keep first {...} */
+  return t.replace(/\\(?!["\/bfnrtu])/g,'')           /* drop stray backslashes */
+          .replace(/\\(?=[\[\]{}])/g,'');             /* drop backslash before []{} */
 }
 const parseJSON=t=>{try{return JSON.parse(t);}catch{return null;}};
 
@@ -99,8 +96,23 @@ const topicInput=document.getElementById('topicInput'),
       builderDetails=document.getElementById('builder');
 const isURL=s=>/^https?:\/\//i.test(s.trim());
 const mkPrompt=t=>{
-  const pre=isURL(t)?`Analyse ${t} and output ONLY raw JSON.`:`Create a mind‑map for "${t}" and output ONLY raw JSON.`;
-  return `${pre}
+  if(isURL(t)){
+    return `Analyse the page ${t} and output ONLY raw JSON.
+
+• Include the key "link":"${t}" at the top level (do NOT add it as a node).
+• IDs must start with "n0" for the root, followed by n1, n2 … consecutively.
+
+Schema:
+{
+ "link":"${t}",
+ "root":"n0",
+ "nodes":[{ "id":"n0","text":"<root label>","parent":"" }, … ],
+ "edges":[{ "source":"...","target":"...","label":"...","direction":"out" }]
+}
+
+Return ONLY the JSON object (no Markdown / fences).`;
+  }
+  return `Create a mind‑map for "${t}" and output ONLY raw JSON.
 
 • IDs must start with "n0" for the root, followed by n1, n2 … consecutively.
 
@@ -137,15 +149,17 @@ function ensureCy(){
   if(cy)return;
   cy=cytoscape({container:document.getElementById('cy'),wheelSensitivity:.25,
     style:[
-      {selector:'node',style:{label:'data(label)','text-wrap':'wrap','text-max-width':'240px','text-valign':'center','text-halign':'center',
-        'background-color':'var(--node)','shape':'round-rectangle','padding':'6px',width:'label',height:'label',
-        'font-size':'13px',color:'#fff','text-outline-color':'#000','text-outline-width':1}},
+      {selector:'node',style:{label:'data(label)','text-wrap':'wrap','text-max-width':'240px',
+        'text-valign':'center','text-halign':'center','background-color':'var(--node)',
+        'shape':'round-rectangle','padding':'6px',width:'label',height:'label','font-size':'13px',
+        color:'#fff','text-outline-color':'#000','text-outline-width':1}},
       {selector:'node:hover',style:{'background-color':'var(--node-h)'}},
       {selector:'node.root',style:{'background-color':'var(--root)','border-width':4,'border-color':'var(--root-outline)',
         'text-outline-color':'#000','text-outline-width':3,'font-size':'15px','font-weight':'700'}},
-      {selector:'edge',style:{width:2,'line-color':'var(--edge)','target-arrow-color':'var(--edge)','target-arrow-shape':'triangle',
-        'curve-style':'bezier',label:'data(label)','font-size':'11px',color:'#e6edf3','text-rotation':'autorotate','text-margin-y':'-10px',
-        'text-background-opacity':.9,'text-background-color':'var(--edge-bg)','text-background-padding':'2px'}},
+      {selector:'edge',style:{width:2,'line-color':'var(--edge)','target-arrow-color':'var(--edge)',
+        'target-arrow-shape':'triangle','curve-style':'bezier',label:'data(label)','font-size':'11px',color:'#e6edf3',
+        'text-rotation':'autorotate','text-margin-y':'-10px','text-background-opacity':.9,
+        'text-background-color':'var(--edge-bg)','text-background-padding':'2px'}},
       {selector:'edge[label=""]',style:{label:'','text-background-opacity':0}}
     ]});
   cy.on('tap',e=>{if(e.target===cy)nodeMenu.style.display='none'});
@@ -154,13 +168,19 @@ function ensureCy(){
 function lay(){cy.layout({name:'cola',animate:true,fit:false,padding:40,nodeSpacing:25,edgeLength:200}).run();}
 
 /* fix root */
-function fixRoot(){if(dataObj.root!=="n0")dataObj.root="n0";}
+function fixRoot(){dataObj.root="n0";}
 
 /* build elements */
-const els=()=>{const arr=[],dup=new Set(dataObj.edges?.map(e=>e.source+'→'+e.target)||[]);
-  (dataObj.nodes||[]).forEach(n=>{arr.push({data:{id:n.id,label:wrap(n.text)},classes:n.id==="n0"?'root':''});
-    if(n.parent&&!dup.has(n.parent+'→'+n.id))arr.push({data:{source:n.parent,target:n.id,label:'parent'}});});
-  (dataObj.edges||[]).forEach(e=>arr.push({data:{source:e.source,target:e.target,label:e.label||'rel'}}));return arr;};
+function els(){
+  const out=[],dup=new Set(dataObj.edges?.map(e=>e.source+'→'+e.target)||[]);
+  (dataObj.nodes||[]).forEach(n=>{
+    out.push({data:{id:n.id,label:wrap(n.text)},classes:n.id==="n0"?'root':''});
+    if(n.parent&&!dup.has(n.parent+'→'+n.id))
+      out.push({data:{source:n.parent,target:n.id,label:'parent'}});
+  });
+  (dataObj.edges||[]).forEach(e=>out.push({data:{source:e.source,target:e.target,label:e.label||'rel'}}));
+  return out;
+}
 
 /* ---------- node menu ---------- */
 const nodeMenu=document.getElementById('nodeMenu'),delBtn=document.getElementById('nodeDelete'),childBtn=document.getElementById('childDelete');
@@ -173,14 +193,14 @@ function openMenu(node,pos){
   let x=r.left+pos.x+20,y=r.top+pos.y+20;if(x+mw>innerWidth-10)x-=mw+40;if(y+mh>innerHeight-10)y-=mh+40;if(x<10)x=10;if(y<10)y=10;
   nodeMenu.style.left=x+'px';nodeMenu.style.top=y+'px';nodeMenu.style.visibility='visible';
 }
-/* copy prompt */
+/* copy prompt for node */
 document.getElementById('nodeCopy').onclick=()=>{
   const id=nodeMenu.dataset.id,n=cy.getElementById(id);
   const p=`Extend and refactor node "${n.data('label')}" (id "${id}") and its sub‑graph.
 
 IDs MUST remain n0 (root), n1, n2 …
 
-Schema (return ONLY JSON):
+Schema:
 {
  "root":"n0",
  "nodes":[{ "id":"n0","text":"<root label>","parent":"" }, … ],
