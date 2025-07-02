@@ -1,53 +1,55 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=yes">
 <title>Mobile Mind‑Map</title>
 
-<!-- Cytoscape core -->
+<!-- libs -->
 <script src="https://unpkg.com/cytoscape@3/dist/cytoscape.min.js"></script>
-<!-- Physics layout (optional) -->
-<script src="https://unpkg.com/cytoscape-cose-bilkent@4/dist/cytoscape-cose-bilkent.js"></script>
-<!-- Overlap‑buster plug‑in -->
+<script src="https://unpkg.com/webcola@3.4.0/WebCola/cola.min.js"></script>
+<script src="https://unpkg.com/cytoscape-cola@2/cytoscape-cola.js"></script>
 <script src="https://unpkg.com/cytoscape-layout-utilities/cytoscape-layout-utilities.js"></script>
 
 <style>
-:root{
-  --bg:#0e1117;--panel:#161b22;--node:#9ca3af;--root:#3b82f6;
-  --edge:#818cf8;--btn:#2563eb;--btn-h:#1d4ed8
-}
-html,body{
-  height:100%;margin:0;display:flex;flex-direction:column;
-  font-family:system-ui,sans-serif;background:var(--bg);color:#e2e8f0
-}
-#controls{padding:8px;background:var(--panel)}
-#jsonInput{
-  width:100%;height:150px;box-sizing:border-box;font-family:monospace;
-  background:#0f172a;color:#cbd5e1;border:1px solid #334155;border-radius:6px
-}
-button{
-  padding:6px 14px;margin-top:6px;border:0;border-radius:6px;
-  background:var(--btn);color:#fff;font-weight:600;cursor:pointer
-}
+:root{--bg:#0d1117;--panel:#161b22;--border:#30363d;--txt:#e6edf3;
+      --node:#8b949e;--node-h:#c9d1d9;--root:#3b82f6;--edge:#8b949e;
+      --edge-bg:#0f172a;--btn:#238636;--btn-h:#2ea043}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%;display:flex;flex-direction:column;
+          font-family:system-ui,sans-serif;background:var(--bg);color:var(--txt)}
+#controls{padding:8px;background:var(--panel);border-bottom:1px solid var(--border)}
+#jsonInput{width:100%;height:150px;font-family:monospace;background:#0f172a;color:#c9d1d9;
+           border:1px solid var(--border);border-radius:6px}
+button{padding:6px 14px;margin-top:6px;border:0;border-radius:6px;
+       background:var(--btn);color:#fff;font-weight:600;cursor:pointer}
 button:hover{background:var(--btn-h)}
-#cy{flex:1;border-top:1px solid #334155}
-details{margin-top:6px}
-summary{cursor:pointer;font-weight:600}
-code{
-  background:#1e293b;padding:2px 4px;border-radius:4px;white-space:pre-line
-}
+#cy{flex:1;touch-action:none}
+details{margin-top:6px}summary{cursor:pointer;font-weight:600}
+code{background:#1e293b;padding:2px 4px;border-radius:4px;white-space:pre-line}
+#nodeMenu{position:absolute;background:var(--panel);border:1px solid var(--border);
+          border-radius:6px;padding:6px;box-shadow:0 4px 12px rgba(0,0,0,.4);
+          display:none;z-index:1000}
+#nodeMenu button{margin:4px 0;width:140px;font-size:13px;padding:4px 10px}
+/* donation banner */
+#donate{padding:10px 12px;font-size:13px;background:var(--panel);
+        border-top:1px solid var(--border);cursor:pointer;line-height:1.45}
+#donate.tap-hide{transition:opacity .25s,height .25s,padding .25s}
+#donate.tap-hide.hide{opacity:0;height:0;padding:0;border:none;overflow:hidden}
+#donate b{color:#c9d1d9}
+#donate a{color:#58a6ff;text-decoration:none}
+#donate small{opacity:.7;font-size:11px}
 </style>
 </head>
 <body>
 <div id="controls">
-  <details>
+  <details id="builder">
     <summary>Prompt builder (click to open)</summary>
     <p>Enter a topic → <b>Copy Prompt</b> → paste into ChatGPT.<br>
-       Copy ChatGPT’s <i>raw JSON</i> reply (no ``` fences) into the box below.</p>
+       ChatGPT returns complete JSON → paste into box below.</p>
     <input id="topicInput" placeholder="Topic e.g. Renormalization"
-           style="width:60%;padding:6px;border-radius:6px;border:1px solid #334155;
-                  background:#0f172a;color:#cbd5e1">
+           style="width:60%;padding:6px;border-radius:6px;border:1px solid var(--border);
+                  background:#0f172a;color:#c9d1d9">
     <button id="copyPromptBtn">Copy Prompt</button>
     <p style="margin:6px 0 2px">Preview:</p>
     <code id="promptPreview">prompt you make:</code>
@@ -60,228 +62,203 @@ code{
 
 <div id="cy"></div>
 
+<!-- floating menu -->
+<div id="nodeMenu">
+  <button id="nodeCopy">Copy Prompt for this node</button>
+</div>
+
+<!-- donation (tap to hide) --------------------------------------------->
+<section id="donate" class="tap-hide" title="Tap to hide">
+  <h3 style="margin:0 0 4px;font-size:14px">Support citizen‑science projects <small>(tap to hide)</small></h3>
+  <p><b>Gridcoin</b> — rewards BOINC distributed‑computing research.<br>
+     Address: <code>SG5RCw9cf2RhbopCuXLzYYpXciARaZNCF8</code></p>
+  <p><b>Curecoin</b> — rewards Folding@home protein‑folding research.<br>
+     Address: <code>BRaK31UtcWKM6wqbFFU8bXDSc1b8NkvP7h</code></p>
+  <p>Suggestions / feedback → <a href="mailto:Foxes.owo@gmaill.com">Foxes.owo@gmaill.com</a></p>
+</section>
+<!-- -------------------------------------------------------------------->
+
 <script>
-/* ---------- prompt builder ---------- */
-function tmpl(topic){
-return `prompt you make:
-For the topic "${topic}" reply with ONLY raw JSON (no Markdown, no code fences).
-
-Schema:
-{
-  "root":"${topic}",
-  "nodes":[{ "id":"...", "text":"...", "parent":"..." }],
-  "edges":[{ "source":"...", "target":"...", "label":"...", "direction":"out" }]
-}
-
-Rules:
-• Every node needs id, text, parent
-• Every edge needs source, target, label, direction ("out" | "in")
-• Keep each text ≤ 30 chars
-Return only the JSON object.`;}
-const tIn=document.getElementById('topicInput');
-const pPrev=document.getElementById('promptPreview');
-const cBtn=document.getElementById('copyPromptBtn');
-function upd(){pPrev.textContent=tmpl(tIn.value.trim()||'<topic>');}
-upd(); tIn.addEventListener('input',upd);
-cBtn.addEventListener('click',()=>{
- if(!tIn.value.trim()){alert('Enter a topic');return;}
- navigator.clipboard.writeText(tmpl(tIn.value.trim()))
-  .then(()=>{cBtn.textContent='Copied!';setTimeout(()=>cBtn.textContent='Copy Prompt',1200);});
+/* collapse donate banner on first tap */
+document.getElementById('donate').addEventListener('click',function(){
+  this.classList.add('hide');
 });
 
+/* ---------- flags ---------- */
+const hasCola = typeof cytoscapeCola!=='undefined';
+if(hasCola) cytoscape.use(cytoscapeCola);
+if(typeof cytoscapeLayoutUtilities!=='undefined') cytoscape.use(cytoscapeLayoutUtilities);
+
+/* ---------- clipboard ---------- */
+const copyText = t => navigator.clipboard?.writeText
+      ? navigator.clipboard.writeText(t)
+      : new Promise(r=>{const ta=document.createElement('textarea');
+         ta.value=t;ta.style.cssText='position:fixed;top:-1000px';
+         document.body.appendChild(ta);ta.select();document.execCommand('copy');
+         document.body.removeChild(ta);r();});
+
 /* ---------- helpers ---------- */
-const ZWSP="\u200B", WRAP=10;
+const ZWSP="\u200B",WRAP=10;
 const wrap=t=>t.includes(' ')||t.length<=WRAP?t:t.replace(new RegExp(`(.{${WRAP}})`,'g'),`$1${ZWSP}`);
+const strip=s=>s.replace(/\u200B/g,'');
+const clean=r=>r.replace(/^```[^\n]*\n?|```$/g,'').replace(/\\(?=[\[\]{}])/g,'').replace(/,\s*(\]|\})/g,'$1');
+const parseJSON=t=>{t=clean(t);try{return JSON.parse(t);}catch{try{return Function('return '+t)();}catch{return null;}}};
 
-/* ---------- JSON → elements ---------- */
-function jsonToEls(d){
-  const els=[], explicit=new Set();
-
-  (d.edges||[]).forEach(e=>{
-    const src=e.direction!=='in'?e.source:e.target;
-    const tgt=e.direction!=='in'?e.target:e.source;
-    explicit.add(src+'→'+tgt);
+/* normalise duplicates */
+function normalize(data){
+  const seen={},nodesOut=[];
+  (data.nodes||[]).forEach(n=>{
+    const key=n.text.trim();
+    if(seen[key]){
+      (data.edges||[]).forEach(e=>{
+        if(e.source===n.id) e.source=seen[key];
+        if(e.target===n.id) e.target=seen[key];
+      });
+    }else{seen[key]=n.id;nodesOut.push(n);}
   });
+  data.nodes=nodesOut;
+  if(data.root&&!nodesOut.some(n=>n.id===data.root))
+    data.root=seen[data.root]||nodesOut[0]?.id||"";
+  return data;
+}
 
+/* export graph */
+function exportJSON(){
+  if(!cy) return null;
+  const nodes=cy.nodes().map(n=>{
+    const p=cy.edges('[label="parent"][target="'+n.id()+'"]')[0];
+    return {id:n.id(),text:strip(n.data('label')),parent:p?p.source().id():""};
+  });
+  const edges=cy.edges().filter(e=>e.data('label')!=='parent').map(e=>({
+    source:e.source().id(),target:e.target().id(),
+    label:e.data('label'),direction:'out'}));
+  return {root:cy.nodes('.root')[0]?.id()||"",nodes,edges};
+}
+
+/* prompts */
+const initialPrompt=t=>`prompt you make:
+For the topic "${t}" reply with ONLY raw JSON (no Markdown, no code fences).
+
+Schema:
+{ "root":"${t}",
+  "nodes":[{ "id":"...", "text":"...", "parent":"..." }],
+  "edges":[{ "source":"...", "target":"...", "label":"...", "direction":"out" }] }
+
+Rules:
+• Every node needs id, text, parent.
+• Every edge needs source, target, label, direction ("out" | "in").
+• Keep each text ≤ 30 chars.
+Return only the JSON object.`;
+
+const extendPrompt=(id,lab,json)=>`You are updating a mind‑map.
+
+• Extend node id "${id}" (label "${lab}") by appending new children / edges.
+• Do NOT delete or rename existing nodes.
+
+Current full JSON:
+
+${json}
+
+Return the ENTIRE updated JSON object only (no Markdown).`;
+
+/* builder */
+const tIn=document.getElementById('topicInput');
+const prev=document.getElementById('promptPreview');
+const cbtn=document.getElementById('copyPromptBtn');
+const builder=document.getElementById('builder');
+tIn.addEventListener('input',()=>prev.textContent=initialPrompt(tIn.value.trim()||'<topic>'));
+prev.textContent=initialPrompt('<topic>');
+cbtn.onclick=()=>{
+  const topic=tIn.value.trim();
+  if(!topic){alert('Enter a topic');return;}
+  copyText(initialPrompt(topic)).then(()=>{
+    cbtn.textContent='Copied!';setTimeout(()=>cbtn.textContent='Copy Prompt',1500);
+    builder.removeAttribute('open');
+  });
+};
+
+/* cytoscape */
+let cy,lu;
+function ensureCy(){
+  if(cy) return;
+  cy=cytoscape({
+    container:document.getElementById('cy'),
+    style:[
+      {selector:'node',style:{
+        label:'data(label)','text-wrap':'wrap','text-max-width':'240px',
+        'text-valign':'center','text-halign':'center','background-color':'var(--node)',
+        color:'#fff','shape':'round-rectangle','padding':'8px',
+        width:'label',height:'label','font-size':'13px'}},
+      {selector:'node:hover',style:{'background-color':'var(--node-h)'}},
+      {selector:'node.root',style:{'background-color':'var(--root)'}},
+      {selector:'edge',style:{
+        width:2,'line-color':'var(--edge)','target-arrow-color':'var(--edge)',
+        'target-arrow-shape':'triangle','curve-style':'bezier',
+        label:'data(label)','font-size':'11px','color':'#e6edf3',
+        'text-rotation':'autorotate','text-margin-y':'-10px',
+        'text-background-opacity':0.9,'text-background-color':'var(--edge-bg)',
+        'text-background-padding':'2px'}},
+      {selector:'edge[label=""]',style:{label:'','text-background-opacity':0}}
+    ]
+  });
+  if(cytoscape.layoutUtilities) lu=cy.layoutUtilities({desiredAspectRatio:1.2,nodeSpacing:30});
+  cy.on('tap',e=>{if(e.target===cy)hideMenu();});
+  cy.on('tap','node',e=>showMenu(e.target,e.renderedPosition));
+}
+
+function layout(){
+  cy.layout({
+    name:hasCola?'cola':'cose',animate:true,refresh:2,maxSimulationTime:4000,
+    nodeSpacing:20,edgeLength:200,avoidOverlap:true,fit:true,padding:40
+  }).run();
+}
+
+/* node menu */
+const menu=document.getElementById('nodeMenu');
+function hideMenu(){menu.style.display='none';}
+function showMenu(node,pos){
+  menu.dataset.id=node.id();
+  menu.style.left=pos.x+20+'px';
+  menu.style.top=pos.y+20+'px';
+  menu.style.display='block';
+}
+document.getElementById('nodeCopy').onclick=()=>{
+  const id=menu.dataset.id,n=cy.getElementById(id);
+  copyText(extendPrompt(id,strip(n.data('label')),JSON.stringify(exportJSON(),null,2)))
+    .then(hideMenu);
+};
+
+/* JSON → elements */
+function buildEls(d){
+  const els=[],seen=new Set();
+  (d.edges||[]).forEach(e=>{
+    const s=e.direction!=='in'?e.source:e.target,t=e.direction!=='in'?e.target:e.source;
+    seen.add(s+'→'+t);
+  });
   if(d.root && !(d.nodes||[]).some(n=>n.id===d.root))
     els.push({data:{id:d.root,label:wrap(d.root)},classes:'root'});
-
+  (d.nodes||[]).forEach(n=>els.push({data:{id:n.id,label:wrap(n.text)},classes:n.id===d.root?'root':''}));
   (d.nodes||[]).forEach(n=>{
-    els.push({data:{id:n.id,label:wrap(n.text)},classes:n.id===d.root?'root':''});
-  });
-
-  (d.nodes||[]).forEach(n=>{
-    if(n.parent && !explicit.has(n.parent+'→'+n.id)){
+    if(n.parent&&!seen.has(n.parent+'→'+n.id))
       els.push({data:{source:n.parent,target:n.id,label:'parent'}});
-    }
   });
-
   (d.edges||[]).forEach(e=>{
-    const src=e.direction!=='in'?e.source:e.target;
-    const tgt=e.direction!=='in'?e.target:e.source;
-    els.push({data:{source:src,target:tgt,label:e.label||'rel'}});
+    const s=e.direction!=='in'?e.source:e.target,t=e.direction!=='in'?e.target:e.source;
+    els.push({data:{source:s,target:t,label:e.label||'rel'}});
   });
   return els;
 }
 
-/* ---------- Cytoscape + overlap utility ---------- */
-let cy, lu;
-function ensureCy(){
- if(cy) return;
-
- if(window.cytoscapeCoseBilkent) cytoscape.use(cytoscapeCoseBilkent);
- if(window.cytoscapeLayoutUtilities) cytoscape.use(window.cytoscapeLayoutUtilities);
-
-cy=cytoscape({
-  container:document.getElementById('cy'),
-  style:[
-     {selector:'node',style:{
-       label:'data(label)','text-wrap':'wrap','text-max-width':'240px',
-       'text-valign':'center','text-halign':'center',
-       'background-color':'var(--node)','color':'#fff',
-       'shape':'round-rectangle','padding':'8px',
-       width:'label',height:'label','font-size':'13px'}},
-     {selector:'node.root',style:{'background-color':'var(--root)'}},
-     {selector:'edge',style:{
-       width:2,'line-color':'var(--edge)','target-arrow-color':'var(--edge)',
-       'target-arrow-shape':'triangle','curve-style':'bezier',
-       label:'data(label)','font-size':'11px','color':'#e2e8f0',
-       'text-rotation':'autorotate','text-margin-y':'-10px',
-       'text-background-opacity':0.9,'text-background-color':'var(--panel)',
-       'text-background-padding':'2px'}},
-     {selector:'edge[label=""]',style:{label:'','text-background-opacity':0}}
-  ]
-});
-
-/* overlap util */
-if(cytoscape.layoutUtilities){
-  lu=cy.layoutUtilities({desiredAspectRatio:1.2,nodeSpacing:40});
-}
-
-
- /* place new nodes near their parent */
- function placeNearParent(id,parent){
-   const p=cy.getElementById(parent);
-   const n=cy.getElementById(id);
-   if(!p||!n) return;
-   const pos=p.position();
-   const ang=Math.random()*2*Math.PI;
-   n.position({x:pos.x+80*Math.cos(ang),y:pos.y+80*Math.sin(ang)});
- }
-
- /* tap‑to‑extend */
- cy.on('tap','node',evt=>{
-   const n=evt.target;
-   const eg=`{"nodes":[{"id":"newId","text":"New","parent":"${n.id()}"}],"edges":[{"source":"${n.id()}","target":"newId","label":"rel","direction":"out"}]}`;
-   const raw=prompt('Add JSON to expand this node:\n'+eg);
-   if(!raw) return;
-   try{
-     const extra=JSON.parse(raw);
-     cy.add(jsonToEls(extra));
-     (extra.nodes||[]).forEach(nn=>placeNearParent(nn.id,nn.parent));
-     if(lu) lu.run('prevent-overlap');
-     resolveCollisions(8);
-     adjustLabels();
-     cy.animate({fit:{eles:cy,padding:40}},{duration:400});
-   }catch{alert('Bad JSON');}
- });
-
- /* after dragging, push overlaps away */
-cy.on('dragfree','node',()=>{
-  if(lu) lu.run('prevent-overlap');
-  resolveCollisions(8);
-  adjustLabels();
-});
-}
-
-/* helpers for collision checks */
-const rectsOverlap=(a,b)=>a.x1<=b.x2&&a.x2>=b.x1&&a.y1<=b.y2&&a.y2>=b.y1;
-const unit=v=>{const l=Math.hypot(v.x,v.y)||1;return{x:v.x/l,y:v.y/l}};
-const push=(n,v,d)=>n.position({x:n.position('x')+v.x*d,y:n.position('y')+v.y*d});
-
-/* push nodes away from edges and edge labels */
-function resolveCollisions(iter=8){
-  for(let k=0;k<iter;k++){
-    let moved=false;
-    cy.nodes().forEach(n=>{
-      const nb=n.boundingBox();
-      cy.edges().forEach(e=>{
-        if(e.source().id()===n.id()||e.target().id()===n.id()) return;
-        const eb=e.boundingBox();
-        if(rectsOverlap(nb,eb)){
-          const v=unit({x:nb.x1+nb.w/2-e.midpoint().x,y:nb.y1+nb.h/2-e.midpoint().y});
-          push(n,v,10);moved=true;
-        }
-        const lb=e.boundingBox({includeEdges:false,includeLabels:true,includeNodes:false});
-        if(rectsOverlap(nb,lb)){
-          const v=unit({x:nb.x1+nb.w/2-e.midpoint().x,y:nb.y1+nb.h/2-e.midpoint().y});
-          push(n,v,10);moved=true;
-        }
-      });
-    });
-    if(!moved) break;
-    if(lu) lu.run('prevent-overlap');
-  }
-}
-
-/* shift edge labels to avoid nodes and other labels */
-function adjustLabels(){
-  const edges=cy.edges();
-  edges.forEach(e=>e.style('text-margin-y','-10px'));
-  for(let i=0;i<edges.length;i++){
-    const ei=edges[i];
-    let bb=ei.boundingBox({includeEdges:false,includeLabels:true,includeNodes:false});
-    cy.nodes().forEach(n=>{
-      if(rectsOverlap(bb,n.boundingBox())){
-        const sign=n.position('y')>ei.midpoint().y?-1:1;
-        ei.style('text-margin-y',parseFloat(ei.style('text-margin-y'))+sign*14);
-        bb=ei.boundingBox({includeEdges:false,includeLabels:true,includeNodes:false});
-      }
-    });
-    cy.edges().forEach((e2)=>{
-      if(e2.id()===ei.id()) return;
-      if(rectsOverlap(bb,e2.boundingBox())){
-        const sign=e2.midpoint().y>ei.midpoint().y?-1:1;
-        ei.style('text-margin-y',parseFloat(ei.style('text-margin-y'))+sign*14);
-        bb=ei.boundingBox({includeEdges:false,includeLabels:true,includeNodes:false});
-      }
-    });
-    for(let j=i+1;j<edges.length;j++){
-      const ej=edges[j];
-      const bj=ej.boundingBox({includeEdges:false,includeLabels:true,includeNodes:false});
-      if(rectsOverlap(bb,bj))
-        ej.style('text-margin-y',parseFloat(ej.style('text-margin-y'))+14);
-    }
-  }
-}
-
-/* physics layout + overlap pass */
-function layout(full){
-  const name=window.cytoscapeCoseBilkent?'cose-bilkent':'cose';
-  cy.layout({
-    name,animate:false,random:false,fit:true,padding:40,
-    idealEdgeLength:220,nodeRepulsion:25000,gravity:0.3,
-    edgeElasticity:0.25,nodeDimensionsIncludeLabels:true
-  }).run();
-  if(lu) lu.run('prevent-overlap');
-  resolveCollisions(8);
-  adjustLabels();
-  if(full) cy.animate({fit:{eles:cy,padding:40}}, {duration:400});
-}
-
-/* ---------- render button ---------- */
-document.getElementById('renderBtn').addEventListener('click',()=>{
-  let raw=document.getElementById('jsonInput').value.trim();
-  if(raw.startsWith('```')) raw=raw.replace(/^```[a-z]*\s*/i,'').replace(/```$/,'');
-  raw=raw.replace(/\\\[/g,'[').replace(/\\\]/g,']');
-
-  let data; try{data=JSON.parse(raw);}catch{alert('Invalid JSON');return;}
-
+/* render */
+document.getElementById('renderBtn').onclick=()=>{
+  let data=parseJSON(document.getElementById('jsonInput').value.trim());
+  if(!data){alert('Invalid JSON');return;}
+  data=normalize(data);
   ensureCy();
   cy.elements().remove();
-  cy.add(jsonToEls(data));
+  cy.add(buildEls(data));
   layout();
-});
+};
 </script>
 </body>
 </html>
