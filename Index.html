@@ -28,7 +28,8 @@ details{margin-top:6px}summary{cursor:pointer;font-weight:600}
 .btn.aux:disabled{background:var(--btn-d);color:#666;cursor:not-allowed}
 #actionRow{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 #cy{flex:1;touch-action:none}
-#nodeMenu{position:absolute;background:var(--panel);border:none;border-radius:8px;padding:6px 8px;box-shadow:0 4px 10px rgba(0,0,0,.45);display:none;z-index:1000}
+#nodeMenu{position:absolute;background:var(--panel);border:none;border-radius:8px;padding:6px 8px;
+          box-shadow:0 4px 10px rgba(0,0,0,.45);display:none;z-index:1000}
 #nodeMenu button{margin:3px 0;width:190px;font-size:13px;padding:5px 10px;border:0;border-radius:4px;background:var(--node);color:#fff}
 #nodeMenu button:hover{background:var(--node-h)}
 #overlay{position:fixed;inset:0;background:#000a;backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center;z-index:2000}
@@ -42,7 +43,6 @@ details{margin-top:6px}summary{cursor:pointer;font-weight:600}
 </head>
 <body>
 <div id="controls">
-  <!-- Prompt builder -->
   <details id="builder">
     <summary>Prompt builder (click to open)</summary>
     <p>Enter a topic or link → <b>Copy Prompt</b> → paste into ChatGPT.</p>
@@ -51,7 +51,6 @@ details{margin-top:6px}summary{cursor:pointer;font-weight:600}
     <p style="margin:6px 0 2px">Preview:</p><code id="promptPreview"></code>
   </details>
 
-  <!-- JSON area -->
   <details id="jsonBox" open>
     <summary>JSON (click to show / hide)</summary>
     <textarea id="jsonInput" placeholder="Paste ChatGPT’s JSON here, then hit Render Map"></textarea>
@@ -68,7 +67,6 @@ details{margin-top:6px}summary{cursor:pointer;font-weight:600}
 
 <div id="cy"></div>
 
-<!-- floating node menu -->
 <div id="nodeMenu">
   <button id="copyTextBtn">Copy text</button>
   <button id="nodeCopy">Copy Prompt for this node</button>
@@ -76,7 +74,6 @@ details{margin-top:6px}summary{cursor:pointer;font-weight:600}
   <button id="childDelete">Delete ONLY children</button>
 </div>
 
-<!-- paste overlay -->
 <div id="overlay" style="display:none">
   <div id="overlayInner">
     <textarea placeholder="Paste JSON here"></textarea>
@@ -84,7 +81,6 @@ details{margin-top:6px}summary{cursor:pointer;font-weight:600}
   </div>
 </div>
 
-<!-- donation -->
 <section id="donate" title="Tap to hide"><h3 style="margin:0 0 4px;font-size:14px">
   Support citizen‑science projects <span style="font-size:11px;opacity:.6">(tap to hide)</span></h3>
   <p><b>Gridcoin</b> — rewards BOINC distributed‑computing research.<br>Address: <code>SG5RCw9cf2RhbopCuXLzYYpXciARaZNCF8</code></p>
@@ -94,79 +90,86 @@ details{margin-top:6px}summary{cursor:pointer;font-weight:600}
 
 <script>
 /* ---------- helpers ---------- */
-const ZWSP="\u200B",WRAP=12,MAXLEN=50;
+const MAXLEN=50, WRAP=12, ZWSP="\u200B";
 const wrap=t=>{
   const s=t.length>MAXLEN?t.slice(0,47)+"…":t;
   return s.includes(" ")||s.length<=WRAP?s:s.replace(new RegExp(`(.{${WRAP}})`,"g"),`$1${ZWSP}`);
 };
-function sanitize(txt){
-  let s=txt.trim().replace(/^```[^\n]*\n?|```$/g,"");
-  const m=s.match(/({[\s\S]*})/m); if(m)s=m[1]; else s="";
+const sanitize=t=>{
+  let s=t.trim().replace(/^```[^\n]*\n?|```$/g,"");
+  const m=s.match(/({[\s\S]*})/m); s=m?m[1]:"";
   return s.replace(/\\(?!["\/bfnrtu])/g,"").replace(/\\(?=[\[\]{}])/g,"");
-}
+};
 const parseJSON=t=>{try{return JSON.parse(t);}catch{return null;}};
 
-/* ---------- prompt builder ---------- */
+/* ---------- prompt builder (REVERTED wording) ---------- */
 const topicInput=document.getElementById("topicInput"),promptPreview=document.getElementById("promptPreview");
 const isURL=s=>/^https?:\/\//i.test(s.trim());
 function makePrompt(t){
-  if(isURL(t))
-    return `Analyse the page ${t} and output ONLY raw JSON.
+  if(isURL(t)){
+return `Analyse the page ${t} and output ONLY raw JSON.
 
-• Add "link":"${t}" at top level (NOT as a node).
-• IDs: n0 root → n1, n2 …
-
-Schema:
-{"link":"${t}","root":"n0","nodes":[…],"edges":[…]}
-
-Return ONLY JSON.`;
-  return `Create a mind‑map for "${t}" – output ONLY raw JSON.
-
-• IDs: n0 root → n1, n2 …
+• Add "link":"${t}" at top level (do NOT add it as a node).
+• IDs must start with "n0" for the root, followed by n1, n2 … consecutively.
 
 Schema:
-{"root":"n0","nodes":[…],"edges":[…]}
-
-Return ONLY JSON.`;
+{
+  "link":"${t}",
+  "root":"n0",
+  "nodes":[{ "id":"n0","text":"<root label>","parent":"" }],
+  "edges":[{ "source":"...","target":"...","label":"...","direction":"out" }]
 }
+
+Return ONLY the JSON object (no Markdown, no code fences).`;
+  }
+return `Create a mind‑map for "${t}" and output ONLY raw JSON.
+
+• IDs must start with "n0" for the root, followed by n1, n2 … consecutively.
+
+Schema:
+{
+  "root":"n0",
+  "nodes":[{ "id":"n0","text":"<root label>","parent":"" }],
+  "edges":[{ "source":"...","target":"...","label":"...","direction":"out" }]
+}
+
+Return ONLY the JSON object (no Markdown, no code fences).`; }
 topicInput.oninput=()=>promptPreview.textContent=makePrompt(topicInput.value.trim()||"<topic>");
 promptPreview.textContent=makePrompt("<topic>");
 document.getElementById("copyPromptBtn").onclick=()=>{
-  const t=topicInput.value.trim(); if(!t){alert("Enter topic / URL");return;}
-  navigator.clipboard.writeText(makePrompt(t)); document.getElementById("builder").open=false;
+  const t=topicInput.value.trim();if(!t){alert("Enter topic / URL");return;}
+  navigator.clipboard.writeText(makePrompt(t));document.getElementById("builder").open=false;
 };
 
 /* ---------- history ---------- */
 let dataObj={},hist=[],idx=-1;
-function pushHist(t){hist.splice(idx+1);hist.push(t);idx=hist.length-1;updUR();}
+function pushHist(t){hist.splice(idx+1);hist.push(t);idx=hist.length-1;updateUR();}
 const undoBtn=document.getElementById("undoBtn"),redoBtn=document.getElementById("redoBtn");
-const updUR=()=>{undoBtn.disabled=idx<=0; redoBtn.disabled=idx>=hist.length-1;};
+const updateUR=()=>{undoBtn.disabled=idx<=0;redoBtn.disabled=idx>=hist.length-1;};
 
-/* ---------- paste / copy buttons ---------- */
+/* ---------- clipboard buttons ---------- */
 const jsonInput=document.getElementById("jsonInput");
 document.getElementById("copyJsonBtn").onclick=()=>navigator.clipboard.writeText(jsonInput.value||"");
 const overlay=document.getElementById("overlay");
 document.getElementById("pasteBtn").onclick=async()=>{
   if(navigator.clipboard?.readText){
     try{jsonInput.value=sanitize(await navigator.clipboard.readText());return;}catch{}
-  }
-  overlay.style.display="flex";
+  }overlay.style.display="flex";
 };
 document.getElementById("ovCancel").onclick=()=>overlay.style.display="none";
 document.getElementById("ovOk").onclick=()=>{
-  const ta=overlay.querySelector("textarea");
-  jsonInput.value=sanitize(ta.value);overlay.style.display="none";
+  jsonInput.value=sanitize(overlay.querySelector("textarea").value);overlay.style.display="none";
 };
 
 /* ---------- Cytoscape ---------- */
-let cy,layout; cytoscape.use(cytoscapeCola);
+let cy,lay; cytoscape.use(cytoscapeCola);
 function initCy(){
   if(cy)return;
   cy=cytoscape({container:document.getElementById("cy"),wheelSensitivity:.25,
     style:[
       {selector:"node",style:{label:"data(label)","text-wrap":"wrap","text-max-width":"240px","text-valign":"center","text-halign":"center",
-        "background-color":"var(--node)","shape":"round-rectangle","padding":"6px",
-        width:"label",height:"label","font-size":"13px",color:"#fff","text-outline-color":"#000","text-outline-width":1}},
+        "background-color":"var(--node)","shape":"round-rectangle","padding":"6px",width:"label",height:"label","font-size":"13px",
+        color:"#fff","text-outline-color":"#000","text-outline-width":1}},
       {selector:"node.root",style:{"background-color":"var(--root)","border-width":4,"border-color":"var(--root-outline)",
         "text-outline-color":"#000","text-outline-width":3,"font-size":"15px","font-weight":"700"}},
       {selector:"node:hover",style:{"background-color":"var(--node-h)"}},
@@ -178,22 +181,15 @@ function initCy(){
   cy.on("tap",e=>{if(e.target===cy)document.getElementById("nodeMenu").style.display="none";});
   cy.on("tap","node",e=>openMenu(e.target,e.renderedPosition));
 }
-function runPhysics(){
-  layout?.stop();
-  layout=cy.layout({name:"cola",infinite:true,animate:true,refresh:1,nodeSpacing:25,edgeLength:200,padding:40,fit:false});
-  layout.run();
-}
-
-/* ---------- graph helpers ---------- */
-function buildElements(){
-  const els=[],dup=new Set(dataObj.edges?.map(e=>e.source+"→"+e.target)||[]);
+function physics(){lay?.stop();lay=cy.layout({name:"cola",infinite:true,animate:true,refresh:1,nodeSpacing:25,edgeLength:200,padding:40,fit:false});lay.run();}
+function buildEls(){
+  const arr=[],dup=new Set(dataObj.edges?.map(e=>e.source+"→"+e.target)||[]);
   (dataObj.nodes||[]).forEach(n=>{
-    els.push({data:{id:n.id,label:wrap(n.text),full:n.text},classes:n.id==="n0"?"root":""});
-    if(n.parent&&!dup.has(n.parent+"→"+n.id))
-      els.push({data:{source:n.parent,target:n.id,label:"parent"}});
+    arr.push({data:{id:n.id,label:wrap(n.text),full:n.text},classes:n.id==="n0"?"root":""});
+    if(n.parent&&!dup.has(n.parent+"→"+n.id))arr.push({data:{source:n.parent,target:n.id,label:"parent"}});
   });
-  (dataObj.edges||[]).forEach(e=>els.push({data:{source:e.source,target:e.target,label:e.label||"rel"}}));
-  return els;
+  (dataObj.edges||[]).forEach(e=>arr.push({data:{source:e.source,target:e.target,label:e.label||"rel"}}));
+  return arr;
 }
 
 /* ---------- node menu ---------- */
@@ -206,70 +202,70 @@ function openMenu(node,pos){
   nodeMenu.dataset.id=node.id();
   const root=node.id()==="n0",kids=!node.outgoers("edge").empty();
   delBtn.textContent=root?"Delete entire graph":"Delete node & subtree";
-  delBtn.style.display=kids||root?"block":"none";
-  childBtn.style.display=!root&&kids?"block":"none";
+  delBtn.style.display=kids||root?"block":"none";childBtn.style.display=!root&&kids?"block":"none";
   nodeMenu.style.display="block";nodeMenu.style.visibility="hidden";
   const r=cy.container().getBoundingClientRect(),mw=nodeMenu.offsetWidth,mh=nodeMenu.offsetHeight;
   let x=r.left+pos.x+20,y=r.top+pos.y+20;if(x+mw>innerWidth-10)x-=mw+40;if(y+mh>innerHeight-10)y-=mh+40;if(x<10)x=10;if(y<10)y=10;
   nodeMenu.style.left=x+"px";nodeMenu.style.top=y+"px";nodeMenu.style.visibility="visible";
 }
-copyTextBtn.onclick=()=>{const n=cy.getElementById(nodeMenu.dataset.id);navigator.clipboard.writeText(n.data("full")||"");nodeMenu.style.display="none";};
+copyTextBtn.onclick=()=>{navigator.clipboard.writeText(cy.getElementById(nodeMenu.dataset.id).data("full")||"");nodeMenu.style.display="none";};
 nodeCopyBtn.onclick=()=>{
   const id=nodeMenu.dataset.id,n=cy.getElementById(id),link=dataObj.link?`"link":"${dataObj.link}",\n`:"";
-  const p=`Extend and refactor node "${n.data('full')}" (id "${id}").
+  const p=`Extend and refactor node "${n.data('full')}" (id "${id}") and its sub‑graph.
 
-Preserve "link" key if present, keep IDs n0 (root), n1, n2 …
+Keep "link" key if present, and IDs MUST remain n0 (root), n1, n2 …
 
-Schema:
+Schema (return ONLY JSON):
 {
  ${link}"root":"n0",
  "nodes":[{ "id":"n0","text":"<root label>","parent":"" }, … ],
  "edges":[{ "source":"...","target":"...","label":"...","direction":"out" }]
 }
 
-ONLY JSON. Current:
+Return ONLY the JSON object.
+
+Current JSON:
 ${jsonInput.value}`;
   navigator.clipboard.writeText(p);nodeMenu.style.display="none";
 };
 /* delete helpers */
-function subtree(id,incRoot){
-  const set=new Set(incRoot?[id]:[]),q=[id];
+const subtree=(id,keepRoot)=>{
+  const set=new Set(keepRoot?[id]:[]),q=[id];
   while(q.length){
     const cur=q.pop();
     dataObj.edges.forEach(e=>{if(e.source===cur&&!set.has(e.target)){set.add(e.target);q.push(e.target);} });
     dataObj.nodes.forEach(n=>{if(n.parent===cur&&!set.has(n.id)){set.add(n.id);q.push(n.id);} });
-  }
-  return set;
-}
-function remove(set){dataObj.nodes=dataObj.nodes.filter(n=>!set.has(n.id));dataObj.edges=dataObj.edges.filter(e=>!set.has(e.source)&&!set.has(e.target));}
+  }return set;
+};
+const remove=set=>{dataObj.nodes=dataObj.nodes.filter(n=>!set.has(n.id));
+  dataObj.edges=dataObj.edges.filter(e=>!set.has(e.source)&&!set.has(e.target));};
 delBtn.onclick=()=>{
   const id=nodeMenu.dataset.id;
   if(id==="n0"){if(!confirm("Delete entire graph?"))return;dataObj={};jsonInput.value="";cy.elements().remove();pushHist("");}
-  else{remove(subtree(id,true));jsonInput.value=JSON.stringify(dataObj,null,2);render(true,false);}
-  nodeMenu.style.display="none";
+  else{remove(subtree(id,true));jsonInput.value=JSON.stringify(dataObj,null,2);}
+  nodeMenu.style.display="none";render(true,false);
 };
 childBtn.onclick=()=>{remove(subtree(nodeMenu.dataset.id,false));jsonInput.value=JSON.stringify(dataObj,null,2);nodeMenu.style.display="none";render(true,false);};
 
 /* ---------- render ---------- */
 function render(store=true){
-  const txt=sanitize(jsonInput.value);
-  if(!txt){cy&&cy.elements().remove();dataObj={};return;}
-  const obj=parseJSON(txt); if(!obj){alert("Invalid JSON");return;}
-  dataObj=obj; dataObj.root="n0";
-  initCy(); cy.elements().remove(); cy.add(buildElements()); runPhysics();
+  const txt=sanitize(jsonInput.value);if(!txt){cy&&cy.elements().remove();dataObj={};return;}
+  const obj=parseJSON(txt);if(!obj){alert("Invalid JSON");return;}
+  dataObj=obj;dataObj.root="n0";
+  initCy();cy.elements().remove();cy.add(buildEls());physics();
   if(store)pushHist(JSON.stringify(dataObj,null,2));
 }
 document.getElementById("renderBtn").onclick=()=>render(true);
 
-/* undo/redo */
-undoBtn.onclick=()=>{if(idx>0){idx--;jsonInput.value=hist[idx];render(false);updUR();}};
-redoBtn.onclick=()=>{if(idx<hist.length-1){idx++;jsonInput.value=hist[idx];render(false);updUR();}};
+/* undo / redo */
+undoBtn.onclick=()=>{if(idx>0){idx--;jsonInput.value=hist[idx];render(false);updateUR();}};
+redoBtn.onclick=()=>{if(idx<hist.length-1){idx++;jsonInput.value=hist[idx];render(false);updateUR();}};
 addEventListener("keydown",e=>{
   if(e.ctrlKey&&!e.shiftKey&&e.key==="z"){e.preventDefault();undoBtn.onclick();}
-  if(e.ctrlKey&&(e.key==="y"||e.key==="Z"&&e.shiftKey)){e.preventDefault();redoBtn.onclick();}
+  if(e.ctrlKey&&(e.key==="y"||(e.key==="Z"&&e.shiftKey))){e.preventDefault();redoBtn.onclick();}
 });
 
-/* donate banner hide */
+/* banner hide */
 document.getElementById("donate").onclick=e=>e.currentTarget.classList.add("hide");
 </script>
 </body>
