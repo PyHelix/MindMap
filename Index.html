@@ -28,14 +28,40 @@ details{margin-top:6px}summary{cursor:pointer;font-weight:600}
 .btn.aux:disabled{background:var(--btn-d);color:#666;cursor:not-allowed}
 #actionRow{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 #cy{flex:1;touch-action:none}
-#nodeMenu{position:absolute;background:var(--panel);border:none;border-radius:8px;padding:6px 8px;
-          box-shadow:0 4px 10px rgba(0,0,0,.45);display:none;z-index:1000}
-#nodeMenu button{margin:3px 0;width:190px;font-size:13px;padding:5px 10px;border:0;border-radius:4px;background:var(--node);color:#fff}
+
+/* ---------- node context menu ---------- */
+#nodeMenu{
+  position:absolute;
+  background:var(--panel);
+  border:none;
+  border-radius:8px;
+  padding:6px 8px;
+  box-shadow:0 4px 10px rgba(0,0,0,.45);
+  display:none;          /* hidden until a node is tapped */
+  width:max-content;     /* SHRINK to the widest button only */
+}
+#nodeMenu button{
+  margin:3px 0;
+  padding:6px 14px;
+  font-size:13px;
+  border:0;
+  border-radius:4px;
+  background:var(--node);
+  color:#fff;
+  width:100%;            /* all buttons same width, equals menu width */
+}
 #nodeMenu button:hover{background:var(--node-h)}
-#overlay{position:fixed;inset:0;background:#000a;backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center;z-index:2000}
-#overlayInner{width:90%;max-width:600px;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:8px}
-#overlayInner textarea{flex:1;min-height:200px;background:#0f172a;color:#c9d1d9;border:1px solid var(--border);border-radius:6px;font-family:monospace}
+
+/* ---------- paste overlay ---------- */
+#overlay{position:fixed;inset:0;background:#000a;backdrop-filter:blur(2px);display:flex;
+         align-items:center;justify-content:center;z-index:2000}
+#overlayInner{width:90%;max-width:600px;background:var(--panel);border:1px solid var(--border);
+              border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:8px}
+#overlayInner textarea{flex:1;min-height:200px;background:#0f172a;color:#c9d1d9;border:1px solid var(--border);
+                       border-radius:6px;font-family:monospace}
 #overlayInner div{display:flex;gap:8px;justify-content:flex-end}
+
+/* ---------- donate banner ---------- */
 #donate{padding:10px;background:var(--panel);border-top:1px solid var(--border);cursor:pointer;font-size:13px}
 #donate.hide{opacity:0;height:0;padding:0;border:none;overflow:hidden;transition:.25s}
 #donate b{color:#c9d1d9}#donate a{color:#58a6ff;text-decoration:none}
@@ -81,8 +107,8 @@ details{margin-top:6px}summary{cursor:pointer;font-weight:600}
   </div>
 </div>
 
-<section id="donate" title="Tap to hide"><h3 style="margin:0 0 4px;font-size:14px">
-  Support citizen‑science projects <span style="font-size:11px;opacity:.6">(tap to hide)</span></h3>
+<section id="donate" title="Tap to hide">
+  <h3 style="margin:0 0 4px;font-size:14px">Support citizen‑science projects <span style="font-size:11px;opacity:.6">(tap to hide)</span></h3>
   <p><b>Gridcoin</b> — rewards BOINC distributed‑computing research.<br>Address: <code>SG5RCw9cf2RhbopCuXLzYYpXciARaZNCF8</code></p>
   <p><b>Curecoin</b> — rewards Folding@home protein‑folding research.<br>Address: <code>BRaK31UtcWKM6wqbFFU8bXDSc1b8NkvP7h</code></p>
   <p>Feedback → <a href="mailto:Foxes.owo@gmaill.com">Foxes.owo@gmaill.com</a></p>
@@ -102,15 +128,14 @@ const sanitize=t=>{
 };
 const parseJSON=t=>{try{return JSON.parse(t);}catch{return null;}};
 
-/* ---------- prompt builder (REVERTED wording) ---------- */
-const topicInput=document.getElementById("topicInput"),promptPreview=document.getElementById("promptPreview");
+/* ---------- prompt builder ---------- */
 const isURL=s=>/^https?:\/\//i.test(s.trim());
 function makePrompt(t){
   if(isURL(t)){
-return `Analyse the page ${t} and output ONLY raw JSON.
+    return `Analyse the page ${t} and output ONLY raw JSON.
 
-• Add "link":"${t}" at top level (do NOT add it as a node).
-• IDs must start with "n0" for the root, followed by n1, n2 … consecutively.
+• Add "link":"${t}" at top level (NOT as a node).
+• IDs must start with "n0" for the root, then n1, n2 …
 
 Schema:
 {
@@ -120,11 +145,11 @@ Schema:
   "edges":[{ "source":"...","target":"...","label":"...","direction":"out" }]
 }
 
-Return ONLY the JSON object (no Markdown, no code fences).`;
+Return ONLY the JSON object (no Markdown / fences).`;
   }
-return `Create a mind‑map for "${t}" and output ONLY raw JSON.
+  return `Create a mind‑map for "${t}" and output ONLY raw JSON.
 
-• IDs must start with "n0" for the root, followed by n1, n2 … consecutively.
+• IDs must start with "n0" for the root, then n1, n2 …
 
 Schema:
 {
@@ -133,7 +158,9 @@ Schema:
   "edges":[{ "source":"...","target":"...","label":"...","direction":"out" }]
 }
 
-Return ONLY the JSON object (no Markdown, no code fences).`; }
+Return ONLY the JSON object (no Markdown / fences).`;
+}
+const topicInput=document.getElementById("topicInput"),promptPreview=document.getElementById("promptPreview");
 topicInput.oninput=()=>promptPreview.textContent=makePrompt(topicInput.value.trim()||"<topic>");
 promptPreview.textContent=makePrompt("<topic>");
 document.getElementById("copyPromptBtn").onclick=()=>{
@@ -182,15 +209,14 @@ function initCy(){
   cy.on("tap","node",e=>openMenu(e.target,e.renderedPosition));
 }
 function physics(){lay?.stop();lay=cy.layout({name:"cola",infinite:true,animate:true,refresh:1,nodeSpacing:25,edgeLength:200,padding:40,fit:false});lay.run();}
-function buildEls(){
-  const arr=[],dup=new Set(dataObj.edges?.map(e=>e.source+"→"+e.target)||[]);
+const buildEls=()=>{const arr=[],dup=new Set(dataObj.edges?.map(e=>e.source+"→"+e.target)||[]);
   (dataObj.nodes||[]).forEach(n=>{
     arr.push({data:{id:n.id,label:wrap(n.text),full:n.text},classes:n.id==="n0"?"root":""});
     if(n.parent&&!dup.has(n.parent+"→"+n.id))arr.push({data:{source:n.parent,target:n.id,label:"parent"}});
   });
   (dataObj.edges||[]).forEach(e=>arr.push({data:{source:e.source,target:e.target,label:e.label||"rel"}}));
   return arr;
-}
+};
 
 /* ---------- node menu ---------- */
 const nodeMenu=document.getElementById("nodeMenu"),
@@ -215,7 +241,7 @@ nodeCopyBtn.onclick=()=>{
 
 Keep "link" key if present, and IDs MUST remain n0 (root), n1, n2 …
 
-Schema (return ONLY JSON):
+Schema:
 {
  ${link}"root":"n0",
  "nodes":[{ "id":"n0","text":"<root label>","parent":"" }, … ],
@@ -228,24 +254,25 @@ Current JSON:
 ${jsonInput.value}`;
   navigator.clipboard.writeText(p);nodeMenu.style.display="none";
 };
-/* delete helpers */
-const subtree=(id,keepRoot)=>{
+/* deletion */
+function subtree(id,keepRoot){
   const set=new Set(keepRoot?[id]:[]),q=[id];
   while(q.length){
     const cur=q.pop();
     dataObj.edges.forEach(e=>{if(e.source===cur&&!set.has(e.target)){set.add(e.target);q.push(e.target);} });
     dataObj.nodes.forEach(n=>{if(n.parent===cur&&!set.has(n.id)){set.add(n.id);q.push(n.id);} });
   }return set;
-};
-const remove=set=>{dataObj.nodes=dataObj.nodes.filter(n=>!set.has(n.id));
-  dataObj.edges=dataObj.edges.filter(e=>!set.has(e.source)&&!set.has(e.target));};
+}
+const remove=set=>{dataObj.nodes=dataObj.nodes.filter(n=>!set.has(n.id));dataObj.edges=dataObj.edges.filter(e=>!set.has(e.source)&&!set.has(e.target));};
 delBtn.onclick=()=>{
-  const id=nodeMenu.dataset.id;
-  if(id==="n0"){if(!confirm("Delete entire graph?"))return;dataObj={};jsonInput.value="";cy.elements().remove();pushHist("");}
+  const id=nodeMenu.dataset.id;if(id==="n0"){if(!confirm("Delete entire graph?"))return;dataObj={};jsonInput.value="";cy.elements().remove();pushHist("");}
   else{remove(subtree(id,true));jsonInput.value=JSON.stringify(dataObj,null,2);}
   nodeMenu.style.display="none";render(true,false);
 };
-childBtn.onclick=()=>{remove(subtree(nodeMenu.dataset.id,false));jsonInput.value=JSON.stringify(dataObj,null,2);nodeMenu.style.display="none";render(true,false);};
+childBtn.onclick=()=>{
+  remove(subtree(nodeMenu.dataset.id,false));jsonInput.value=JSON.stringify(dataObj,null,2);
+  nodeMenu.style.display="none";render(true,false);
+};
 
 /* ---------- render ---------- */
 function render(store=true){
@@ -262,10 +289,10 @@ undoBtn.onclick=()=>{if(idx>0){idx--;jsonInput.value=hist[idx];render(false);upd
 redoBtn.onclick=()=>{if(idx<hist.length-1){idx++;jsonInput.value=hist[idx];render(false);updateUR();}};
 addEventListener("keydown",e=>{
   if(e.ctrlKey&&!e.shiftKey&&e.key==="z"){e.preventDefault();undoBtn.onclick();}
-  if(e.ctrlKey&&(e.key==="y"||(e.key==="Z"&&e.shiftKey))){e.preventDefault();redoBtn.onclick();}
+  if(e.ctrlKey&&(e.key==="y"||e.key==="Z"&&e.shiftKey)){e.preventDefault();redoBtn.onclick();}
 });
 
-/* banner hide */
+/* banner */
 document.getElementById("donate").onclick=e=>e.currentTarget.classList.add("hide");
 </script>
 </body>
