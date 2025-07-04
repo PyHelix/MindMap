@@ -21,15 +21,17 @@
 html,body{height:100%;display:flex;flex-direction:column;font-family:system-ui,sans-serif;background:var(--bg);color:var(--txt)}
 #controls{padding:8px;background:var(--panel);border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:6px}
 
-/* prompt builder */
+/* prompt builder row */
 #builderRow{display:flex;align-items:center;gap:6px}
 #builderRow input{flex:1 1 auto;min-width:0;padding:6px;border-radius:6px;border:1px solid var(--border);
                   background:#0f172a;color:#c9d1d9}
 
-/* buttons */
-.btn{padding:6px 14px;border:0;border-radius:6px;font-weight:600;cursor:pointer}
+/* buttons ------------------------------------------------------------- */
+.btn{padding:6px 14px;border:0;border-radius:6px;font-weight:600;cursor:pointer;
+     white-space:nowrap;flex:0 0 auto}            /* never wrap */
 .btn.main{background:var(--btn);color:#fff}.btn.main:hover{background:var(--btn-h)}
 .btn.aux{background:var(--node-h);color:#111;padding:6px 10px}
+.btn.aux.active{background:var(--btn);color:#fff}         /* highlight for multi‑select */
 .btn.aux:disabled{background:var(--btn-d);color:#666;cursor:not-allowed}
 #actionRow{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 
@@ -38,23 +40,22 @@ html,body{height:100%;display:flex;flex-direction:column;font-family:system-ui,s
 
 #cy{flex:1;touch-action:none}
 
-/* node context menu */
-#nodeMenu{position:absolute;display:none;background:rgba(22,27,34,.9);
-          border-radius:8px;padding:8px;max-width:calc(100vw - 20px);
-          box-shadow:0 4px 10px #000a;z-index:1000}
+/* node context menu --------------------------------------------------- */
+#nodeMenu{position:absolute;display:none;background:rgba(22,27,34,.9);border-radius:8px;padding:8px;
+          max-width:calc(100vw - 20px);box-shadow:0 4px 10px #000a;z-index:1000}
 #nodeMenu.dragging{opacity:.85}
 #nodeMenu button{display:block;width:auto;margin:3px 0;padding:6px 14px;font-size:13px;border:0;
                  background:var(--node);color:#fff;border-radius:4px;white-space:nowrap}
 #nodeMenu button:hover{background:var(--node-h)}
 .selected{border:2px solid #f9a825 !important}
 
-/* help overlay */
+/* help overlay -------------------------------------------------------- */
 #helpOverlay{position:fixed;inset:0;background:#000c;backdrop-filter:blur(2px);
              display:none;align-items:center;justify-content:center;z-index:3000}
 #helpOverlay>div{max-width:480px;margin:0 5%;background:var(--panel);border:1px solid var(--border);
                  border-radius:8px;padding:18px;font-size:15px;line-height:1.4}
 
-/* big‑paste overlay */
+/* big‑paste overlay --------------------------------------------------- */
 #overlay{position:fixed;inset:0;background:#000a;backdrop-filter:blur(2px);display:flex;
          align-items:center;justify-content:center;z-index:2000}
 #overlayInner{width:90%;max-width:600px;background:var(--panel);border:1px solid var(--border);
@@ -63,7 +64,7 @@ html,body{height:100%;display:flex;flex-direction:column;font-family:system-ui,s
                        border-radius:6px;font-family:monospace}
 #overlayInner div{display:flex;gap:8px;justify-content:flex-end}
 
-/* donate */
+/* donate -------------------------------------------------------------- */
 #donate{padding:10px;background:var(--panel);border-top:1px solid var(--border);cursor:pointer;font-size:13px}
 #donate.hide{opacity:0;height:0;padding:0;border:none;overflow:hidden;transition:.25s}
 #donate b{color:#c9d1d9}#donate a{color:#58a6ff;text-decoration:none}
@@ -75,12 +76,12 @@ html,body{height:100%;display:flex;flex-direction:column;font-family:system-ui,s
   <!-- Prompt builder row -->
   <div id="builderRow">
     <input id="topicInput" placeholder="Topic or https://…" />
-    <button id="copyPromptBtn"  class="btn main">Copy Prompt</button>
+    <button id="copyPromptBtn"  class="btn main">Copy Prompt</button>
     <button id="pastePromptBtn" class="btn aux" title="Paste from clipboard">📋</button>
     <button id="helpBtn"        class="btn aux" title="Help">?</button>
   </div>
 
-  <!-- JSON area (collapsed) -->
+  <!-- JSON textarea (collapsed by default) -->
   <details id="jsonBox">
     <summary>JSON (click to show / hide)</summary>
     <textarea id="jsonInput" placeholder="Paste ChatGPT’s JSON here, then hit Render Map"></textarea>
@@ -88,12 +89,12 @@ html,body{height:100%;display:flex;flex-direction:column;font-family:system-ui,s
 
   <!-- action buttons -->
   <div id="actionRow">
-    <button id="renderBtn" class="btn main" style="flex:1">Render Map</button>
-    <button id="pasteBtn"  class="btn aux" title="Paste JSON to overwrite">📋</button>
-    <button id="copyJsonBtn" class="btn aux" title="Copy JSON to clipboard">📄</button>
-    <button id="multiBtn"   class="btn aux" title="Toggle multi‑select">⇳</button>
-    <button id="undoBtn"   class="btn aux" title="Undo" disabled>⟲</button>
-    <button id="redoBtn"   class="btn aux" title="Redo" disabled>⟳</button>
+    <button id="renderBtn"   class="btn main" style="flex:1">Render Map</button>
+    <button id="pasteBtn"    class="btn aux"  title="Paste JSON to overwrite">📋</button>
+    <button id="copyJsonBtn" class="btn aux"  title="Copy JSON to clipboard">📄</button>
+    <button id="multiBtn"    class="btn aux"  title="Toggle multi‑select">⇳</button>
+    <button id="undoBtn"     class="btn aux"  title="Undo" disabled>⟲</button>
+    <button id="redoBtn"     class="btn aux"  title="Redo" disabled>⟳</button>
   </div>
 </div>
 
@@ -107,7 +108,7 @@ html,body{height:100%;display:flex;flex-direction:column;font-family:system-ui,s
   <button id="childDelete">Delete ONLY children</button>
 </div>
 
-<!-- paste overlay -->
+<!-- big paste overlay -->
 <div id="overlay" style="display:none">
   <div id="overlayInner">
     <textarea placeholder="Paste JSON here"></textarea>
@@ -144,7 +145,7 @@ const sanitize=t=>{let s=t.trim().replace(/^```[^\n]*\n?|```$/g,"");
   return s.replace(/\\(?!["\/bfnrtu])/g,"").replace(/\\(?=[\[\]{}])/g,"");};
 const parseJSON=t=>{try{return JSON.parse(t);}catch{return null;}};
 
-/* prompt builder */
+/* ---------- prompt builder ---------- */
 const topicInput=document.getElementById("topicInput"),
       copyPromptBtn=document.getElementById("copyPromptBtn"),
       pastePromptBtn=document.getElementById("pastePromptBtn"),
@@ -165,13 +166,13 @@ pastePromptBtn.onclick=async()=>{
 helpBtn.onclick=()=>helpOverlay.style.display="flex";
 helpOverlay.onclick=()=>helpOverlay.style.display="none";
 
-/* history */
+/* ---------- history ---------- */
 let dataObj={},hist=[],idx=-1;
 const undoBtn=document.getElementById("undoBtn"),redoBtn=document.getElementById("redoBtn");
 function updateUR(){undoBtn.disabled=idx<=0;redoBtn.disabled=idx>=hist.length-1;}
 function pushHist(t){hist.splice(idx+1);hist.push(t);idx=hist.length-1;updateUR();}
 
-/* JSON clipboard */
+/* ---------- JSON clipboard ---------- */
 const jsonInput=document.getElementById("jsonInput");
 document.getElementById("copyJsonBtn").onclick=()=>navigator.clipboard.writeText(jsonInput.value||"");
 const overlay=document.getElementById("overlay");
@@ -184,16 +185,16 @@ document.getElementById("pasteBtn").onclick=async()=>{
 document.getElementById("ovCancel").onclick=()=>overlay.style.display="none";
 document.getElementById("ovOk").onclick=()=>{jsonInput.value=sanitize(overlay.querySelector("textarea").value);overlay.style.display="none";};
 
-/* Cytoscape */
+/* ---------- Cytoscape ---------- */
 let cy,layout;
 cytoscape.use(cytoscapeCola);
 function initCy(){
   if(cy)return;
   cy=cytoscape({container:document.getElementById("cy"),wheelSensitivity:.25,
     style:[
-      {selector:"node",style:{label:"data(label)","text-wrap":"wrap","text-max-width":"240px","text-valign":"center","text-halign":"center",
-        "background-color":"var(--node)","shape":"round-rectangle","padding":"6px",width:"label",height:"label","font-size":"13px",
-        color:"#fff","text-outline-color":"#000","text-outline-width":1}},
+      {selector:"node",style:{label:"data(label)","text-wrap":"wrap","text-max-width":"240px","text-valign":"center",
+        "text-halign":"center","background-color":"var(--node)","shape":"round-rectangle","padding":"6px",width:"label",height:"label",
+        "font-size":"13px",color:"#fff","text-outline-color":"#000","text-outline-width":1}},
       {selector:"node.root",style:{"background-color":"var(--root)","border-width":4,"border-color":"var(--root-outline)",
         "text-outline-color":"#000","text-outline-width":3,"font-size":"15px","font-weight":"700"}},
       {selector:"node.selected",style:{'border-color':'#f9a825','border-width':2}},
@@ -205,14 +206,14 @@ function initCy(){
     ]});
   let ignore=false;
   cy.on("tap",e=>{if(ignore){ignore=false;return;} if(e.target===cy)clearSelection();});
-  window._swallowCyTap=()=>ignore=true;       /* called after drag to swallow click */
+  window._swallowCyTap=()=>ignore=true;
   cy.on("tap","node",tapNode);
 }
 function physics(){layout?.stop();
   layout=cy.layout({name:"cola",infinite:true,animate:true,refresh:1,nodeSpacing:25,edgeLength:200,padding:40,fit:false});
   layout.run();}
 
-/* selection & menu */
+/* ---------- selection & menu ---------- */
 const sel=new Set(); let multi=false;
 const multiBtn=document.getElementById("multiBtn");
 multiBtn.onclick=()=>{multi=!multi;multiBtn.classList.toggle("active",multi);if(!multi)clearSelection();};
@@ -253,45 +254,43 @@ function tapNode(e){
   sel.size?openMenu(e.renderedPosition):nodeMenu.style.display="none";
 }
 
-/* drag menu (prevent button activation on drag) */
-let dragging=false,offset={x:0,y:0},dragThreshold=5,startPos={x:0,y:0};
-let cancelClick=false;
-nodeMenu.addEventListener("mousedown",startDrag);
-nodeMenu.addEventListener("touchstart",startDrag,{passive:false});
-function startDrag(ev){
+/* ---------- drag menu with click‑cancel ---------- */
+let dragging=false,offset={x:0,y:0},start={x:0,y:0},cancelClick=false;
+nodeMenu.addEventListener("mousedown",dragStart);
+nodeMenu.addEventListener("touchstart",dragStart,{passive:false});
+function dragStart(ev){
   if(ev.button!==undefined&&ev.button!==0)return;
   const p=ev.touches?ev.touches[0]:ev;
-  startPos={x:p.clientX,y:p.clientY};
+  start={x:p.clientX,y:p.clientY};
   offset.x=p.clientX-parseFloat(nodeMenu.style.left||0);
   offset.y=p.clientY-parseFloat(nodeMenu.style.top||0);
   dragging=false;cancelClick=false;
-  document.addEventListener(ev.touches?"touchmove":"mousemove",doDrag,{passive:false});
-  document.addEventListener(ev.touches?"touchend":"mouseup",endDrag,{once:true});
+  document.addEventListener(ev.touches?"touchmove":"mousemove",dragMove,{passive:false});
+  document.addEventListener(ev.touches?"touchend":"mouseup",dragEnd,{once:true});
 }
-function doDrag(ev){
+function dragMove(ev){
   const p=ev.touches?ev.touches[0]:ev;
-  const dist=Math.hypot(p.clientX-startPos.x,p.clientY-startPos.y);
-  if(dist>dragThreshold)dragging=true;
+  if(!dragging && Math.hypot(p.clientX-start.x,p.clientY-start.y)>4)dragging=true;
   if(!dragging)return;
   ev.preventDefault();cancelClick=true;
-  let [x,y]=clamp(p.clientX-offset.x,p.clientY-offset.y);
   nodeMenu.classList.add("dragging");
+  let [x,y]=clamp(p.clientX-offset.x,p.clientY-offset.y);
   nodeMenu.style.left=x+"px";nodeMenu.style.top=y+"px";
 }
-function endDrag(){
+function dragEnd(){
   nodeMenu.classList.remove("dragging");
-  document.removeEventListener("mousemove",doDrag);document.removeEventListener("touchmove",doDrag);
+  document.removeEventListener("mousemove",dragMove);document.removeEventListener("touchmove",dragMove);
   if(dragging)window._swallowCyTap();
-  /* allow one click cancel */
+  /* prevent immediate click after drag */
   setTimeout(()=>cancelClick=false,0);
 }
-/* swallow click if it was a drag */
+/* cancel accidental click */
 nodeMenu.addEventListener("click",e=>{if(cancelClick){e.stopImmediatePropagation();e.preventDefault();}},true);
 
 /* menu button actions */
 copyTextBtn.onclick=()=>{navigator.clipboard.writeText(copyTextBtn.dataset.names||"");nodeMenu.style.display="none";};
 nodeCopyBtn.onclick=()=>{
-  if(cancelClick)return;                 /* safeguard */
+  if(cancelClick)return;
   const names=nodeCopyBtn.dataset.names||"";if(!names)return;
   const link=dataObj.link?`"link":"${dataObj.link}",\n`:"";
   const p=`Extend and refactor node "${names}"
@@ -312,7 +311,7 @@ ${jsonInput.value}`;
   navigator.clipboard.writeText(p);nodeMenu.style.display="none";
 };
 
-/* delete helpers */
+/* delete actions */
 function subtree(id,incRoot){
   const set=new Set(incRoot?[id]:[]),q=[id];
   while(q.length){
@@ -339,7 +338,7 @@ childBtn.onclick=()=>{
   remove(doomed);jsonInput.value=JSON.stringify(dataObj,null,2);clearSelection();render(true,false);
 };
 
-/* render */
+/* ---------- render ---------- */
 function buildEls(){const a=[],dup=new Set(dataObj.edges?.map(e=>e.source+"→"+e.target)||[]);
   (dataObj.nodes||[]).forEach(n=>{a.push({data:{id:n.id,label:wrap(n.text),full:n.text},classes:n.id==="n0"?"root":""});
     if(n.parent&&!dup.has(n.parent+"→"+n.id))a.push({data:{source:n.parent,target:n.id,label:"parent"}});});
@@ -361,7 +360,7 @@ addEventListener("keydown",e=>{
   if(e.ctrlKey&&(e.key==="y"||e.key==="Z"&&e.shiftKey)){e.preventDefault();redoBtn.onclick();}
 });
 
-/* donate */
+/* donate banner */
 document.getElementById("donate").onclick=e=>e.currentTarget.classList.add("hide");
 </script>
 </body>
