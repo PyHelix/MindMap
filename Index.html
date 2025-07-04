@@ -10,7 +10,7 @@
 <script src="https://unpkg.com/cytoscape-cola@2/cytoscape-cola.js"></script>
 
 <style>
-/* ––––– variables ––––– */
+/* ——— colours & layout ——— */
 :root{
   --bg:#0d1117;  --panel:#161b22;  --border:#30363d;  --txt:#e6edf3;
   --node:#475569; --node-h:#64748b;
@@ -82,13 +82,12 @@ html,body{height:100%;display:flex;flex-direction:column;font-family:system-ui,s
     <button id="helpBtn"        class="btn aux" title="Help">?</button>
   </div>
 
-  <!-- JSON box (collapsed) -->
+  <!-- JSON (collapsed) -->
   <details id="jsonBox">
     <summary>JSON (click to show / hide)</summary>
     <textarea id="jsonInput" placeholder="Paste ChatGPT’s JSON here, then hit Render Map"></textarea>
   </details>
 
-  <!-- actions -->
   <div id="actionRow">
     <button id="renderBtn"   class="btn main" style="flex:1">Render Map</button>
     <button id="pasteBtn"    class="btn aux"  title="Paste JSON">📋</button>
@@ -138,12 +137,18 @@ html,body{height:100%;display:flex;flex-direction:column;font-family:system-ui,s
 
 <script>
 /* ---------- helpers ---------- */
+function sanitize(t){
+  return t
+    .replace(/^```[^\n]*\n?/,'')      // leading fence
+    .replace(/```$/,'')              // trailing fence
+    .replace(/```/g,'')              // any remaining back‑tick fences
+    .replace(/\\(?!["\/bfnrtu])/g,"")// stray backslashes
+    .replace(/\\(?=[\[\]{}])/g,"")   // \[ or \{ etc.
+    .trim();
+}
 const MAXLEN=50, WRAP=12, ZWSP="\u200B";
 const wrap=t=>{const s=t.length>MAXLEN?t.slice(0,47)+"…":t;
   return s.includes(" ")||s.length<=WRAP?s:s.replace(new RegExp(`(.{${WRAP}})`,"g"),`$1${ZWSP}`);};
-const sanitize=t=>{let s=t.trim().replace(/^```[^\n]*\n?|```$/g,"");
-  const m=s.match(/({[\s\S]*})/m); s=m?m[1]:"";
-  return s.replace(/\\(?!["\/bfnrtu])/g,"").replace(/\\(?=[\[\]{}])/g,"");};
 const parseJSON=t=>{try{return JSON.parse(t);}catch{return null;}};
 
 /* ---------- prompt builder ---------- */
@@ -159,10 +164,7 @@ function makePrompt(t){
 copyPromptBtn.onclick=()=>{const t=topicInput.value.trim();if(!t){alert("Enter topic / URL");return;}
   navigator.clipboard.writeText(makePrompt(t));};
 pastePromptBtn.onclick=async()=>{
-  if(navigator.clipboard?.readText){
-    try{topicInput.value=(await navigator.clipboard.readText()).trim();return;}catch{}
-  }
-  const v=prompt("Paste topic / URL");if(v!==null)topicInput.value=v.trim();
+  try{topicInput.value=(await navigator.clipboard.readText()).trim();}catch{}
 };
 helpBtn.onclick=()=>helpOverlay.style.display="flex";
 helpOverlay.onclick=()=>helpOverlay.style.display="none";
@@ -173,15 +175,20 @@ const undoBtn=document.getElementById("undoBtn"),redoBtn=document.getElementById
 function updateUR(){undoBtn.disabled=idx<=0;redoBtn.disabled=idx>=hist.length-1;}
 function pushHist(t){hist.splice(idx+1);hist.push(t);idx=hist.length-1;updateUR();}
 
-/* ---------- JSON clipboard ---------- */
+/* ---------- JSON textarea paste sanitiser ---------- */
 const jsonInput=document.getElementById("jsonInput");
+jsonInput.addEventListener("paste",e=>{
+  e.preventDefault();
+  const txt=e.clipboardData.getData("text/plain");
+  jsonInput.value=sanitize(txt);
+});
 document.getElementById("copyJsonBtn").onclick=()=>navigator.clipboard.writeText(jsonInput.value||"");
+
+/* overlay paste */
 const overlay=document.getElementById("overlay");
 document.getElementById("pasteBtn").onclick=async()=>{
-  if(navigator.clipboard?.readText){
-    try{jsonInput.value=sanitize(await navigator.clipboard.readText());return;}catch{}
-  }
-  overlay.style.display="flex";
+  try{jsonInput.value=sanitize(await navigator.clipboard.readText());}
+  catch{overlay.style.display="flex";}
 };
 document.getElementById("ovCancel").onclick=()=>overlay.style.display="none";
 document.getElementById("ovOk").onclick=()=>{jsonInput.value=sanitize(overlay.querySelector("textarea").value);overlay.style.display="none";};
@@ -191,8 +198,7 @@ let cy,layout;
 cytoscape.use(cytoscapeCola);
 function initCy(){
   if(cy)return;
-  cy=cytoscape({container:document.getElementById("cy"),
-    wheelSensitivity:0.6,          /* ← zooms more per notch */
+  cy=cytoscape({container:document.getElementById("cy"),wheelSensitivity:0.6,
     style:[
       {selector:"node",style:{label:"data(label)","text-wrap":"wrap","text-max-width":"240px","text-valign":"center",
         "text-halign":"center","background-color":"var(--node)","shape":"round-rectangle","padding":"6px",width:"label",height:"label",
@@ -206,9 +212,9 @@ function initCy(){
         "text-background-opacity":.9,"text-background-color":"var(--edge-bg)","text-background-padding":"2px"}},
       {selector:'edge[label=""]',style:{label:'','text-background-opacity':0}}
     ]});
-  let ignore=false;
-  cy.on("tap",e=>{if(ignore){ignore=false;return;} if(e.target===cy)clearSelection();});
-  window._swallowCyTap=()=>ignore=true;
+  let ignoreTap=false;
+  cy.on("tap",e=>{if(ignoreTap){ignoreTap=false;return;} if(e.target===cy)clearSelection();});
+  window._swallowCyTap=()=>ignoreTap=true;
   cy.on("tap","node",tapNode);
 }
 function physics(){layout?.stop();
@@ -231,16 +237,15 @@ const nodeMenu=document.getElementById("nodeMenu"),
 
 function clamp(x,y){
   const mw=nodeMenu.offsetWidth,mh=nodeMenu.offsetHeight;
-  if(x+mw>innerWidth-10)x=innerWidth-mw-10;if(x<10)x=10;
-  if(y+mh>innerHeight-10)y=innerHeight-mh-10;if(y<10)y=10;
+  x=Math.max(10,Math.min(innerWidth-mw-10,x));
+  y=Math.max(10,Math.min(innerHeight-mh-10,y));
   return [x,y];
 }
 function openMenu(pos){
   copyTextBtn.textContent=sel.size>1?"Copy texts":"Copy text";
   nodeCopyBtn.textContent=sel.size>1?"Copy Prompt for selected":"Copy Prompt for this node";
   copyTextBtn.dataset.names=nodeCopyBtn.dataset.names=selectionNames();
-  const rootSel=[...sel].includes("n0");
-  delBtn.textContent=rootSel&&sel.size===1?"Delete entire graph":"Delete node & subtree";
+  delBtn.textContent=[...sel].includes("n0")&&sel.size===1?"Delete entire graph":"Delete node & subtree";
   nodeMenu.style.display="block";
   let [x,y]=clamp(pos.x+20+cy.container().getBoundingClientRect().left,
                   pos.y+20+cy.container().getBoundingClientRect().top);
@@ -249,14 +254,11 @@ function openMenu(pos){
 function tapNode(e){
   const node=e.target,id=node.id();
   if(!multi){clearSelection();sel.add(id);node.addClass("selected");}
-  else{
-    if(sel.has(id)){sel.delete(id);node.removeClass("selected");}
-    else{sel.add(id);node.addClass("selected");}
-  }
+  else{sel.has(id)?(sel.delete(id),node.removeClass("selected")):(sel.add(id),node.addClass("selected"));}
   sel.size?openMenu(e.renderedPosition):nodeMenu.style.display="none";
 }
 
-/* drag node menu ------------------------------------------------------ */
+/* ---------- drag menu ---------- */
 let dragging=false,offset={x:0,y:0},start={x:0,y:0},cancelClick=false;
 nodeMenu.addEventListener("mousedown",dragStart);
 nodeMenu.addEventListener("touchstart",dragStart,{passive:false});
@@ -272,7 +274,7 @@ function dragStart(ev){
 }
 function dragMove(ev){
   const p=ev.touches?ev.touches[0]:ev;
-  if(!dragging && Math.hypot(p.clientX-start.x,p.clientY-start.y)>4)dragging=true;
+  if(!dragging&&Math.hypot(p.clientX-start.x,p.clientY-start.y)>4)dragging=true;
   if(!dragging)return;
   ev.preventDefault();cancelClick=true;
   nodeMenu.classList.add("dragging");
@@ -293,25 +295,25 @@ nodeCopyBtn.onclick=()=>{
   if(cancelClick)return;
   const names=nodeCopyBtn.dataset.names||"";if(!names)return;
   const link=dataObj.link?`"link":"${dataObj.link}",\n`:"";
-  const p=`Extend and refactor node "${names}"
+  const prompt=`Extend and refactor node "${names}"
 
 Keep "link" key if present, and IDs MUST remain n0 (root), n1, n2 …
 
 Schema:
 {
  ${link}"root":"n0",
- "nodes":[{ "id":"n0","text":"<root label>","parent":"" }, … ],
- "edges":[{ "source":"...","target":"...","label":"...","direction":"out" }]
+ "nodes":[{ "id":"n0","text":"<root label>","parent":"" },…],
+ "edges":[{ "source":"…","target":"…","label":"…","direction":"out" }]
 }
 
 Return ONLY the JSON object.
 
 Current JSON:
 ${jsonInput.value}`;
-  navigator.clipboard.writeText(p);nodeMenu.style.display="none";
+  navigator.clipboard.writeText(prompt);nodeMenu.style.display="none";
 };
 
-/* delete helpers */
+/* deletion helpers */
 function subtree(id,incRoot){
   const set=new Set(incRoot?[id]:[]),q=[id];
   while(q.length){
@@ -323,10 +325,8 @@ function remove(set){dataObj.nodes=dataObj.nodes.filter(n=>!set.has(n.id));
   dataObj.edges=dataObj.edges.filter(e=>!set.has(e.source)&&!set.has(e.target));}
 delBtn.onclick=()=>{
   if(cancelClick)return;if(!sel.size)return;
-  if(sel.has("n0")&&sel.size===1){
-    if(!confirm("Delete entire graph?"))return;
-    dataObj={};jsonInput.value="";cy.elements().remove();pushHist("");clearSelection();return;
-  }
+  if(sel.has("n0")&&sel.size===1){if(!confirm("Delete entire graph?"))return;
+    dataObj={};jsonInput.value="";cy.elements().remove();pushHist("");clearSelection();return;}
   const doomed=new Set();sel.forEach(id=>subtree(id,true).forEach(x=>doomed.add(x)));
   remove(doomed);jsonInput.value=JSON.stringify(dataObj,null,2);clearSelection();render(true,false);
 };
@@ -337,12 +337,18 @@ childBtn.onclick=()=>{
 };
 
 /* ---------- render ---------- */
-function buildEls(){const a=[],dup=new Set(dataObj.edges?.map(e=>e.source+"→"+e.target)||[]);
-  (dataObj.nodes||[]).forEach(n=>{a.push({data:{id:n.id,label:wrap(n.text),full:n.text},classes:n.id==="n0"?"root":""});
-    if(n.parent&&!dup.has(n.parent+"→"+n.id))a.push({data:{source:n.parent,target:n.id,label:"parent"}});});
-  (dataObj.edges||[]).forEach(e=>a.push({data:{source:e.source,target:e.target,label:e.label||"rel"}}));return a;}
+function buildEls(){const els=[],
+      dup=new Set(dataObj.edges?.map(e=>e.source+"→"+e.target)||[]);
+  (dataObj.nodes||[]).forEach(n=>{
+    els.push({data:{id:n.id,label:wrap(n.text),full:n.text},classes:n.id==="n0"?"root":""});
+    if(n.parent&&!dup.has(n.parent+"→"+n.id))
+      els.push({data:{source:n.parent,target:n.id,label:"parent"}});
+  });
+  (dataObj.edges||[]).forEach(e=>els.push({data:{source:e.source,target:e.target,label:e.label||"rel"}}));
+  return els;}
 function render(store=true){
-  const txt=sanitize(jsonInput.value);if(!txt){cy&&cy.elements().remove();dataObj={};updateUR();return;}
+  const txt=sanitize(jsonInput.value);
+  if(!txt){cy&&cy.elements().remove();dataObj={};updateUR();return;}
   const obj=parseJSON(txt);if(!obj){alert("Invalid JSON");return;}
   dataObj=obj;dataObj.root="n0";
   initCy();cy.elements().remove();cy.add(buildEls());physics();clearSelection();
