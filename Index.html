@@ -31,11 +31,11 @@ code#promptPreview{white-space:pre-wrap;word-break:break-word;display:block}
 #actionRow{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 #cy{flex:1;touch-action:none}
 
-/* ---------- node context menu ---------- */
+/* ------------ draggable node menu ----------------- */
 #nodeMenu{
   position:absolute;display:none;max-width:calc(100vw - 20px);
-  background:var(--panel);border:none;border-radius:8px;
-  padding:8px;box-shadow:0 4px 10px rgba(0,0,0,.45);z-index:1000}
+  background:rgba(22,27,34,.9);               /* semi‑transparent */
+  border-radius:8px;padding:8px;box-shadow:0 4px 10px #000a;z-index:1000}
 #nodeMenu.dragging{opacity:.85;transition:none}
 #nodeMenu button{
   display:block;width:auto;margin:3px 0;padding:6px 14px;font-size:13px;
@@ -43,7 +43,7 @@ code#promptPreview{white-space:pre-wrap;word-break:break-word;display:block}
 #nodeMenu button:hover{background:var(--node-h)}
 .selected{border:2px solid #f9a825 !important}
 
-/* prompt builder row one‑line */
+/* builder one‑liner */
 .promptRow{display:flex;align-items:center;gap:6px;flex-wrap:nowrap}
 .promptRow input{flex:1 1 auto;min-width:0}
 
@@ -102,7 +102,7 @@ code#promptPreview{white-space:pre-wrap;word-break:break-word;display:block}
   <button id="childDelete">Delete ONLY children</button>
 </div>
 
-<!-- large‑text paste overlay -->
+<!-- overlay for huge pastes -->
 <div id="overlay" style="display:none">
   <div id="overlayInner">
     <textarea placeholder="Paste JSON here"></textarea>
@@ -166,7 +166,7 @@ document.getElementById("pasteBtn").onclick=async()=>{
 document.getElementById("ovCancel").onclick=()=>overlay.style.display="none";
 document.getElementById("ovOk").onclick=()=>{jsonInput.value=sanitize(overlay.querySelector("textarea").value);overlay.style.display="none";};
 
-/* ---------- Cytoscape initialisation ---------- */
+/* ---------- Cytoscape ---------- */
 let cy,layout; cytoscape.use(cytoscapeCola);
 function initCy(){
   if(cy)return;
@@ -232,33 +232,33 @@ function tapNode(e){
   sel.size?openMenu(e.renderedPosition):nodeMenu.style.display="none";
 }
 
-/* drag menu ------------------------------------------------------------ */
-let dragOff=null;
-function dragStart(ev){
-  // start only if background pressed (not button)
-  if(ev.target.tagName==='BUTTON')return;
+/* ---------- drag menu (hold anywhere) ---------- */
+let dragT=null,dragging=false,offset={x:0,y:0};
+function mDown(ev){
+  if(ev.button!==undefined&&ev.button!==0)return;      /* only left */
   const pt=ev.touches?ev.touches[0]:ev;
-  dragOff={x:pt.clientX-parseFloat(nodeMenu.style.left),y:pt.clientY-parseFloat(nodeMenu.style.top)};
-  nodeMenu.classList.add("dragging");
-  document.addEventListener(ev.touches?"touchmove":"mousemove",dragMove,{passive:false});
-  document.addEventListener(ev.touches?"touchend":"mouseup",dragEnd,{once:true});
+  offset.x=pt.clientX-parseFloat(nodeMenu.style.left||0);
+  offset.y=pt.clientY-parseFloat(nodeMenu.style.top||0);
+  dragT=setTimeout(()=>{dragging=true;nodeMenu.classList.add("dragging");},200);  /* long‑press start */
+  document.addEventListener(ev.touches?"touchmove":"mousemove",mMove,{passive:false});
+  document.addEventListener(ev.touches?"touchend":"mouseup",mUp,{once:true});
 }
-function dragMove(ev){
+function mMove(ev){
+  if(!dragging)return;
   ev.preventDefault();
-  if(!dragOff)return;
   const pt=ev.touches?ev.touches[0]:ev;
-  let [x,y]=clamp(pt.clientX-dragOff.x,pt.clientY-dragOff.y);
+  let [x,y]=clamp(pt.clientX-offset.x,pt.clientY-offset.y);
   nodeMenu.style.left=x+"px";nodeMenu.style.top=y+"px";
 }
-function dragEnd(){
-  dragOff=null;nodeMenu.classList.remove("dragging");
-  document.removeEventListener("mousemove",dragMove);
-  document.removeEventListener("touchmove",dragMove);
+function mUp(){
+  clearTimeout(dragT);dragT=null;
+  if(dragging){dragging=false;nodeMenu.classList.remove("dragging");}
+  document.removeEventListener("mousemove",mMove);document.removeEventListener("touchmove",mMove);
 }
-nodeMenu.addEventListener("mousedown",dragStart);
-nodeMenu.addEventListener("touchstart",dragStart,{passive:false});
+nodeMenu.addEventListener("mousedown",mDown);
+nodeMenu.addEventListener("touchstart",mDown,{passive:false});
 
-/* ---------- menu actions ---------- */
+/* ---------- menu button actions ---------- */
 copyTextBtn.onclick=()=>{navigator.clipboard.writeText(copyTextBtn.dataset.names||"");nodeMenu.style.display="none";};
 nodeCopyBtn.onclick=()=>{
   const names=nodeCopyBtn.dataset.names||"";if(!names)return;
