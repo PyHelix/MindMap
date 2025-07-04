@@ -10,7 +10,7 @@
 <script src="https://unpkg.com/cytoscape-cola@2/cytoscape-cola.js"></script>
 
 <style>
-/* — colour palette — */
+/* — colour palette — */
 :root{
   --bg:#0d1117;  --panel:#161b22;  --border:#30363d;  --txt:#e6edf3;
   --node:#475569; --node-h:#64748b;
@@ -147,12 +147,11 @@ const wrap=t=>t.length>MAXLEN?t.slice(0,47)+"…":
 const parseJSON=t=>{try{return JSON.parse(t);}catch{return null;}};
 
 /* ---------- prompt builder ---------- */
-const topicInput=document.getElementById("topicInput");
-const copyPromptBtn=document.getElementById("copyPromptBtn");
-const pastePromptBtn=document.getElementById("pastePromptBtn");
-const helpOverlay=document.getElementById("helpOverlay");
-const helpBtn=document.getElementById("helpBtn");
-
+const topicInput=document.getElementById("topicInput"),
+      copyPromptBtn=document.getElementById("copyPromptBtn"),
+      pastePromptBtn=document.getElementById("pastePromptBtn"),
+      helpOverlay=document.getElementById("helpOverlay"),
+      helpBtn=document.getElementById("helpBtn");
 const isURL=s=>/^https?:\/\//i.test(s.trim());
 function makePrompt(t){
   if(isURL(t)){
@@ -185,7 +184,6 @@ Schema:
 
 Return ONLY the JSON object (no Markdown, no code fences).`;
 }
-
 copyPromptBtn.onclick=()=>{const v=topicInput.value.trim();if(!v){alert("Enter topic or URL");return;}
   navigator.clipboard.writeText(makePrompt(v));};
 pastePromptBtn.onclick=async()=>{try{topicInput.value=(await navigator.clipboard.readText()).trim();}catch{}};
@@ -200,8 +198,7 @@ function pushHist(t){hist.splice(idx+1);hist.push(t);idx=hist.length-1;updateUR(
 
 /* ---------- JSON sanitation on paste ---------- */
 const jsonInput=document.getElementById("jsonInput");
-jsonInput.addEventListener("paste",e=>{e.preventDefault();
-  jsonInput.value=sanitize(e.clipboardData.getData("text/plain"));});
+jsonInput.addEventListener("paste",e=>{e.preventDefault();jsonInput.value=sanitize(e.clipboardData.getData("text/plain"));});
 document.getElementById("copyJsonBtn").onclick=()=>navigator.clipboard.writeText(jsonInput.value||"");
 
 /* overlay paste */
@@ -237,8 +234,21 @@ function initCy(){
   cy.on("tap","node",tapNode);
 }
 function physics(){layout?.stop();
-  layout=cy.layout({name:"cola",infinite:true,animate:true,refresh:1,nodeSpacing:25,edgeLength:200,padding:40,fit:false});
-  layout.run();}
+  /* stronger gravity & faster refresh */
+  layout=cy.layout({
+    name:"cola",
+    infinite:true,          /* physics stays on */
+    animate:true,
+    refresh:0.5,            /* how often to update positions (seconds) */
+    gravity:20,             /* <<< MUCH stronger pull towards barycentre */
+    nodeSpacing:25,
+    edgeLength:200,
+    padding:40,
+    fit:false,
+    avoidOverlap:true
+  });
+  layout.run();
+}
 
 /* ---------- selection & menu ---------- */
 const sel=new Set(); let multi=false;
