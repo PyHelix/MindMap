@@ -20,34 +20,31 @@
 *{box-sizing:border-box;margin:0}
 html,body{height:100%;display:flex;flex-direction:column;font-family:system-ui,sans-serif;background:var(--bg);color:var(--txt)}
 #controls{padding:8px;background:var(--panel);border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:6px}
-details{margin-top:6px}summary{cursor:pointer;font-weight:600}
-#jsonBox textarea{width:100%;height:150px;font-family:monospace;background:#0f172a;color:#c9d1d9;border:1px solid var(--border);border-radius:6px}
-code#promptPreview{white-space:pre-wrap;word-break:break-word;display:block}
+#builderRow{display:flex;align-items:center;gap:6px}
+#builderRow input{flex:1 1 auto;min-width:0;padding:6px;border-radius:6px;border:1px solid var(--border);background:#0f172a;color:#c9d1d9}
 .btn{padding:6px 14px;border:0;border-radius:6px;font-weight:600;cursor:pointer}
 .btn.main{background:var(--btn);color:#fff}.btn.main:hover{background:var(--btn-h)}
 .btn.aux{background:var(--node-h);color:#111;padding:6px 10px}
-.btn.aux.active{background:var(--btn);color:#fff}
 .btn.aux:disabled{background:var(--btn-d);color:#666;cursor:not-allowed}
 #actionRow{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 #cy{flex:1;touch-action:none}
 
-/* ------------ draggable node menu ----------------- */
-#nodeMenu{
-  position:absolute;display:none;max-width:calc(100vw - 20px);
-  background:rgba(22,27,34,.9);               /* semi‑transparent */
-  border-radius:8px;padding:8px;box-shadow:0 4px 10px #000a;z-index:1000}
-#nodeMenu.dragging{opacity:.85;transition:none}
-#nodeMenu button{
-  display:block;width:auto;margin:3px 0;padding:6px 14px;font-size:13px;
-  background:var(--node);color:#fff;border:0;border-radius:4px;white-space:nowrap}
+/* node context menu */
+#nodeMenu{position:absolute;display:none;background:rgba(22,27,34,.9);border-radius:8px;padding:8px;
+          max-width:calc(100vw - 20px);box-shadow:0 4px 10px #000a;z-index:1000}
+#nodeMenu.dragging{opacity:.85}
+#nodeMenu button{display:block;width:auto;margin:3px 0;padding:6px 14px;font-size:13px;border:0;
+                 background:var(--node);color:#fff;border-radius:4px;white-space:nowrap}
 #nodeMenu button:hover{background:var(--node-h)}
 .selected{border:2px solid #f9a825 !important}
 
-/* builder one‑liner */
-.promptRow{display:flex;align-items:center;gap:6px;flex-wrap:nowrap}
-.promptRow input{flex:1 1 auto;min-width:0}
+/* help overlay */
+#helpOverlay{position:fixed;inset:0;background:#000c;backdrop-filter:blur(2px);
+             display:none;align-items:center;justify-content:center;z-index:3000}
+#helpOverlay>div{max-width:480px;margin:0 5%;background:var(--panel);border:1px solid var(--border);
+                 border-radius:8px;padding:18px;font-size:15px;line-height:1.4}
 
-/* overlay */
+/* big‑paste overlay */
 #overlay{position:fixed;inset:0;background:#000a;backdrop-filter:blur(2px);display:flex;
          align-items:center;justify-content:center;z-index:2000}
 #overlayInner{width:90%;max-width:600px;background:var(--panel);border:1px solid var(--border);
@@ -63,25 +60,24 @@ code#promptPreview{white-space:pre-wrap;word-break:break-word;display:block}
 </style>
 </head>
 <body>
+
 <div id="controls">
-  <details id="builder">
-    <summary>Prompt builder (click to open)</summary>
-    <p>Enter a topic or link → <b>Copy Prompt</b> → paste into ChatGPT.</p>
 
-    <div class="promptRow">
-      <input id="topicInput" placeholder="Topic or https://…" style="padding:6px;border-radius:6px;border:1px solid var(--border);background:#0f172a;color:#c9d1d9">
-      <button id="copyPromptBtn"  class="btn main">Copy Prompt</button>
-      <button id="pastePromptBtn" class="btn aux" title="Paste from clipboard">📋</button>
-    </div>
+  <!-- Prompt‑builder row -->
+  <div id="builderRow">
+    <input id="topicInput" placeholder="Topic or https://…" />
+    <button id="copyPromptBtn"  class="btn main">Copy Prompt</button>
+    <button id="pastePromptBtn" class="btn aux" title="Paste from clipboard">📋</button>
+    <button id="helpBtn"        class="btn aux" title="How it works">?</button>
+  </div>
 
-    <p style="margin:6px 0 2px">Preview:</p><code id="promptPreview"></code>
-  </details>
-
+  <!-- JSON textarea -->
   <details id="jsonBox" open>
     <summary>JSON (click to show / hide)</summary>
     <textarea id="jsonInput" placeholder="Paste ChatGPT’s JSON here, then hit Render Map"></textarea>
   </details>
 
+  <!-- action buttons -->
   <div id="actionRow">
     <button id="renderBtn" class="btn main" style="flex:1">Render Map</button>
     <button id="pasteBtn"  class="btn aux" title="Paste JSON to overwrite">📋</button>
@@ -102,11 +98,23 @@ code#promptPreview{white-space:pre-wrap;word-break:break-word;display:block}
   <button id="childDelete">Delete ONLY children</button>
 </div>
 
-<!-- overlay for huge pastes -->
+<!-- big‑paste overlay -->
 <div id="overlay" style="display:none">
   <div id="overlayInner">
     <textarea placeholder="Paste JSON here"></textarea>
     <div><button id="ovCancel" class="btn aux">Cancel</button><button id="ovOk" class="btn main">OK</button></div>
+  </div>
+</div>
+
+<!-- help overlay -->
+<div id="helpOverlay">
+  <div>
+    <h3 style="margin-top:0">Prompt builder help</h3>
+    <p><b>1.</b> Type a topic or any URL in the field at the top.</p>
+    <p><b>2.</b> Tap <i>Copy Prompt</i> – a ready‑made instruction for ChatGPT is copied to your clipboard.</p>
+    <p><b>3.</b> Paste that prompt into ChatGPT and wait for the JSON response.</p>
+    <p><b>4.</b> Paste the JSON into the box below, then press <i>Render Map</i>.</p>
+    <p style="margin-top:14px;text-align:center;font-style:italic">press anywhere to continue</p>
   </div>
 </div>
 
@@ -127,25 +135,31 @@ const sanitize=t=>{let s=t.trim().replace(/^```[^\n]*\n?|```$/g,"");
   return s.replace(/\\(?!["\/bfnrtu])/g,"").replace(/\\(?=[\[\]{}])/g,"");};
 const parseJSON=t=>{try{return JSON.parse(t);}catch{return null;}};
 
-/* ---------- prompt builder (unchanged) ---------- */
+/* ---------- prompt builder ---------- */
 const topicInput=document.getElementById("topicInput"),
-      promptPreview=document.getElementById("promptPreview"),
       copyPromptBtn=document.getElementById("copyPromptBtn"),
-      pastePromptBtn=document.getElementById("pastePromptBtn");
+      pastePromptBtn=document.getElementById("pastePromptBtn"),
+      helpOverlay=document.getElementById("helpOverlay"),
+      helpBtn=document.getElementById("helpBtn");
+
 const isURL=s=>/^https?:\/\//i.test(s.trim());
 function makePrompt(t){
   if(isURL(t)){return `Analyse the page ${t} and output ONLY raw JSON.\n\n• Add "link":"${t}" at top level (do NOT add it as a node).\n• IDs must start with "n0" for the root, followed by n1, n2 … consecutively.\n\nSchema:\n{\n "link":"${t}",\n "root":"n0",\n "nodes":[{ "id":"n0","text":"<root label>","parent":"" }],\n "edges":[{ "source":"...","target":"...","label":"...","direction":"out" }]\n}\n\nReturn ONLY the JSON object (no Markdown, no code fences).`; }
   return `Create a mind‑map for "${t}" and output ONLY raw JSON.\n\n• IDs must start with "n0" for the root, followed by n1, n2 … consecutively.\n\nSchema:\n{\n "root":"n0",\n "nodes":[{ "id":"n0","text":"<root label>","parent":"" }],\n "edges":[{ "source":"...","target":"...","label":"...","direction":"out" }]\n}\n\nReturn ONLY the JSON object (no Markdown, no code fences).`; }
-topicInput.oninput=()=>promptPreview.textContent=makePrompt(topicInput.value.trim()||"<topic>");
-promptPreview.textContent=makePrompt("<topic>");
+
 copyPromptBtn.onclick=()=>{const t=topicInput.value.trim();if(!t){alert("Enter topic / URL");return;}
-  navigator.clipboard.writeText(makePrompt(t));document.getElementById("builder").open=false;};
+  navigator.clipboard.writeText(makePrompt(t));};
+
 pastePromptBtn.onclick=async()=>{
   if(navigator.clipboard?.readText){
-    try{topicInput.value=(await navigator.clipboard.readText()).trim();topicInput.oninput();return;}catch{}
+    try{topicInput.value=(await navigator.clipboard.readText()).trim();return;}catch{}
   }
-  const v=prompt("Paste topic / URL");if(v!==null){topicInput.value=v.trim();topicInput.oninput();}
+  const v=prompt("Paste topic / URL");if(v!==null)topicInput.value=v.trim();
 };
+
+/* help overlay */
+helpBtn.onclick=()=>{helpOverlay.style.display="flex";}
+helpOverlay.onclick=()=>helpOverlay.style.display="none";
 
 /* ---------- history ---------- */
 let dataObj={},hist=[],idx=-1;
@@ -215,13 +229,11 @@ function openMenu(pos){
   copyTextBtn.dataset.names=nodeCopyBtn.dataset.names=selectionNames();
   const rootSel=[...sel].includes("n0");
   delBtn.textContent=rootSel&&sel.size===1?"Delete entire graph":"Delete node & subtree";
-
   nodeMenu.style.display="block";
   let [x,y]=clamp(pos.x+20+cy.container().getBoundingClientRect().left,
                   pos.y+20+cy.container().getBoundingClientRect().top);
   nodeMenu.style.left=x+"px";nodeMenu.style.top=y+"px";
 }
-
 function tapNode(e){
   const node=e.target,id=node.id();
   if(!multi){clearSelection();sel.add(id);node.addClass("selected");}
@@ -232,14 +244,14 @@ function tapNode(e){
   sel.size?openMenu(e.renderedPosition):nodeMenu.style.display="none";
 }
 
-/* ---------- drag menu (hold anywhere) ---------- */
+/* drag menu */
 let dragT=null,dragging=false,offset={x:0,y:0};
 function mDown(ev){
-  if(ev.button!==undefined&&ev.button!==0)return;      /* only left */
+  if(ev.button!==undefined&&ev.button!==0)return;
   const pt=ev.touches?ev.touches[0]:ev;
   offset.x=pt.clientX-parseFloat(nodeMenu.style.left||0);
   offset.y=pt.clientY-parseFloat(nodeMenu.style.top||0);
-  dragT=setTimeout(()=>{dragging=true;nodeMenu.classList.add("dragging");},200);  /* long‑press start */
+  dragT=setTimeout(()=>{dragging=true;nodeMenu.classList.add("dragging");},200);
   document.addEventListener(ev.touches?"touchmove":"mousemove",mMove,{passive:false});
   document.addEventListener(ev.touches?"touchend":"mouseup",mUp,{once:true});
 }
@@ -250,15 +262,13 @@ function mMove(ev){
   let [x,y]=clamp(pt.clientX-offset.x,pt.clientY-offset.y);
   nodeMenu.style.left=x+"px";nodeMenu.style.top=y+"px";
 }
-function mUp(){
-  clearTimeout(dragT);dragT=null;
+function mUp(){clearTimeout(dragT);dragT=null;
   if(dragging){dragging=false;nodeMenu.classList.remove("dragging");}
-  document.removeEventListener("mousemove",mMove);document.removeEventListener("touchmove",mMove);
-}
+  document.removeEventListener("mousemove",mMove);document.removeEventListener("touchmove",mMove);}
 nodeMenu.addEventListener("mousedown",mDown);
 nodeMenu.addEventListener("touchstart",mDown,{passive:false});
 
-/* ---------- menu button actions ---------- */
+/* ---------- menu actions ---------- */
 copyTextBtn.onclick=()=>{navigator.clipboard.writeText(copyTextBtn.dataset.names||"");nodeMenu.style.display="none";};
 nodeCopyBtn.onclick=()=>{
   const names=nodeCopyBtn.dataset.names||"";if(!names)return;
@@ -320,7 +330,7 @@ function render(store=true){
 }
 document.getElementById("renderBtn").onclick=()=>render(true);
 
-/* history buttons */
+/* undo / redo */
 undoBtn.onclick=()=>{if(idx>0){idx--;jsonInput.value=hist[idx];render(false);}};
 redoBtn.onclick=()=>{if(idx<hist.length-1){idx++;jsonInput.value=hist[idx];render(false);}};
 addEventListener("keydown",e=>{
