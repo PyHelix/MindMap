@@ -33,10 +33,18 @@ details{margin-top:6px}summary{cursor:pointer;font-weight:600}
 #nodeMenu button{margin:3px 0;padding:6px 14px;font-size:13px;border:0;border-radius:4px;background:var(--node);color:#fff;width:100%}
 #nodeMenu button:hover{background:var(--node-h)}
 .selected{border:2px solid #f9a825 !important}
+
+/* ── NEW: keep input + buttons on one row ── */
+.promptRow{display:flex;align-items:center;gap:6px;flex-wrap:nowrap}
+.promptRow input{flex:1 1 auto;min-width:0}
+
+/* paste overlay */
 #overlay{position:fixed;inset:0;background:#000a;backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center;z-index:2000}
 #overlayInner{width:90%;max-width:600px;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:8px}
 #overlayInner textarea{flex:1;min-height:200px;background:#0f172a;color:#c9d1d9;border:1px solid var(--border);border-radius:6px;font-family:monospace}
 #overlayInner div{display:flex;gap:8px;justify-content:flex-end}
+
+/* donate */
 #donate{padding:10px;background:var(--panel);border-top:1px solid var(--border);cursor:pointer;font-size:13px}
 #donate.hide{opacity:0;height:0;padding:0;border:none;overflow:hidden;transition:.25s}
 #donate b{color:#c9d1d9}#donate a{color:#58a6ff;text-decoration:none}
@@ -47,9 +55,13 @@ details{margin-top:6px}summary{cursor:pointer;font-weight:600}
   <details id="builder">
     <summary>Prompt builder (click to open)</summary>
     <p>Enter a topic or link → <b>Copy Prompt</b> → paste into ChatGPT.</p>
-    <input id="topicInput" placeholder="Topic or https://…" style="width:60%;padding:6px;border-radius:6px;border:1px solid var(--border);background:#0f172a;color:#c9d1d9">
-    <button id="copyPromptBtn"  class="btn main">Copy Prompt</button>
-    <button id="pastePromptBtn" class="btn aux" title="Paste from clipboard">📋</button>
+
+    <div class="promptRow">
+      <input id="topicInput" placeholder="Topic or https://…" style="padding:6px;border-radius:6px;border:1px solid var(--border);background:#0f172a;color:#c9d1d9">
+      <button id="copyPromptBtn"  class="btn main">Copy Prompt</button>
+      <button id="pastePromptBtn" class="btn aux" title="Paste from clipboard">📋</button>
+    </div>
+
     <p style="margin:6px 0 2px">Preview:</p><code id="promptPreview"></code>
   </details>
 
@@ -70,6 +82,7 @@ details{margin-top:6px}summary{cursor:pointer;font-weight:600}
 
 <div id="cy"></div>
 
+<!-- node context menu -->
 <div id="nodeMenu">
   <button id="copyTextBtn">Copy text</button>
   <button id="nodeCopy">Copy Prompt for selected</button>
@@ -77,6 +90,7 @@ details{margin-top:6px}summary{cursor:pointer;font-weight:600}
   <button id="childDelete">Delete ONLY children</button>
 </div>
 
+<!-- big‑paste overlay -->
 <div id="overlay" style="display:none">
   <div id="overlayInner">
     <textarea placeholder="Paste JSON here"></textarea>
@@ -116,7 +130,7 @@ copyPromptBtn.onclick=()=>{const t=topicInput.value.trim();if(!t){alert("Enter t
   navigator.clipboard.writeText(makePrompt(t));document.getElementById("builder").open=false;};
 pastePromptBtn.onclick=async()=>{
   if(navigator.clipboard?.readText){
-    try{const txt=await navigator.clipboard.readText();topicInput.value=txt.trim();topicInput.oninput();return;}catch{}
+    try{topicInput.value=(await navigator.clipboard.readText()).trim();topicInput.oninput();return;}catch{}
   }
   const v=prompt("Paste topic / URL");if(v!==null){topicInput.value=v.trim();topicInput.oninput();}
 };
@@ -163,7 +177,7 @@ function initCy(){
 }
 function physics(){layout?.stop();layout=cy.layout({name:"cola",infinite:true,animate:true,refresh:1,nodeSpacing:25,edgeLength:200,padding:40,fit:false});layout.run();}
 
-/* ---------- multiselect ---------- */
+/* ---------- multiselect & menu ---------- */
 const sel=new Set(); let primaryId=null; let multi=false;
 const multiBtn=document.getElementById("multiBtn");
 multiBtn.onclick=()=>{multi=!multi;multiBtn.classList.toggle("active",multi);if(!multi)clearSelection();};
@@ -174,6 +188,11 @@ function updateMenu(){
   nodeCopyBtn.textContent=sel.size>1?"Copy Prompt for selected":"Copy Prompt for this node";
   nodeCopyBtn.dataset.names=names;copyTextBtn.dataset.names=names;
 }
+const nodeMenu=document.getElementById("nodeMenu"),
+      copyTextBtn=document.getElementById("copyTextBtn"),
+      nodeCopyBtn=document.getElementById("nodeCopy"),
+      delBtn=document.getElementById("nodeDelete"),
+      childBtn=document.getElementById("childDelete");
 function placeMenu(node,pos){
   updateMenu();nodeMenu.style.visibility="hidden";nodeMenu.style.display="block";
   const r=cy.container().getBoundingClientRect(),mw=nodeMenu.offsetWidth,mh=nodeMenu.offsetHeight;
@@ -193,12 +212,7 @@ function tapNode(e){
   }
 }
 
-/* ---------- menu actions ---------- */
-const nodeMenu=document.getElementById("nodeMenu"),
-      copyTextBtn=document.getElementById("copyTextBtn"),
-      nodeCopyBtn=document.getElementById("nodeCopy"),
-      delBtn=document.getElementById("nodeDelete"),
-      childBtn=document.getElementById("childDelete");
+/* menu actions */
 copyTextBtn.onclick=()=>{navigator.clipboard.writeText(copyTextBtn.dataset.names||"");nodeMenu.style.display="none";};
 nodeCopyBtn.onclick=()=>{
   const names=nodeCopyBtn.dataset.names||"";if(!names)return;
@@ -220,14 +234,12 @@ Current JSON:
 ${jsonInput.value}`;
   navigator.clipboard.writeText(p);nodeMenu.style.display="none";
 };
-/* deletion helpers */
-function subtree(id,keepRoot){
-  const set=new Set(keepRoot?[id]:[]),q=[id];
+/* delete helpers */
+function subtree(id,keepRoot){const set=new Set(keepRoot?[id]:[]),q=[id];
   while(q.length){const cur=q.pop();
     dataObj.edges.forEach(e=>{if(e.source===cur&&!set.has(e.target)){set.add(e.target);q.push(e.target);} });
     dataObj.nodes.forEach(n=>{if(n.parent===cur&&!set.has(n.id)){set.add(n.id);q.push(n.id);} });
-  }return set;
-}
+  }return set;}
 const remove=set=>{dataObj.nodes=dataObj.nodes.filter(n=>!set.has(n.id));
   dataObj.edges=dataObj.edges.filter(e=>!set.has(e.source)&&!set.has(e.target));};
 delBtn.onclick=()=>{
