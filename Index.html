@@ -31,23 +31,23 @@ code#promptPreview{white-space:pre-wrap;word-break:break-word;display:block}
 #actionRow{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 #cy{flex:1;touch-action:none}
 
-/* node context menu -------------------------------------- */
+/* ---------- node context menu ---------- */
 #nodeMenu{
-  position:absolute;background:var(--panel);border:none;border-radius:8px;
-  padding:6px 8px;box-shadow:0 4px 10px rgba(0,0,0,.45);
-  display:none;width:max-content;max-width:calc(100vw - 20px);   /* keep inside viewport */
-  z-index:1000;overflow:hidden}
+  position:absolute;display:none;max-width:calc(100vw - 20px);
+  background:var(--panel);border:none;border-radius:8px;
+  padding:8px;box-shadow:0 4px 10px rgba(0,0,0,.45);z-index:1000}
+#nodeMenu.dragging{opacity:.85;transition:none}
 #nodeMenu button{
-  margin:3px 0;padding:6px 14px;font-size:13px;border:0;border-radius:4px;
-  background:var(--node);color:#fff;width:100%;white-space:normal}  /* wrap long labels */
+  display:block;width:auto;margin:3px 0;padding:6px 14px;font-size:13px;
+  background:var(--node);color:#fff;border:0;border-radius:4px;white-space:nowrap}
 #nodeMenu button:hover{background:var(--node-h)}
 .selected{border:2px solid #f9a825 !important}
 
-/* keep builder row on one line */
+/* prompt builder row one‑line */
 .promptRow{display:flex;align-items:center;gap:6px;flex-wrap:nowrap}
 .promptRow input{flex:1 1 auto;min-width:0}
 
-/* paste overlay */
+/* overlay */
 #overlay{position:fixed;inset:0;background:#000a;backdrop-filter:blur(2px);display:flex;
          align-items:center;justify-content:center;z-index:2000}
 #overlayInner{width:90%;max-width:600px;background:var(--panel);border:1px solid var(--border);
@@ -102,7 +102,7 @@ code#promptPreview{white-space:pre-wrap;word-break:break-word;display:block}
   <button id="childDelete">Delete ONLY children</button>
 </div>
 
-<!-- big‑paste overlay -->
+<!-- large‑text paste overlay -->
 <div id="overlay" style="display:none">
   <div id="overlayInner">
     <textarea placeholder="Paste JSON here"></textarea>
@@ -127,7 +127,7 @@ const sanitize=t=>{let s=t.trim().replace(/^```[^\n]*\n?|```$/g,"");
   return s.replace(/\\(?!["\/bfnrtu])/g,"").replace(/\\(?=[\[\]{}])/g,"");};
 const parseJSON=t=>{try{return JSON.parse(t);}catch{return null;}};
 
-/* ---------- prompt builder ---------- */
+/* ---------- prompt builder (unchanged) ---------- */
 const topicInput=document.getElementById("topicInput"),
       promptPreview=document.getElementById("promptPreview"),
       copyPromptBtn=document.getElementById("copyPromptBtn"),
@@ -166,7 +166,7 @@ document.getElementById("pasteBtn").onclick=async()=>{
 document.getElementById("ovCancel").onclick=()=>overlay.style.display="none";
 document.getElementById("ovOk").onclick=()=>{jsonInput.value=sanitize(overlay.querySelector("textarea").value);overlay.style.display="none";};
 
-/* ---------- Cytoscape ---------- */
+/* ---------- Cytoscape initialisation ---------- */
 let cy,layout; cytoscape.use(cytoscapeCola);
 function initCy(){
   if(cy)return;
@@ -203,66 +203,62 @@ const nodeMenu=document.getElementById("nodeMenu"),
       delBtn=document.getElementById("nodeDelete"),
       childBtn=document.getElementById("childDelete");
 
-function placeMenu(node,pos){
+function clamp(x,y){
+  const mw=nodeMenu.offsetWidth,mh=nodeMenu.offsetHeight;
+  if(x+mw>innerWidth-10)x=innerWidth-mw-10;if(x<10)x=10;
+  if(y+mh>innerHeight-10)y=innerHeight-mh-10;if(y<10)y=10;
+  return [x,y];
+}
+function openMenu(pos){
   copyTextBtn.textContent=sel.size>1?"Copy texts":"Copy text";
   nodeCopyBtn.textContent=sel.size>1?"Copy Prompt for selected":"Copy Prompt for this node";
   copyTextBtn.dataset.names=nodeCopyBtn.dataset.names=selectionNames();
-
-  nodeMenu.style.display="block";nodeMenu.style.visibility="hidden";
-  const r=cy.container().getBoundingClientRect(),mw=nodeMenu.offsetWidth,mh=nodeMenu.offsetHeight;
-  let x=r.left+pos.x+20,y=r.top+pos.y+20;
-  if(x+mw>innerWidth-10)x=innerWidth-mw-10;if(x<10)x=10;
-  if(y+mh>innerHeight-10)y=innerHeight-mh-10;if(y<10)y=10;
-  nodeMenu.style.left=x+"px";nodeMenu.style.top=y+"px";nodeMenu.style.visibility="visible";
-
   const rootSel=[...sel].includes("n0");
   delBtn.textContent=rootSel&&sel.size===1?"Delete entire graph":"Delete node & subtree";
+
+  nodeMenu.style.display="block";
+  let [x,y]=clamp(pos.x+20+cy.container().getBoundingClientRect().left,
+                  pos.y+20+cy.container().getBoundingClientRect().top);
+  nodeMenu.style.left=x+"px";nodeMenu.style.top=y+"px";
 }
 
 function tapNode(e){
   const node=e.target,id=node.id();
-  if(!multi){clearSelection();sel.add(id);node.addClass("selected");placeMenu(node,e.renderedPosition);}
+  if(!multi){clearSelection();sel.add(id);node.addClass("selected");}
   else{
     if(sel.has(id)){sel.delete(id);node.removeClass("selected");}
     else{sel.add(id);node.addClass("selected");}
-    sel.size?placeMenu(node,e.renderedPosition):nodeMenu.style.display="none";
   }
+  sel.size?openMenu(e.renderedPosition):nodeMenu.style.display="none";
 }
 
-/* deletion helpers */
-function subtree(id,incRoot){
-  const set=new Set(incRoot?[id]:[]),q=[id];
-  while(q.length){
-    const cur=q.pop();
-    dataObj.edges.forEach(e=>{if(e.source===cur&&!set.has(e.target)){set.add(e.target);q.push(e.target);} });
-    dataObj.nodes.forEach(n=>{if(n.parent===cur&&!set.has(n.id)){set.add(n.id);q.push(n.id);} });
-  }return set;
+/* drag menu ------------------------------------------------------------ */
+let dragOff=null;
+function dragStart(ev){
+  // start only if background pressed (not button)
+  if(ev.target.tagName==='BUTTON')return;
+  const pt=ev.touches?ev.touches[0]:ev;
+  dragOff={x:pt.clientX-parseFloat(nodeMenu.style.left),y:pt.clientY-parseFloat(nodeMenu.style.top)};
+  nodeMenu.classList.add("dragging");
+  document.addEventListener(ev.touches?"touchmove":"mousemove",dragMove,{passive:false});
+  document.addEventListener(ev.touches?"touchend":"mouseup",dragEnd,{once:true});
 }
-function remove(set){
-  dataObj.nodes=dataObj.nodes.filter(n=>!set.has(n.id));
-  dataObj.edges=dataObj.edges.filter(e=>!set.has(e.source)&&!set.has(e.target));
+function dragMove(ev){
+  ev.preventDefault();
+  if(!dragOff)return;
+  const pt=ev.touches?ev.touches[0]:ev;
+  let [x,y]=clamp(pt.clientX-dragOff.x,pt.clientY-dragOff.y);
+  nodeMenu.style.left=x+"px";nodeMenu.style.top=y+"px";
 }
-/* Delete selected with subtrees */
-delBtn.onclick=()=>{
-  if(!sel.size)return;
-  if(sel.has("n0")&&sel.size===1){
-    if(!confirm("Delete entire graph?"))return;
-    dataObj={};jsonInput.value="";cy.elements().remove();pushHist("");clearSelection();return;
-  }
-  const doomed=new Set();
-  sel.forEach(id=>subtree(id,true).forEach(x=>doomed.add(x)));
-  remove(doomed);jsonInput.value=JSON.stringify(dataObj,null,2);clearSelection();render(true,false);
-};
-/* Delete ONLY children of selected */
-childBtn.onclick=()=>{
-  if(!sel.size)return;
-  if(sel.has("n0")&&sel.size===1){alert("Root cannot have its children removed this way.");return;}
-  const doomed=new Set();
-  sel.forEach(id=>subtree(id,false).forEach(x=>doomed.add(x)));
-  remove(doomed);jsonInput.value=JSON.stringify(dataObj,null,2);clearSelection();render(true,false);
-};
+function dragEnd(){
+  dragOff=null;nodeMenu.classList.remove("dragging");
+  document.removeEventListener("mousemove",dragMove);
+  document.removeEventListener("touchmove",dragMove);
+}
+nodeMenu.addEventListener("mousedown",dragStart);
+nodeMenu.addEventListener("touchstart",dragStart,{passive:false});
 
-/* other menu actions */
+/* ---------- menu actions ---------- */
 copyTextBtn.onclick=()=>{navigator.clipboard.writeText(copyTextBtn.dataset.names||"");nodeMenu.style.display="none";};
 nodeCopyBtn.onclick=()=>{
   const names=nodeCopyBtn.dataset.names||"";if(!names)return;
@@ -283,6 +279,31 @@ Return ONLY the JSON object.
 Current JSON:
 ${jsonInput.value}`;
   navigator.clipboard.writeText(p);nodeMenu.style.display="none";
+};
+
+/* deletion helpers */
+function subtree(id,incRoot){
+  const set=new Set(incRoot?[id]:[]),q=[id];
+  while(q.length){
+    const cur=q.pop();
+    dataObj.edges.forEach(e=>{if(e.source===cur&&!set.has(e.target)){set.add(e.target);q.push(e.target);} });
+    dataObj.nodes.forEach(n=>{if(n.parent===cur&&!set.has(n.id)){set.add(n.id);q.push(n.id);} });
+  }return set;}
+function remove(set){dataObj.nodes=dataObj.nodes.filter(n=>!set.has(n.id));
+  dataObj.edges=dataObj.edges.filter(e=>!set.has(e.source)&&!set.has(e.target));}
+delBtn.onclick=()=>{
+  if(!sel.size)return;
+  if(sel.has("n0")&&sel.size===1){
+    if(!confirm("Delete entire graph?"))return;
+    dataObj={};jsonInput.value="";cy.elements().remove();pushHist("");clearSelection();return;
+  }
+  const doomed=new Set();sel.forEach(id=>subtree(id,true).forEach(x=>doomed.add(x)));
+  remove(doomed);jsonInput.value=JSON.stringify(dataObj,null,2);clearSelection();render(true,false);
+};
+childBtn.onclick=()=>{
+  if(!sel.size)return;
+  const doomed=new Set();sel.forEach(id=>subtree(id,false).forEach(x=>doomed.add(x)));
+  remove(doomed);jsonInput.value=JSON.stringify(dataObj,null,2);clearSelection();render(true,false);
 };
 
 /* ---------- render ---------- */
