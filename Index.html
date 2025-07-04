@@ -10,7 +10,7 @@
 <script src="https://unpkg.com/cytoscape-cola@2/cytoscape-cola.js"></script>
 
 <style>
-/* — colour palette — */
+/* — colour palette — */
 :root{
   --bg:#0d1117;  --panel:#161b22;  --border:#30363d;  --txt:#e6edf3;
   --node:#475569; --node-h:#64748b;
@@ -49,13 +49,11 @@ html,body{height:100%;display:flex;flex-direction:column;font-family:system-ui,s
 #nodeMenu button:hover{background:var(--node-h)}
 .selected{border:2px solid #f9a825 !important}
 
-/* help overlay */
+/* overlays & donate (unchanged) */
 #helpOverlay{position:fixed;inset:0;background:#000c;backdrop-filter:blur(2px);
              display:none;align-items:center;justify-content:center;z-index:3000}
 #helpOverlay>div{max-width:480px;margin:0 5%;background:var(--panel);border:1px solid var(--border);
                  border-radius:8px;padding:18px;font-size:15px;line-height:1.4}
-
-/* big‑paste overlay */
 #overlay{position:fixed;inset:0;background:#000a;backdrop-filter:blur(2px);display:flex;
          align-items:center;justify-content:center;z-index:2000}
 #overlayInner{width:90%;max-width:600px;background:var(--panel);border:1px solid var(--border);
@@ -63,8 +61,6 @@ html,body{height:100%;display:flex;flex-direction:column;font-family:system-ui,s
 #overlayInner textarea{flex:1;min-height:200px;background:#0f172a;color:#c9d1d9;border:1px solid var(--border);
                        border-radius:6px;font-family:monospace}
 #overlayInner div{display:flex;gap:8px;justify-content:flex-end}
-
-/* donate */
 #donate{padding:10px;background:var(--panel);border-top:1px solid var(--border);cursor:pointer;font-size:13px}
 #donate.hide{opacity:0;height:0;padding:0;border:none;overflow:hidden;transition:.25s}
 #donate b{color:#c9d1d9}#donate a{color:#58a6ff;text-decoration:none}
@@ -305,19 +301,22 @@ copyTextBtn.onclick=()=>{navigator.clipboard.writeText(copyTextBtn.dataset.names
 nodeCopyBtn.onclick=()=>{
   if(cancelClick)return;
   const names=nodeCopyBtn.dataset.names||"";if(!names)return;
-  const link=dataObj.link?`"link":"${dataObj.link}",\n`:"";
+  const linkEntry=dataObj.link?` "link":"${dataObj.link}",\n`:``;
   const prompt=`Extend and refactor node "${names}"
 
 Keep "link" key if present, and IDs MUST remain n0 (root), n1, n2 …
 
 Schema:
 {
- ${link}"root":"n0",
+${linkEntry}"root":"n0",
  "nodes":[{ "id":"n0","text":"<root label>","parent":"" }, … ],
  "edges":[{ "source":"...","target":"...","label":"...","direction":"out" }]
 }
 
-Return ONLY the JSON object.`;
+Return ONLY the JSON object.
+
+Current JSON:
+${jsonInput.value}`;
   navigator.clipboard.writeText(prompt);nodeMenu.style.display="none";
 };
 
@@ -355,7 +354,7 @@ function render(store=true){
   dataObj=obj;dataObj.root="n0";
   initCy();cy.elements().remove();cy.add(buildEls());
 
-  /* lock and centre root */
+  /* lock & centre root */
   const root=cy.getElementById("n0");
   root.position({x:cy.width()/2,y:cy.height()/2});
   root.lock();
