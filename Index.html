@@ -20,31 +20,39 @@
 *{box-sizing:border-box;margin:0}
 html,body{height:100%;display:flex;flex-direction:column;font-family:system-ui,sans-serif;background:var(--bg);color:var(--txt)}
 #controls{padding:8px;background:var(--panel);border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:6px}
+
+/* ── prompt builder row ── */
 #builderRow{display:flex;align-items:center;gap:6px}
 #builderRow input{flex:1 1 auto;min-width:0;padding:6px;border-radius:6px;border:1px solid var(--border);background:#0f172a;color:#c9d1d9}
+
+/* buttons */
 .btn{padding:6px 14px;border:0;border-radius:6px;font-weight:600;cursor:pointer}
 .btn.main{background:var(--btn);color:#fff}.btn.main:hover{background:var(--btn-h)}
 .btn.aux{background:var(--node-h);color:#111;padding:6px 10px}
 .btn.aux:disabled{background:var(--btn-d);color:#666;cursor:not-allowed}
 #actionRow{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+
+/* textarea */
+#jsonBox textarea{width:100%;height:150px;font-family:monospace;background:#0f172a;color:#c9d1d9;border:1px solid var(--border);border-radius:6px}
+
 #cy{flex:1;touch-action:none}
 
-/* node context menu */
+/* ── node context menu ── */
 #nodeMenu{position:absolute;display:none;background:rgba(22,27,34,.9);border-radius:8px;padding:8px;
           max-width:calc(100vw - 20px);box-shadow:0 4px 10px #000a;z-index:1000}
 #nodeMenu.dragging{opacity:.85}
-#nodeMenu button{display:block;width:auto;margin:3px 0;padding:6px 14px;font-size:13px;border:0;
-                 background:var(--node);color:#fff;border-radius:4px;white-space:nowrap}
+#nodeMenu button{display:block;width:auto;margin:3px 0;padding:6px 14px;font-size:13px;
+                 background:var(--node);color:#fff;border:0;border-radius:4px;white-space:nowrap}
 #nodeMenu button:hover{background:var(--node-h)}
 .selected{border:2px solid #f9a825 !important}
 
-/* help overlay */
+/* ── help overlay ── */
 #helpOverlay{position:fixed;inset:0;background:#000c;backdrop-filter:blur(2px);
              display:none;align-items:center;justify-content:center;z-index:3000}
 #helpOverlay>div{max-width:480px;margin:0 5%;background:var(--panel);border:1px solid var(--border);
                  border-radius:8px;padding:18px;font-size:15px;line-height:1.4}
 
-/* big‑paste overlay */
+/* ── big‑paste overlay ── */
 #overlay{position:fixed;inset:0;background:#000a;backdrop-filter:blur(2px);display:flex;
          align-items:center;justify-content:center;z-index:2000}
 #overlayInner{width:90%;max-width:600px;background:var(--panel);border:1px solid var(--border);
@@ -71,8 +79,8 @@ html,body{height:100%;display:flex;flex-direction:column;font-family:system-ui,s
     <button id="helpBtn"        class="btn aux" title="How it works">?</button>
   </div>
 
-  <!-- JSON textarea -->
-  <details id="jsonBox" open>
+  <!-- JSON textarea (collapsed by default) -->
+  <details id="jsonBox">
     <summary>JSON (click to show / hide)</summary>
     <textarea id="jsonInput" placeholder="Paste ChatGPT’s JSON here, then hit Render Map"></textarea>
   </details>
@@ -141,24 +149,19 @@ const topicInput=document.getElementById("topicInput"),
       pastePromptBtn=document.getElementById("pastePromptBtn"),
       helpOverlay=document.getElementById("helpOverlay"),
       helpBtn=document.getElementById("helpBtn");
-
 const isURL=s=>/^https?:\/\//i.test(s.trim());
 function makePrompt(t){
   if(isURL(t)){return `Analyse the page ${t} and output ONLY raw JSON.\n\n• Add "link":"${t}" at top level (do NOT add it as a node).\n• IDs must start with "n0" for the root, followed by n1, n2 … consecutively.\n\nSchema:\n{\n "link":"${t}",\n "root":"n0",\n "nodes":[{ "id":"n0","text":"<root label>","parent":"" }],\n "edges":[{ "source":"...","target":"...","label":"...","direction":"out" }]\n}\n\nReturn ONLY the JSON object (no Markdown, no code fences).`; }
   return `Create a mind‑map for "${t}" and output ONLY raw JSON.\n\n• IDs must start with "n0" for the root, followed by n1, n2 … consecutively.\n\nSchema:\n{\n "root":"n0",\n "nodes":[{ "id":"n0","text":"<root label>","parent":"" }],\n "edges":[{ "source":"...","target":"...","label":"...","direction":"out" }]\n}\n\nReturn ONLY the JSON object (no Markdown, no code fences).`; }
-
 copyPromptBtn.onclick=()=>{const t=topicInput.value.trim();if(!t){alert("Enter topic / URL");return;}
   navigator.clipboard.writeText(makePrompt(t));};
-
 pastePromptBtn.onclick=async()=>{
   if(navigator.clipboard?.readText){
     try{topicInput.value=(await navigator.clipboard.readText()).trim();return;}catch{}
   }
   const v=prompt("Paste topic / URL");if(v!==null)topicInput.value=v.trim();
 };
-
-/* help overlay */
-helpBtn.onclick=()=>{helpOverlay.style.display="flex";}
+helpBtn.onclick=()=>{helpOverlay.style.display="flex";};
 helpOverlay.onclick=()=>helpOverlay.style.display="none";
 
 /* ---------- history ---------- */
@@ -185,20 +188,24 @@ let cy,layout; cytoscape.use(cytoscapeCola);
 function initCy(){
   if(cy)return;
   cy=cytoscape({container:document.getElementById("cy"),wheelSensitivity:.25,
-    style:[
-      {selector:"node",style:{label:"data(label)","text-wrap":"wrap","text-max-width":"240px","text-valign":"center","text-halign":"center",
-        "background-color":"var(--node)","shape":"round-rectangle","padding":"6px",width:"label",height:"label","font-size":"13px",
-        color:"#fff","text-outline-color":"#000","text-outline-width":1}},
+    style:[{selector:"node",style:{label:"data(label)","text-wrap":"wrap","text-max-width":"240px","text-valign":"center",
+      "text-halign":"center","background-color":"var(--node)","shape":"round-rectangle","padding":"6px",width:"label",height:"label",
+      "font-size":"13px",color:"#fff","text-outline-color":"#000","text-outline-width":1}},
       {selector:"node.root",style:{"background-color":"var(--root)","border-width":4,"border-color":"var(--root-outline)",
-        "text-outline-color":"#000","text-outline-width":3,"font-size":"15px","font-weight":"700"}},
+      "text-outline-color":"#000","text-outline-width":3,"font-size":"15px","font-weight":"700"}},
       {selector:"node.selected",style:{'border-color':'#f9a825','border-width':2}},
       {selector:"node:hover",style:{"background-color":"var(--node-h)"}},
       {selector:"edge",style:{width:2,"line-color":"var(--edge)","target-arrow-color":"var(--edge)","target-arrow-shape":"triangle",
-        "curve-style":"bezier",label:"data(label)","font-size":"11px",color:"#e6edf3","text-rotation":"autorotate",
-        "text-background-opacity":.9,"text-background-color":"var(--edge-bg)","text-background-padding":"2px"}},
-      {selector:'edge[label=""]',style:{label:'','text-background-opacity':0}}
-    ]});
-  cy.on("tap",e=>{if(e.target===cy)clearSelection();});
+      "curve-style":"bezier",label:"data(label)","font-size":"11px",color:"#e6edf3","text-rotation":"autorotate",
+      "text-background-opacity":.9,"text-background-color":"var(--edge-bg)","text-background-padding":"2px"}},
+      {selector:'edge[label=""]',style:{label:'','text-background-opacity':0}}]});
+  let ignoreNext=false;
+  cy.on("tap",e=>{
+    if(ignoreNext){ignoreNext=false;return;}
+    if(e.target===cy)clearSelection();
+  });
+  // expose flag to drag handler
+  window._ignoreCyTap=()=>{ignoreNext=true;};
   cy.on("tap","node",tapNode);
 }
 function physics(){layout?.stop();layout=cy.layout({name:"cola",infinite:true,animate:true,refresh:1,nodeSpacing:25,edgeLength:200,padding:40,fit:false});layout.run();}
@@ -244,26 +251,28 @@ function tapNode(e){
   sel.size?openMenu(e.renderedPosition):nodeMenu.style.display="none";
 }
 
-/* drag menu */
+/* ---------- drag menu ---------- */
 let dragT=null,dragging=false,offset={x:0,y:0};
 function mDown(ev){
   if(ev.button!==undefined&&ev.button!==0)return;
+  ev.stopPropagation();
   const pt=ev.touches?ev.touches[0]:ev;
   offset.x=pt.clientX-parseFloat(nodeMenu.style.left||0);
   offset.y=pt.clientY-parseFloat(nodeMenu.style.top||0);
-  dragT=setTimeout(()=>{dragging=true;nodeMenu.classList.add("dragging");},200);
+  dragT=setTimeout(()=>{dragging=true;nodeMenu.classList.add("dragging");},150);
   document.addEventListener(ev.touches?"touchmove":"mousemove",mMove,{passive:false});
   document.addEventListener(ev.touches?"touchend":"mouseup",mUp,{once:true});
 }
 function mMove(ev){
   if(!dragging)return;
-  ev.preventDefault();
+  ev.preventDefault();ev.stopPropagation();
   const pt=ev.touches?ev.touches[0]:ev;
   let [x,y]=clamp(pt.clientX-offset.x,pt.clientY-offset.y);
   nodeMenu.style.left=x+"px";nodeMenu.style.top=y+"px";
 }
-function mUp(){clearTimeout(dragT);dragT=null;
-  if(dragging){dragging=false;nodeMenu.classList.remove("dragging");}
+function mUp(){
+  clearTimeout(dragT);dragT=null;
+  if(dragging){dragging=false;nodeMenu.classList.remove("dragging");window._ignoreCyTap();}
   document.removeEventListener("mousemove",mMove);document.removeEventListener("touchmove",mMove);}
 nodeMenu.addEventListener("mousedown",mDown);
 nodeMenu.addEventListener("touchstart",mDown,{passive:false});
@@ -338,7 +347,7 @@ addEventListener("keydown",e=>{
   if(e.ctrlKey&&(e.key==="y"||e.key==="Z"&&e.shiftKey)){e.preventDefault();redoBtn.onclick();}
 });
 
-/* donation banner */
+/* donate banner */
 document.getElementById("donate").onclick=e=>e.currentTarget.classList.add("hide");
 </script>
 </body>
