@@ -10,7 +10,7 @@
 <script src="https://unpkg.com/cytoscape-cola@2/cytoscape-cola.js"></script>
 
 <style>
-/* ——— colours & layout ——— */
+/* — colour palette — */
 :root{
   --bg:#0d1117;  --panel:#161b22;  --border:#30363d;  --txt:#e6edf3;
   --node:#475569; --node-h:#64748b;
@@ -28,8 +28,7 @@ html,body{height:100%;display:flex;flex-direction:column;font-family:system-ui,s
                   background:#0f172a;color:#c9d1d9}
 
 /* buttons */
-.btn{padding:6px 14px;border:0;border-radius:6px;font-weight:600;cursor:pointer;
-     white-space:nowrap;flex:0 0 auto}
+.btn{padding:6px 14px;border:0;border-radius:6px;font-weight:600;cursor:pointer;white-space:nowrap;flex:0 0 auto}
 .btn.main{background:var(--btn);color:#fff}.btn.main:hover{background:var(--btn-h)}
 .btn.aux{background:var(--node-h);color:#111;padding:6px 10px}
 .btn.aux.active{background:var(--btn);color:#fff}
@@ -139,33 +138,61 @@ html,body{height:100%;display:flex;flex-direction:column;font-family:system-ui,s
 /* ---------- helpers ---------- */
 function sanitize(t){
   return t
-    .replace(/^```[^\n]*\n?/,'')      // leading fence
-    .replace(/```$/,'')              // trailing fence
-    .replace(/```/g,'')              // any remaining back‑tick fences
-    .replace(/\\(?!["\/bfnrtu])/g,"")// stray backslashes
-    .replace(/\\(?=[\[\]{}])/g,"")   // \[ or \{ etc.
-    .trim();
+   .replace(/^```[^\n]*\n?/,'')
+   .replace(/```$/,'')
+   .replace(/```/g,'')
+   .replace(/\\(?!["\/bfnrtu])/g,"")
+   .replace(/\\(?=[\[\]{}])/g,"")
+   .trim();
 }
 const MAXLEN=50, WRAP=12, ZWSP="\u200B";
-const wrap=t=>{const s=t.length>MAXLEN?t.slice(0,47)+"…":t;
-  return s.includes(" ")||s.length<=WRAP?s:s.replace(new RegExp(`(.{${WRAP}})`,"g"),`$1${ZWSP}`);};
+const wrap=t=>t.length>MAXLEN?t.slice(0,47)+"…":
+             (t.includes(" ")||t.length<=WRAP?t:t.replace(new RegExp(`(.{${WRAP}})`,"g"),`$1${ZWSP}`));
 const parseJSON=t=>{try{return JSON.parse(t);}catch{return null;}};
 
 /* ---------- prompt builder ---------- */
-const topicInput=document.getElementById("topicInput"),
-      copyPromptBtn=document.getElementById("copyPromptBtn"),
-      pastePromptBtn=document.getElementById("pastePromptBtn"),
-      helpOverlay=document.getElementById("helpOverlay"),
-      helpBtn=document.getElementById("helpBtn");
+const topicInput=document.getElementById("topicInput");
+const copyPromptBtn=document.getElementById("copyPromptBtn");
+const pastePromptBtn=document.getElementById("pastePromptBtn");
+const helpOverlay=document.getElementById("helpOverlay");
+const helpBtn=document.getElementById("helpBtn");
+
 const isURL=s=>/^https?:\/\//i.test(s.trim());
 function makePrompt(t){
-  if(isURL(t)){return `Analyse the page ${t} and output ONLY raw JSON.\n\n• Add "link":"${t}" at top level (do NOT add it as a node).\n• IDs must start with "n0" for the root, followed by n1, n2 … consecutively.\n\nSchema:\n{\n "link":"${t}",\n "root":"n0",\n "nodes":[{ "id":"n0","text":"<root label>","parent":"" }],\n "edges":[{ "source":"...","target":"...","label":"...","direction":"out" }]\n}\n\nReturn ONLY the JSON object (no Markdown, no code fences).`; }
-  return `Create a mind‑map for "${t}" and output ONLY raw JSON.\n\n• IDs must start with "n0" for the root, followed by n1, n2 … consecutively.\n\nSchema:\n{\n "root":"n0",\n "nodes":[{ "id":"n0","text":"<root label>","parent":"" }],\n "edges":[{ "source":"...","target":"...","label":"...","direction":"out" }]\n}\n\nReturn ONLY the JSON object (no Markdown, no code fences).`; }
-copyPromptBtn.onclick=()=>{const t=topicInput.value.trim();if(!t){alert("Enter topic / URL");return;}
-  navigator.clipboard.writeText(makePrompt(t));};
-pastePromptBtn.onclick=async()=>{
-  try{topicInput.value=(await navigator.clipboard.readText()).trim();}catch{}
-};
+  if(isURL(t)){
+    return `Analyse the page ${t} and output ONLY raw JSON.
+
+• Add "link":"${t}" at top level (do NOT add it as a node).
+• IDs must start with "n0" for the root, followed by n1, n2 … consecutively.
+
+Schema:
+{
+ "link":"${t}",
+ "root":"n0",
+ "nodes":[{ "id":"n0","text":"<root label>","parent":"" }],
+ "edges":[{ "source":"...","target":"...","label":"...","direction":"out" }]
+}
+
+Return ONLY the JSON object (no Markdown, no code fences).`;
+  }
+
+  return `Create a mind‑map for "${t}" and output ONLY raw JSON.
+
+• IDs must start with "n0" for the root, followed by n1, n2 … consecutively.
+
+Schema:
+{
+ "root":"n0",
+ "nodes":[{ "id":"n0","text":"<root label>","parent":"" }],
+ "edges":[{ "source":"...","target":"...","label":"...","direction":"out" }]
+}
+
+Return ONLY the JSON object (no Markdown, no code fences).`;
+}
+
+copyPromptBtn.onclick=()=>{const v=topicInput.value.trim();if(!v){alert("Enter topic or URL");return;}
+  navigator.clipboard.writeText(makePrompt(v));};
+pastePromptBtn.onclick=async()=>{try{topicInput.value=(await navigator.clipboard.readText()).trim();}catch{}};
 helpBtn.onclick=()=>helpOverlay.style.display="flex";
 helpOverlay.onclick=()=>helpOverlay.style.display="none";
 
@@ -175,13 +202,10 @@ const undoBtn=document.getElementById("undoBtn"),redoBtn=document.getElementById
 function updateUR(){undoBtn.disabled=idx<=0;redoBtn.disabled=idx>=hist.length-1;}
 function pushHist(t){hist.splice(idx+1);hist.push(t);idx=hist.length-1;updateUR();}
 
-/* ---------- JSON textarea paste sanitiser ---------- */
+/* ---------- JSON sanitation on paste ---------- */
 const jsonInput=document.getElementById("jsonInput");
-jsonInput.addEventListener("paste",e=>{
-  e.preventDefault();
-  const txt=e.clipboardData.getData("text/plain");
-  jsonInput.value=sanitize(txt);
-});
+jsonInput.addEventListener("paste",e=>{e.preventDefault();
+  jsonInput.value=sanitize(e.clipboardData.getData("text/plain"));});
 document.getElementById("copyJsonBtn").onclick=()=>navigator.clipboard.writeText(jsonInput.value||"");
 
 /* overlay paste */
@@ -194,8 +218,7 @@ document.getElementById("ovCancel").onclick=()=>overlay.style.display="none";
 document.getElementById("ovOk").onclick=()=>{jsonInput.value=sanitize(overlay.querySelector("textarea").value);overlay.style.display="none";};
 
 /* ---------- Cytoscape ---------- */
-let cy,layout;
-cytoscape.use(cytoscapeCola);
+let cy,layout; cytoscape.use(cytoscapeCola);
 function initCy(){
   if(cy)return;
   cy=cytoscape({container:document.getElementById("cy"),wheelSensitivity:0.6,
@@ -234,12 +257,9 @@ const nodeMenu=document.getElementById("nodeMenu"),
       nodeCopyBtn=document.getElementById("nodeCopy"),
       delBtn=document.getElementById("nodeDelete"),
       childBtn=document.getElementById("childDelete");
-
 function clamp(x,y){
   const mw=nodeMenu.offsetWidth,mh=nodeMenu.offsetHeight;
-  x=Math.max(10,Math.min(innerWidth-mw-10,x));
-  y=Math.max(10,Math.min(innerHeight-mh-10,y));
-  return [x,y];
+  return [Math.max(10,Math.min(innerWidth-mw-10,x)),Math.max(10,Math.min(innerHeight-mh-10,y))];
 }
 function openMenu(pos){
   copyTextBtn.textContent=sel.size>1?"Copy texts":"Copy text";
@@ -247,28 +267,24 @@ function openMenu(pos){
   copyTextBtn.dataset.names=nodeCopyBtn.dataset.names=selectionNames();
   delBtn.textContent=[...sel].includes("n0")&&sel.size===1?"Delete entire graph":"Delete node & subtree";
   nodeMenu.style.display="block";
-  let [x,y]=clamp(pos.x+20+cy.container().getBoundingClientRect().left,
-                  pos.y+20+cy.container().getBoundingClientRect().top);
+  const [x,y]=clamp(pos.x+20+cy.container().getBoundingClientRect().left,pos.y+20+cy.container().getBoundingClientRect().top);
   nodeMenu.style.left=x+"px";nodeMenu.style.top=y+"px";
 }
 function tapNode(e){
   const node=e.target,id=node.id();
   if(!multi){clearSelection();sel.add(id);node.addClass("selected");}
-  else{sel.has(id)?(sel.delete(id),node.removeClass("selected")):(sel.add(id),node.addClass("selected"));}
+  else sel.has(id)?(sel.delete(id),node.removeClass("selected")):(sel.add(id),node.addClass("selected"));
   sel.size?openMenu(e.renderedPosition):nodeMenu.style.display="none";
 }
 
-/* ---------- drag menu ---------- */
+/* draggable node menu */
 let dragging=false,offset={x:0,y:0},start={x:0,y:0},cancelClick=false;
-nodeMenu.addEventListener("mousedown",dragStart);
-nodeMenu.addEventListener("touchstart",dragStart,{passive:false});
+nodeMenu.addEventListener("mousedown",dragStart);nodeMenu.addEventListener("touchstart",dragStart,{passive:false});
 function dragStart(ev){
   if(ev.button!==undefined&&ev.button!==0)return;
   const p=ev.touches?ev.touches[0]:ev;
-  start={x:p.clientX,y:p.clientY};
-  offset.x=p.clientX-parseFloat(nodeMenu.style.left||0);
-  offset.y=p.clientY-parseFloat(nodeMenu.style.top||0);
-  dragging=false;cancelClick=false;
+  start={x:p.clientX,y:p.clientY};offset.x=p.clientX-parseFloat(nodeMenu.style.left||0);offset.y=p.clientY-parseFloat(nodeMenu.style.top||0);
+  dragging=cancelClick=false;
   document.addEventListener(ev.touches?"touchmove":"mousemove",dragMove,{passive:false});
   document.addEventListener(ev.touches?"touchend":"mouseup",dragEnd,{once:true});
 }
@@ -276,20 +292,15 @@ function dragMove(ev){
   const p=ev.touches?ev.touches[0]:ev;
   if(!dragging&&Math.hypot(p.clientX-start.x,p.clientY-start.y)>4)dragging=true;
   if(!dragging)return;
-  ev.preventDefault();cancelClick=true;
-  nodeMenu.classList.add("dragging");
-  let [x,y]=clamp(p.clientX-offset.x,p.clientY-offset.y);
-  nodeMenu.style.left=x+"px";nodeMenu.style.top=y+"px";
+  ev.preventDefault();cancelClick=true;nodeMenu.classList.add("dragging");
+  const [x,y]=clamp(p.clientX-offset.x,p.clientY-offset.y);nodeMenu.style.left=x+"px";nodeMenu.style.top=y+"px";
 }
 function dragEnd(){
-  nodeMenu.classList.remove("dragging");
-  document.removeEventListener("mousemove",dragMove);document.removeEventListener("touchmove",dragMove);
-  if(dragging)window._swallowCyTap();
-  setTimeout(()=>cancelClick=false,0);
-}
+  nodeMenu.classList.remove("dragging");document.removeEventListener("mousemove",dragMove);document.removeEventListener("touchmove",dragMove);
+  if(dragging)_swallowCyTap();setTimeout(()=>cancelClick=false,0);}
 nodeMenu.addEventListener("click",e=>{if(cancelClick){e.stopImmediatePropagation();e.preventDefault();}},true);
 
-/* menu actions */
+/* menu button actions */
 copyTextBtn.onclick=()=>{navigator.clipboard.writeText(copyTextBtn.dataset.names||"");nodeMenu.style.display="none";};
 nodeCopyBtn.onclick=()=>{
   if(cancelClick)return;
@@ -302,48 +313,39 @@ Keep "link" key if present, and IDs MUST remain n0 (root), n1, n2 …
 Schema:
 {
  ${link}"root":"n0",
- "nodes":[{ "id":"n0","text":"<root label>","parent":"" },…],
- "edges":[{ "source":"…","target":"…","label":"…","direction":"out" }]
+ "nodes":[{ "id":"n0","text":"<root label>","parent":"" }, … ],
+ "edges":[{ "source":"...","target":"...","label":"...","direction":"out" }]
 }
 
-Return ONLY the JSON object.
-
-Current JSON:
-${jsonInput.value}`;
+Return ONLY the JSON object.`;
   navigator.clipboard.writeText(prompt);nodeMenu.style.display="none";
 };
 
 /* deletion helpers */
 function subtree(id,incRoot){
-  const set=new Set(incRoot?[id]:[]),q=[id];
+  const s=new Set(incRoot?[id]:[]),q=[id];
   while(q.length){
     const cur=q.pop();
-    dataObj.edges.forEach(e=>{if(e.source===cur&&!set.has(e.target)){set.add(e.target);q.push(e.target);} });
-    dataObj.nodes.forEach(n=>{if(n.parent===cur&&!set.has(n.id)){set.add(n.id);q.push(n.id);} });
-  }return set;}
+    dataObj.edges.forEach(e=>{if(e.source===cur&&!s.has(e.target)){s.add(e.target);q.push(e.target);} });
+    dataObj.nodes.forEach(n=>{if(n.parent===cur&&!s.has(n.id)){s.add(n.id);q.push(n.id);} });
+  }return s;}
 function remove(set){dataObj.nodes=dataObj.nodes.filter(n=>!set.has(n.id));
-  dataObj.edges=dataObj.edges.filter(e=>!set.has(e.source)&&!set.has(e.target));}
-delBtn.onclick=()=>{
-  if(cancelClick)return;if(!sel.size)return;
-  if(sel.has("n0")&&sel.size===1){if(!confirm("Delete entire graph?"))return;
+                     dataObj.edges=dataObj.edges.filter(e=>!set.has(e.source)&&!set.has(e.target));}
+delBtn.onclick=()=>{if(cancelClick||!sel.size)return;
+  if(sel.has("n0")&&sel.size===1){
+    if(!confirm("Delete entire graph?"))return;
     dataObj={};jsonInput.value="";cy.elements().remove();pushHist("");clearSelection();return;}
   const doomed=new Set();sel.forEach(id=>subtree(id,true).forEach(x=>doomed.add(x)));
-  remove(doomed);jsonInput.value=JSON.stringify(dataObj,null,2);clearSelection();render(true,false);
-};
-childBtn.onclick=()=>{
-  if(cancelClick)return;if(!sel.size)return;
+  remove(doomed);jsonInput.value=JSON.stringify(dataObj,null,2);clearSelection();render(true,false);};
+childBtn.onclick=()=>{if(cancelClick||!sel.size)return;
   const doomed=new Set();sel.forEach(id=>subtree(id,false).forEach(x=>doomed.add(x)));
-  remove(doomed);jsonInput.value=JSON.stringify(dataObj,null,2);clearSelection();render(true,false);
-};
+  remove(doomed);jsonInput.value=JSON.stringify(dataObj,null,2);clearSelection();render(true,false);};
 
-/* ---------- render ---------- */
-function buildEls(){const els=[],
-      dup=new Set(dataObj.edges?.map(e=>e.source+"→"+e.target)||[]);
-  (dataObj.nodes||[]).forEach(n=>{
-    els.push({data:{id:n.id,label:wrap(n.text),full:n.text},classes:n.id==="n0"?"root":""});
+/* ---------- render with fixed root ---------- */
+function buildEls(){const els=[],dup=new Set(dataObj.edges?.map(e=>e.source+"→"+e.target)||[]);
+  (dataObj.nodes||[]).forEach(n=>{els.push({data:{id:n.id,label:wrap(n.text),full:n.text},classes:n.id==="n0"?"root":""});
     if(n.parent&&!dup.has(n.parent+"→"+n.id))
-      els.push({data:{source:n.parent,target:n.id,label:"parent"}});
-  });
+      els.push({data:{source:n.parent,target:n.id,label:"parent"}});});
   (dataObj.edges||[]).forEach(e=>els.push({data:{source:e.source,target:e.target,label:e.label||"rel"}}));
   return els;}
 function render(store=true){
@@ -351,8 +353,15 @@ function render(store=true){
   if(!txt){cy&&cy.elements().remove();dataObj={};updateUR();return;}
   const obj=parseJSON(txt);if(!obj){alert("Invalid JSON");return;}
   dataObj=obj;dataObj.root="n0";
-  initCy();cy.elements().remove();cy.add(buildEls());physics();clearSelection();
-  if(store)pushHist(JSON.stringify(dataObj,null,2));else updateUR();
+  initCy();cy.elements().remove();cy.add(buildEls());
+
+  /* lock and centre root */
+  const root=cy.getElementById("n0");
+  root.position({x:cy.width()/2,y:cy.height()/2});
+  root.lock();
+
+  physics();clearSelection();
+  store?pushHist(JSON.stringify(dataObj,null,2)):updateUR();
 }
 document.getElementById("renderBtn").onclick=()=>render(true);
 
@@ -364,7 +373,7 @@ addEventListener("keydown",e=>{
   if(e.ctrlKey&&(e.key==="y"||e.key==="Z"&&e.shiftKey)){e.preventDefault();redoBtn.onclick();}
 });
 
-/* donate banner */
+/* donate */
 document.getElementById("donate").onclick=e=>e.currentTarget.classList.add("hide");
 </script>
 </body>
