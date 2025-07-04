@@ -21,9 +21,10 @@
 html,body{height:100%;display:flex;flex-direction:column;font-family:system-ui,sans-serif;background:var(--bg);color:var(--txt)}
 #controls{padding:8px;background:var(--panel);border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:6px}
 
-/* ── prompt builder row ── */
+/* prompt builder */
 #builderRow{display:flex;align-items:center;gap:6px}
-#builderRow input{flex:1 1 auto;min-width:0;padding:6px;border-radius:6px;border:1px solid var(--border);background:#0f172a;color:#c9d1d9}
+#builderRow input{flex:1 1 auto;min-width:0;padding:6px;border-radius:6px;border:1px solid var(--border);
+                  background:#0f172a;color:#c9d1d9}
 
 /* buttons */
 .btn{padding:6px 14px;border:0;border-radius:6px;font-weight:600;cursor:pointer}
@@ -37,22 +38,23 @@ html,body{height:100%;display:flex;flex-direction:column;font-family:system-ui,s
 
 #cy{flex:1;touch-action:none}
 
-/* ── node context menu ── */
-#nodeMenu{position:absolute;display:none;background:rgba(22,27,34,.9);border-radius:8px;padding:8px;
-          max-width:calc(100vw - 20px);box-shadow:0 4px 10px #000a;z-index:1000}
+/* node context menu */
+#nodeMenu{position:absolute;display:none;background:rgba(22,27,34,.9);
+          border-radius:8px;padding:8px;max-width:calc(100vw - 20px);
+          box-shadow:0 4px 10px #000a;z-index:1000}
 #nodeMenu.dragging{opacity:.85}
-#nodeMenu button{display:block;width:auto;margin:3px 0;padding:6px 14px;font-size:13px;
-                 background:var(--node);color:#fff;border:0;border-radius:4px;white-space:nowrap}
+#nodeMenu button{display:block;width:auto;margin:3px 0;padding:6px 14px;font-size:13px;border:0;
+                 background:var(--node);color:#fff;border-radius:4px;white-space:nowrap}
 #nodeMenu button:hover{background:var(--node-h)}
 .selected{border:2px solid #f9a825 !important}
 
-/* ── help overlay ── */
+/* help overlay */
 #helpOverlay{position:fixed;inset:0;background:#000c;backdrop-filter:blur(2px);
              display:none;align-items:center;justify-content:center;z-index:3000}
 #helpOverlay>div{max-width:480px;margin:0 5%;background:var(--panel);border:1px solid var(--border);
                  border-radius:8px;padding:18px;font-size:15px;line-height:1.4}
 
-/* ── big‑paste overlay ── */
+/* big‑paste overlay */
 #overlay{position:fixed;inset:0;background:#000a;backdrop-filter:blur(2px);display:flex;
          align-items:center;justify-content:center;z-index:2000}
 #overlayInner{width:90%;max-width:600px;background:var(--panel);border:1px solid var(--border);
@@ -70,16 +72,15 @@ html,body{height:100%;display:flex;flex-direction:column;font-family:system-ui,s
 <body>
 
 <div id="controls">
-
-  <!-- Prompt‑builder row -->
+  <!-- Prompt builder row -->
   <div id="builderRow">
     <input id="topicInput" placeholder="Topic or https://…" />
     <button id="copyPromptBtn"  class="btn main">Copy Prompt</button>
     <button id="pastePromptBtn" class="btn aux" title="Paste from clipboard">📋</button>
-    <button id="helpBtn"        class="btn aux" title="How it works">?</button>
+    <button id="helpBtn"        class="btn aux" title="Help">?</button>
   </div>
 
-  <!-- JSON textarea (collapsed by default) -->
+  <!-- JSON area (collapsed) -->
   <details id="jsonBox">
     <summary>JSON (click to show / hide)</summary>
     <textarea id="jsonInput" placeholder="Paste ChatGPT’s JSON here, then hit Render Map"></textarea>
@@ -106,7 +107,7 @@ html,body{height:100%;display:flex;flex-direction:column;font-family:system-ui,s
   <button id="childDelete">Delete ONLY children</button>
 </div>
 
-<!-- big‑paste overlay -->
+<!-- paste overlay -->
 <div id="overlay" style="display:none">
   <div id="overlayInner">
     <textarea placeholder="Paste JSON here"></textarea>
@@ -143,7 +144,7 @@ const sanitize=t=>{let s=t.trim().replace(/^```[^\n]*\n?|```$/g,"");
   return s.replace(/\\(?!["\/bfnrtu])/g,"").replace(/\\(?=[\[\]{}])/g,"");};
 const parseJSON=t=>{try{return JSON.parse(t);}catch{return null;}};
 
-/* ---------- prompt builder ---------- */
+/* prompt builder */
 const topicInput=document.getElementById("topicInput"),
       copyPromptBtn=document.getElementById("copyPromptBtn"),
       pastePromptBtn=document.getElementById("pastePromptBtn"),
@@ -161,16 +162,16 @@ pastePromptBtn.onclick=async()=>{
   }
   const v=prompt("Paste topic / URL");if(v!==null)topicInput.value=v.trim();
 };
-helpBtn.onclick=()=>{helpOverlay.style.display="flex";};
+helpBtn.onclick=()=>helpOverlay.style.display="flex";
 helpOverlay.onclick=()=>helpOverlay.style.display="none";
 
-/* ---------- history ---------- */
+/* history */
 let dataObj={},hist=[],idx=-1;
 const undoBtn=document.getElementById("undoBtn"),redoBtn=document.getElementById("redoBtn");
 function updateUR(){undoBtn.disabled=idx<=0;redoBtn.disabled=idx>=hist.length-1;}
 function pushHist(t){hist.splice(idx+1);hist.push(t);idx=hist.length-1;updateUR();}
 
-/* ---------- JSON clipboard ---------- */
+/* JSON clipboard */
 const jsonInput=document.getElementById("jsonInput");
 document.getElementById("copyJsonBtn").onclick=()=>navigator.clipboard.writeText(jsonInput.value||"");
 const overlay=document.getElementById("overlay");
@@ -183,34 +184,35 @@ document.getElementById("pasteBtn").onclick=async()=>{
 document.getElementById("ovCancel").onclick=()=>overlay.style.display="none";
 document.getElementById("ovOk").onclick=()=>{jsonInput.value=sanitize(overlay.querySelector("textarea").value);overlay.style.display="none";};
 
-/* ---------- Cytoscape ---------- */
-let cy,layout; cytoscape.use(cytoscapeCola);
+/* Cytoscape */
+let cy,layout;
+cytoscape.use(cytoscapeCola);
 function initCy(){
   if(cy)return;
   cy=cytoscape({container:document.getElementById("cy"),wheelSensitivity:.25,
-    style:[{selector:"node",style:{label:"data(label)","text-wrap":"wrap","text-max-width":"240px","text-valign":"center",
-      "text-halign":"center","background-color":"var(--node)","shape":"round-rectangle","padding":"6px",width:"label",height:"label",
-      "font-size":"13px",color:"#fff","text-outline-color":"#000","text-outline-width":1}},
+    style:[
+      {selector:"node",style:{label:"data(label)","text-wrap":"wrap","text-max-width":"240px","text-valign":"center","text-halign":"center",
+        "background-color":"var(--node)","shape":"round-rectangle","padding":"6px",width:"label",height:"label","font-size":"13px",
+        color:"#fff","text-outline-color":"#000","text-outline-width":1}},
       {selector:"node.root",style:{"background-color":"var(--root)","border-width":4,"border-color":"var(--root-outline)",
-      "text-outline-color":"#000","text-outline-width":3,"font-size":"15px","font-weight":"700"}},
+        "text-outline-color":"#000","text-outline-width":3,"font-size":"15px","font-weight":"700"}},
       {selector:"node.selected",style:{'border-color':'#f9a825','border-width':2}},
       {selector:"node:hover",style:{"background-color":"var(--node-h)"}},
       {selector:"edge",style:{width:2,"line-color":"var(--edge)","target-arrow-color":"var(--edge)","target-arrow-shape":"triangle",
-      "curve-style":"bezier",label:"data(label)","font-size":"11px",color:"#e6edf3","text-rotation":"autorotate",
-      "text-background-opacity":.9,"text-background-color":"var(--edge-bg)","text-background-padding":"2px"}},
-      {selector:'edge[label=""]',style:{label:'','text-background-opacity':0}}]});
-  let ignoreNext=false;
-  cy.on("tap",e=>{
-    if(ignoreNext){ignoreNext=false;return;}
-    if(e.target===cy)clearSelection();
-  });
-  // expose flag to drag handler
-  window._ignoreCyTap=()=>{ignoreNext=true;};
+        "curve-style":"bezier",label:"data(label)","font-size":"11px",color:"#e6edf3","text-rotation":"autorotate",
+        "text-background-opacity":.9,"text-background-color":"var(--edge-bg)","text-background-padding":"2px"}},
+      {selector:'edge[label=""]',style:{label:'','text-background-opacity':0}}
+    ]});
+  let ignore=false;
+  cy.on("tap",e=>{if(ignore){ignore=false;return;} if(e.target===cy)clearSelection();});
+  window._swallowCyTap=()=>ignore=true;       /* called after drag to swallow click */
   cy.on("tap","node",tapNode);
 }
-function physics(){layout?.stop();layout=cy.layout({name:"cola",infinite:true,animate:true,refresh:1,nodeSpacing:25,edgeLength:200,padding:40,fit:false});layout.run();}
+function physics(){layout?.stop();
+  layout=cy.layout({name:"cola",infinite:true,animate:true,refresh:1,nodeSpacing:25,edgeLength:200,padding:40,fit:false});
+  layout.run();}
 
-/* ---------- selection & menu ---------- */
+/* selection & menu */
 const sel=new Set(); let multi=false;
 const multiBtn=document.getElementById("multiBtn");
 multiBtn.onclick=()=>{multi=!multi;multiBtn.classList.toggle("active",multi);if(!multi)clearSelection();};
@@ -251,35 +253,45 @@ function tapNode(e){
   sel.size?openMenu(e.renderedPosition):nodeMenu.style.display="none";
 }
 
-/* ---------- drag menu ---------- */
-let dragT=null,dragging=false,offset={x:0,y:0};
-function mDown(ev){
+/* drag menu (prevent button activation on drag) */
+let dragging=false,offset={x:0,y:0},dragThreshold=5,startPos={x:0,y:0};
+let cancelClick=false;
+nodeMenu.addEventListener("mousedown",startDrag);
+nodeMenu.addEventListener("touchstart",startDrag,{passive:false});
+function startDrag(ev){
   if(ev.button!==undefined&&ev.button!==0)return;
-  ev.stopPropagation();
-  const pt=ev.touches?ev.touches[0]:ev;
-  offset.x=pt.clientX-parseFloat(nodeMenu.style.left||0);
-  offset.y=pt.clientY-parseFloat(nodeMenu.style.top||0);
-  dragT=setTimeout(()=>{dragging=true;nodeMenu.classList.add("dragging");},150);
-  document.addEventListener(ev.touches?"touchmove":"mousemove",mMove,{passive:false});
-  document.addEventListener(ev.touches?"touchend":"mouseup",mUp,{once:true});
+  const p=ev.touches?ev.touches[0]:ev;
+  startPos={x:p.clientX,y:p.clientY};
+  offset.x=p.clientX-parseFloat(nodeMenu.style.left||0);
+  offset.y=p.clientY-parseFloat(nodeMenu.style.top||0);
+  dragging=false;cancelClick=false;
+  document.addEventListener(ev.touches?"touchmove":"mousemove",doDrag,{passive:false});
+  document.addEventListener(ev.touches?"touchend":"mouseup",endDrag,{once:true});
 }
-function mMove(ev){
+function doDrag(ev){
+  const p=ev.touches?ev.touches[0]:ev;
+  const dist=Math.hypot(p.clientX-startPos.x,p.clientY-startPos.y);
+  if(dist>dragThreshold)dragging=true;
   if(!dragging)return;
-  ev.preventDefault();ev.stopPropagation();
-  const pt=ev.touches?ev.touches[0]:ev;
-  let [x,y]=clamp(pt.clientX-offset.x,pt.clientY-offset.y);
+  ev.preventDefault();cancelClick=true;
+  let [x,y]=clamp(p.clientX-offset.x,p.clientY-offset.y);
+  nodeMenu.classList.add("dragging");
   nodeMenu.style.left=x+"px";nodeMenu.style.top=y+"px";
 }
-function mUp(){
-  clearTimeout(dragT);dragT=null;
-  if(dragging){dragging=false;nodeMenu.classList.remove("dragging");window._ignoreCyTap();}
-  document.removeEventListener("mousemove",mMove);document.removeEventListener("touchmove",mMove);}
-nodeMenu.addEventListener("mousedown",mDown);
-nodeMenu.addEventListener("touchstart",mDown,{passive:false});
+function endDrag(){
+  nodeMenu.classList.remove("dragging");
+  document.removeEventListener("mousemove",doDrag);document.removeEventListener("touchmove",doDrag);
+  if(dragging)window._swallowCyTap();
+  /* allow one click cancel */
+  setTimeout(()=>cancelClick=false,0);
+}
+/* swallow click if it was a drag */
+nodeMenu.addEventListener("click",e=>{if(cancelClick){e.stopImmediatePropagation();e.preventDefault();}},true);
 
-/* ---------- menu actions ---------- */
+/* menu button actions */
 copyTextBtn.onclick=()=>{navigator.clipboard.writeText(copyTextBtn.dataset.names||"");nodeMenu.style.display="none";};
 nodeCopyBtn.onclick=()=>{
+  if(cancelClick)return;                 /* safeguard */
   const names=nodeCopyBtn.dataset.names||"";if(!names)return;
   const link=dataObj.link?`"link":"${dataObj.link}",\n`:"";
   const p=`Extend and refactor node "${names}"
@@ -300,7 +312,7 @@ ${jsonInput.value}`;
   navigator.clipboard.writeText(p);nodeMenu.style.display="none";
 };
 
-/* deletion helpers */
+/* delete helpers */
 function subtree(id,incRoot){
   const set=new Set(incRoot?[id]:[]),q=[id];
   while(q.length){
@@ -311,6 +323,7 @@ function subtree(id,incRoot){
 function remove(set){dataObj.nodes=dataObj.nodes.filter(n=>!set.has(n.id));
   dataObj.edges=dataObj.edges.filter(e=>!set.has(e.source)&&!set.has(e.target));}
 delBtn.onclick=()=>{
+  if(cancelClick)return;
   if(!sel.size)return;
   if(sel.has("n0")&&sel.size===1){
     if(!confirm("Delete entire graph?"))return;
@@ -320,12 +333,13 @@ delBtn.onclick=()=>{
   remove(doomed);jsonInput.value=JSON.stringify(dataObj,null,2);clearSelection();render(true,false);
 };
 childBtn.onclick=()=>{
+  if(cancelClick)return;
   if(!sel.size)return;
   const doomed=new Set();sel.forEach(id=>subtree(id,false).forEach(x=>doomed.add(x)));
   remove(doomed);jsonInput.value=JSON.stringify(dataObj,null,2);clearSelection();render(true,false);
 };
 
-/* ---------- render ---------- */
+/* render */
 function buildEls(){const a=[],dup=new Set(dataObj.edges?.map(e=>e.source+"→"+e.target)||[]);
   (dataObj.nodes||[]).forEach(n=>{a.push({data:{id:n.id,label:wrap(n.text),full:n.text},classes:n.id==="n0"?"root":""});
     if(n.parent&&!dup.has(n.parent+"→"+n.id))a.push({data:{source:n.parent,target:n.id,label:"parent"}});});
@@ -347,7 +361,7 @@ addEventListener("keydown",e=>{
   if(e.ctrlKey&&(e.key==="y"||e.key==="Z"&&e.shiftKey)){e.preventDefault();redoBtn.onclick();}
 });
 
-/* donate banner */
+/* donate */
 document.getElementById("donate").onclick=e=>e.currentTarget.classList.add("hide");
 </script>
 </body>
