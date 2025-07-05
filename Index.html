@@ -10,7 +10,7 @@
 <script src="https://unpkg.com/cytoscape-cola@2/cytoscape-cola.js"></script>
 
 <style>
-/* ——  palette & layout  —— */
+/* —— palette & layout —— */
 :root{
   --bg:#0d1117;  --panel:#161b22;  --border:#30363d;  --txt:#e6edf3;
   --node:#475569; --node-h:#64748b;
@@ -49,7 +49,7 @@ html,body{height:100%;display:flex;flex-direction:column;font-family:system-ui,s
 #nodeMenu button:hover{background:var(--node-h)}
 .selected{border:2px solid #f9a825 !important}
 
-/* overlays and donate (unchanged) */
+/* overlays & donate (unchanged) */
 #helpOverlay{position:fixed;inset:0;background:#000c;backdrop-filter:blur(2px);
              display:none;align-items:center;justify-content:center;z-index:3000}
 #helpOverlay>div{max-width:480px;margin:0 5%;background:var(--panel);border:1px solid var(--border);
@@ -97,8 +97,9 @@ html,body{height:100%;display:flex;flex-direction:column;font-family:system-ui,s
 
 <!-- node context menu -->
 <div id="nodeMenu">
+  <button id="selectAllBtn">Select all nodes</button>
   <button id="copyTextBtn">Copy text</button>
-  <button id="nodeCopy">Copy Prompt for selected</button>
+  <button id="nodeCopy">Copy Prompt for this node</button>
   <button id="nodeDelete">Delete node & subtree</button>
   <button id="childDelete">Delete ONLY children</button>
 </div>
@@ -132,15 +133,14 @@ html,body{height:100%;display:flex;flex-direction:column;font-family:system-ui,s
 
 <script>
 /* ---------- helpers ---------- */
-/*  ‑‑> keep only the FIRST {...} block; drop everything else  */
 function sanitize(t){
-  t=t.replace(/^```[^\n]*\n?/,'')          // leading ``` fence
-      .replace(/```$/,'')                 // trailing fence
-      .replace(/```/g,'')                 // stray fences
-      .replace(/\\(?!["\/bfnrtu])/g,"")   // stray back‑slashes
-      .replace(/\\(?=[\[\]{}])/g,"")      // \[  \{  …
-      .trim();
-  const m=t.match(/({[\s\S]*})/m);        // first JSON object
+  t=t.replace(/^```[^\n]*\n?/,'')
+     .replace(/```$/,'')
+     .replace(/```/g,'')
+     .replace(/\\(?!["\/bfnrtu])/g,"")
+     .replace(/\\(?=[\[\]{}])/g,"")
+     .trim();
+  const m=t.match(/({[\s\S]*})/m);
   return m?m[1]:"";
 }
 const MAXLEN=50, WRAP=12, ZWSP="\u200B";
@@ -172,7 +172,6 @@ Schema:
 
 Return ONLY the JSON object (no Markdown, no code fences).`;
   }
-
   return `Create a mind‑map for "${t}" and output ONLY raw JSON.
 
 • IDs must start with "n0" for the root, followed by n1, n2 … consecutively.
@@ -198,10 +197,9 @@ const undoBtn=document.getElementById("undoBtn"),redoBtn=document.getElementById
 function updateUR(){undoBtn.disabled=idx<=0;redoBtn.disabled=idx>=hist.length-1;}
 function pushHist(t){hist.splice(idx+1);hist.push(t);idx=hist.length-1;updateUR();}
 
-/* ---------- JSON sanitation on paste ---------- */
+/* ---------- JSON box ---------- */
 const jsonInput=document.getElementById("jsonInput");
-jsonInput.addEventListener("paste",e=>{e.preventDefault();
-  jsonInput.value=sanitize(e.clipboardData.getData("text/plain"));});
+jsonInput.addEventListener("paste",e=>{e.preventDefault();jsonInput.value=sanitize(e.clipboardData.getData("text/plain"));});
 document.getElementById("copyJsonBtn").onclick=()=>navigator.clipboard.writeText(jsonInput.value||"");
 
 /* overlay paste */
@@ -242,7 +240,7 @@ function physics(){layout?.stop();
     infinite:true,
     animate:true,
     refresh:0.5,
-    gravity:20,           /* strong gravity → settles quickly */
+    gravity:20,
     nodeSpacing:25,
     edgeLength:200,
     padding:40,
@@ -261,6 +259,7 @@ function clearSelection(){sel.forEach(id=>cy.getElementById(id).removeClass("sel
 function selectionNames(){return [...sel].map(id=>cy.getElementById(id).data("full")).join(", ");}
 
 const nodeMenu=document.getElementById("nodeMenu"),
+      selectAllBtn=document.getElementById("selectAllBtn"),
       copyTextBtn=document.getElementById("copyTextBtn"),
       nodeCopyBtn=document.getElementById("nodeCopy"),
       delBtn=document.getElementById("nodeDelete"),
@@ -269,11 +268,14 @@ function clamp(x,y){
   const mw=nodeMenu.offsetWidth,mh=nodeMenu.offsetHeight;
   return [Math.max(10,Math.min(innerWidth-mw-10,x)),Math.max(10,Math.min(innerHeight-mh-10,y))];
 }
-function openMenu(pos){
+function refreshMenuLabels(){
   copyTextBtn.textContent=sel.size>1?"Copy texts":"Copy text";
   nodeCopyBtn.textContent=sel.size>1?"Copy Prompt for selected":"Copy Prompt for this node";
   copyTextBtn.dataset.names=nodeCopyBtn.dataset.names=selectionNames();
   delBtn.textContent=[...sel].includes("n0")&&sel.size===1?"Delete entire graph":"Delete node & subtree";
+}
+function openMenu(pos){
+  refreshMenuLabels();
   nodeMenu.style.display="block";
   const [x,y]=clamp(pos.x+20+cy.container().getBoundingClientRect().left,pos.y+20+cy.container().getBoundingClientRect().top);
   nodeMenu.style.left=x+"px";nodeMenu.style.top=y+"px";
@@ -285,7 +287,15 @@ function tapNode(e){
   sel.size?openMenu(e.renderedPosition):nodeMenu.style.display="none";
 }
 
-/* draggable node menu */
+/* Select‑all button */
+selectAllBtn.onclick=()=>{
+  sel.clear();
+  cy.nodes().forEach(n=>{sel.add(n.id());n.addClass("selected");});
+  multi=true; multiBtn.classList.add("active");
+  refreshMenuLabels();
+};
+
+/* draggable node menu (unchanged) */
 let dragging=false,offset={x:0,y:0},start={x:0,y:0},cancelClick=false;
 nodeMenu.addEventListener("mousedown",dragStart);nodeMenu.addEventListener("touchstart",dragStart,{passive:false});
 function dragStart(ev){
@@ -308,7 +318,7 @@ function dragEnd(){
   if(dragging)_swallowCyTap();setTimeout(()=>cancelClick=false,0);}
 nodeMenu.addEventListener("click",e=>{if(cancelClick){e.stopImmediatePropagation();e.preventDefault();}},true);
 
-/* menu button actions */
+/* menu actions */
 copyTextBtn.onclick=()=>{navigator.clipboard.writeText(copyTextBtn.dataset.names||"");nodeMenu.style.display="none";};
 nodeCopyBtn.onclick=()=>{
   if(cancelClick)return;
@@ -366,7 +376,6 @@ function render(store=true){
   dataObj=obj;dataObj.root="n0";
   initCy();cy.elements().remove();cy.add(buildEls());
 
-  /* lock & centre root */
   const root=cy.getElementById("n0");
   root.position({x:cy.width()/2,y:cy.height()/2});
   root.lock();
