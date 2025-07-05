@@ -10,7 +10,7 @@
 <script src="https://unpkg.com/cytoscape-cola@2/cytoscape-cola.js"></script>
 
 <style>
-/* — colour palette — */
+/* ——  palette & layout  —— */
 :root{
   --bg:#0d1117;  --panel:#161b22;  --border:#30363d;  --txt:#e6edf3;
   --node:#475569; --node-h:#64748b;
@@ -49,7 +49,7 @@ html,body{height:100%;display:flex;flex-direction:column;font-family:system-ui,s
 #nodeMenu button:hover{background:var(--node-h)}
 .selected{border:2px solid #f9a825 !important}
 
-/* overlays & donate (unchanged) */
+/* overlays and donate (unchanged) */
 #helpOverlay{position:fixed;inset:0;background:#000c;backdrop-filter:blur(2px);
              display:none;align-items:center;justify-content:center;z-index:3000}
 #helpOverlay>div{max-width:480px;margin:0 5%;background:var(--panel);border:1px solid var(--border);
@@ -132,21 +132,23 @@ html,body{height:100%;display:flex;flex-direction:column;font-family:system-ui,s
 
 <script>
 /* ---------- helpers ---------- */
+/*  ‑‑> keep only the FIRST {...} block; drop everything else  */
 function sanitize(t){
-  return t
-   .replace(/^```[^\n]*\n?/,'')
-   .replace(/```$/,'')
-   .replace(/```/g,'')
-   .replace(/\\(?!["\/bfnrtu])/g,"")
-   .replace(/\\(?=[\[\]{}])/g,"")
-   .trim();
+  t=t.replace(/^```[^\n]*\n?/,'')          // leading ``` fence
+      .replace(/```$/,'')                 // trailing fence
+      .replace(/```/g,'')                 // stray fences
+      .replace(/\\(?!["\/bfnrtu])/g,"")   // stray back‑slashes
+      .replace(/\\(?=[\[\]{}])/g,"")      // \[  \{  …
+      .trim();
+  const m=t.match(/({[\s\S]*})/m);        // first JSON object
+  return m?m[1]:"";
 }
 const MAXLEN=50, WRAP=12, ZWSP="\u200B";
 const wrap=t=>t.length>MAXLEN?t.slice(0,47)+"…":
              (t.includes(" ")||t.length<=WRAP?t:t.replace(new RegExp(`(.{${WRAP}})`,"g"),`$1${ZWSP}`));
 const parseJSON=t=>{try{return JSON.parse(t);}catch{return null;}};
 
-/* ---------- prompt builder ---------- */
+/* ---------- prompt builder (unchanged) ---------- */
 const topicInput=document.getElementById("topicInput"),
       copyPromptBtn=document.getElementById("copyPromptBtn"),
       pastePromptBtn=document.getElementById("pastePromptBtn"),
@@ -198,7 +200,8 @@ function pushHist(t){hist.splice(idx+1);hist.push(t);idx=hist.length-1;updateUR(
 
 /* ---------- JSON sanitation on paste ---------- */
 const jsonInput=document.getElementById("jsonInput");
-jsonInput.addEventListener("paste",e=>{e.preventDefault();jsonInput.value=sanitize(e.clipboardData.getData("text/plain"));});
+jsonInput.addEventListener("paste",e=>{e.preventDefault();
+  jsonInput.value=sanitize(e.clipboardData.getData("text/plain"));});
 document.getElementById("copyJsonBtn").onclick=()=>navigator.clipboard.writeText(jsonInput.value||"");
 
 /* overlay paste */
@@ -234,13 +237,12 @@ function initCy(){
   cy.on("tap","node",tapNode);
 }
 function physics(){layout?.stop();
-  /* stronger gravity & faster refresh */
   layout=cy.layout({
     name:"cola",
-    infinite:true,          /* physics stays on */
+    infinite:true,
     animate:true,
-    refresh:0.5,            /* how often to update positions (seconds) */
-    gravity:20,             /* <<< MUCH stronger pull towards barycentre */
+    refresh:0.5,
+    gravity:20,           /* strong gravity → settles quickly */
     nodeSpacing:25,
     edgeLength:200,
     padding:40,
