@@ -3,14 +3,13 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=yes">
-<title>Nodetrellis</title>
+<title>Mobile Mind‑Map (desktop + VR‑friendly)</title>
 
 <script src="https://unpkg.com/cytoscape@3/dist/cytoscape.min.js"></script>
 <script src="https://unpkg.com/webcola@3.4.0/WebCola/cola.min.js"></script>
 <script src="https://unpkg.com/cytoscape-cola@2/cytoscape-cola.js"></script>
 
 <style>
-/* —— colour palette —— */
 :root{
   --bg:#0d1117;  --panel:#161b22;  --border:#30363d;  --txt:#e6edf3;
   --node:#475569; --node-h:#64748b;
@@ -21,34 +20,23 @@
 *{box-sizing:border-box;margin:0}
 html,body{height:100%;display:flex;flex-direction:column;font-family:system-ui,sans-serif;background:var(--bg);color:var(--txt)}
 #controls{padding:8px;background:var(--panel);border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:6px}
-
-/* prompt row */
 #builderRow{display:flex;align-items:center;gap:6px;margin-bottom:4px}
-#builderRow input{flex:1 1 auto;min-width:0;padding:6px;border-radius:6px;border:1px solid var(--border);
-                  background:#0f172a;color:#c9d1d9}
-
-/* buttons */
+#builderRow input{flex:1 1 auto;min-width:0;padding:6px;border-radius:6px;border:1px solid var(--border);background:#0f172a;color:#c9d1d9}
 .btn{padding:6px 14px;border:0;border-radius:6px;font-weight:600;cursor:pointer;white-space:nowrap;flex:0 0 auto}
 .btn.main{background:var(--btn);color:#fff}.btn.main:hover{background:var(--btn-h)}
 .btn.aux{background:var(--node-h);color:#111;padding:6px 10px}
 .btn.aux.active{background:var(--btn);color:#fff}
 .btn.aux:disabled{background:var(--btn-d);color:#666;cursor:not-allowed}
 #actionRow{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
-
-/* zoom slider */
 #zoomWrap{display:flex;align-items:center;gap:4px;margin-left:auto}
 #zoomSlider{width:140px}
-
 #jsonBox textarea{width:100%;height:150px;font-family:monospace;background:#0f172a;color:#c9d1d9;border:1px solid var(--border);border-radius:6px}
-
 #cy{flex:1;touch-action:none}
 
-/* node context menu */
-#nodeMenu{position:absolute;display:none;background:rgba(22,27,34,.9);border-radius:8px;padding:8px;
-          max-width:calc(100vw - 20px);box-shadow:0 4px 10px #000a;z-index:1000}
+/* node menu */
+#nodeMenu{position:absolute;display:none;background:rgba(22,27,34,.9);border-radius:8px;padding:8px;max-width:calc(100vw - 20px);box-shadow:0 4px 10px #000a;z-index:1000}
 #nodeMenu.dragging{opacity:.85}
-#nodeMenu button{display:block;width:auto;margin:3px 0;padding:6px 14px;font-size:13px;border:0;
-                 background:var(--node);color:#fff;border-radius:4px;white-space:nowrap}
+#nodeMenu button{display:block;width:auto;margin:3px 0;padding:6px 14px;font-size:13px;border:0;background:var(--node);color:#fff;border-radius:4px;white-space:nowrap}
 #nodeMenu button:hover{background:var(--node-h)}
 .selected{border:2px solid #f9a825 !important}
 
@@ -66,6 +54,7 @@ html,body{height:100%;display:flex;flex-direction:column;font-family:system-ui,s
 </head>
 <body>
 
+<!-- ── controls ─────────────────────────────────────────────── -->
 <div id="controls">
   <div id="builderRow">
     <input id="topicInput" placeholder="Topic or https://…" />
@@ -74,18 +63,17 @@ html,body{height:100%;display:flex;flex-direction:column;font-family:system-ui,s
     <button id="helpBtn"        class="btn aux" title="Help">?</button>
   </div>
 
-  <details id="jsonBox">
-    <summary>JSON (click to show / hide)</summary>
+  <details id="jsonBox"><summary>JSON (click to show / hide)</summary>
     <textarea id="jsonInput" placeholder="Paste ChatGPT’s JSON here, then hit Render Map"></textarea>
   </details>
 
   <div id="actionRow">
-    <button id="renderBtn"   class="btn main" style="flex:1">Render Map</button>
-    <button id="pasteBtn"    class="btn aux"  title="Paste JSON">📋</button>
-    <button id="copyJsonBtn" class="btn aux"  title="Copy JSON">📄</button>
-    <button id="multiBtn"    class="btn aux"  title="Toggle multi‑select">⇳</button>
-    <button id="undoBtn"     class="btn aux"  title="Undo" disabled>⟲</button>
-    <button id="redoBtn"     class="btn aux"  title="Redo" disabled>⟳</button>
+    <button id="renderBtn" class="btn main" style="flex:1">Render Map</button>
+    <button id="pasteBtn"  class="btn aux"  title="Paste JSON">📋</button>
+    <button id="copyJsonBtn" class="btn aux" title="Copy JSON">📄</button>
+    <button id="multiBtn"  class="btn aux"  title="Toggle multi‑select">⇳</button>
+    <button id="undoBtn"   class="btn aux"  title="Undo" disabled>⟲</button>
+    <button id="redoBtn"   class="btn aux"  title="Redo" disabled>⟳</button>
     <span id="zoomWrap"><label for="zoomSlider" style="font-size:13px">Zoom</label>
       <input type="range" id="zoomSlider" min="0.1" max="3" step="0.05" value="1"></span>
   </div>
@@ -93,7 +81,7 @@ html,body{height:100%;display:flex;flex-direction:column;font-family:system-ui,s
 
 <div id="cy"></div>
 
-<!-- node context menu -->
+<!-- node menu -->
 <div id="nodeMenu">
   <button id="selectAllBtn">Select all nodes</button>
   <button id="copyTextBtn">Copy text</button>
@@ -102,94 +90,81 @@ html,body{height:100%;display:flex;flex-direction:column;font-family:system-ui,s
   <button id="childDelete">Delete ONLY children</button>
 </div>
 
-<!-- big‑paste overlay -->
-<div id="overlay" style="display:none">
-  <div id="overlayInner">
-    <textarea placeholder="Paste JSON here"></textarea>
-    <div><button id="ovCancel" class="btn aux">Cancel</button><button id="ovOk" class="btn main">OK</button></div>
-  </div>
-</div>
+<!-- overlays -->
+<div id="overlay" style="display:none"><div id="overlayInner">
+  <textarea placeholder="Paste JSON here"></textarea>
+  <div><button id="ovCancel" class="btn aux">Cancel</button><button id="ovOk" class="btn main">OK</button></div>
+</div></div>
 
-<!-- help overlay -->
-<div id="helpOverlay">
-  <div>
-    <h3 style="margin-top:0">Prompt builder help</h3>
-    <p><b>1.</b> Type a topic or any URL in the field at the top.</p>
-    <p><b>2.</b> Tap <i>Copy Prompt</i> – a ready‑made instruction for ChatGPT is copied to your clipboard.</p>
-    <p><b>3.</b> Paste that prompt into ChatGPT and wait for the JSON response.</p>
-    <p><b>4.</b> Paste the JSON into the box below, then press <i>Render Map</i>.</p>
-    <p style="margin-top:14px;text-align:center;font-style:italic">press anywhere to continue</p>
-  </div>
-</div>
+<div id="helpOverlay"><div><h3 style="margin-top:0">Prompt builder help</h3>
+  <p><b>1.</b> Type a topic or any URL in the field at the top.</p>
+  <p><b>2.</b> Tap <i>Copy Prompt</i> – a ready‑made instruction for ChatGPT is copied to your clipboard.</p>
+  <p><b>3.</b> Paste that prompt into ChatGPT and wait for the JSON response.</p>
+  <p><b>4.</b> Paste the JSON into the box below, then press <i>Render Map</i>.</p>
+  <p style="margin-top:14px;text-align:center;font-style:italic">press anywhere to continue</p>
+</div></div>
 
-<section id="donate" title="Tap to hide">
-  <h3 style="margin:0 0 4px;font-size:14px">Support citizen‑science projects <span style="font-size:11px;opacity:.6">(tap to hide)</span></h3>
-  <p><b>Gridcoin</b> — rewards BOINC distributed‑computing research.<br>Address: <code>SG5RCw9cf2RhbopCuXLzYYpXciARaZNCF8</code></p>
-  <p><b>Curecoin</b> — rewards Folding@home protein‑folding research.<br>Address: <code>BRaK31UtcWKM6wqbFFU8bXDSc1b8NkvP7h</code></p>
-  <p>Feedback → <a href="mailto:Foxes.owo@gmaill.com">Foxes.owo@gmaill.com</a></p>
+<section id="donate" title="Tap to hide"><h3 style="margin:0 0 4px;font-size:14px">
+  Support citizen‑science projects <span style="font-size:11px;opacity:.6">(tap to hide)</span></h3>
+  <p><b>Gridcoin</b> — rewards BOINC distributed‑computing research.<br>Address: <code>SG5RCw9cf2RhbopCuXLzYYpXciARaZNCF8</code></p>
+  <p><b>Curecoin</b> — rewards Folding@home protein‑folding research.<br>Address: <code>BRaK31UtcWKM6wqbFFU8bXDSc1b8NkvP7h</code></p>
+  <p>Feedback → <a href="mailto:Foxes.owo@gmaill.com">Foxes.owo@gmaill.com</a></p>
 </section>
 
 <script>
 /* ---------- helpers ---------- */
 const sanitize=t=>t.replace(/^```[^\n]*\n?/,'').replace(/```$/,'').replace(/```/g,'')
                    .replace(/\\(?!["\/bfnrtu])/g,"").replace(/\\(?=[\[\]{}])/g,"").trim();
-const wrap=(t,max=50)=>t.length>max?t.slice(0,max-3)+"…":t;
+const wrap=(t,max=50)=>t.length>max?t.slice(0,max-1)+"…":t;
 const parseJSON=t=>{try{return JSON.parse(t);}catch{return null;}};
 
-/* ---------- prompt builder (unchanged) ---------- */
+/* ---------- prompt builder ---------- */
 const topicInput=document.getElementById("topicInput"),
       copyPromptBtn=document.getElementById("copyPromptBtn"),
       pastePromptBtn=document.getElementById("pastePromptBtn"),
-      helpOverlay=document.getElementById("helpOverlay"),helpBtn=document.getElementById("helpBtn");
+      helpOverlay=document.getElementById("helpOverlay");
+document.getElementById("helpBtn").onclick=()=>helpOverlay.style.display="flex";
+helpOverlay.onclick=()=>helpOverlay.style.display="none";
 const isURL=s=>/^https?:\/\//i.test(s.trim());
 function makePrompt(t){
+  const limit="• Each node “text” ≤ 50 chars (links unrestricted).";
   if(isURL(t)){
     return `Analyse the page ${t} and output ONLY raw JSON.
 
 • Add "link":"${t}" at top level (do NOT add it as a node).
-• IDs must start with "n0" for the root, followed by n1, n2 … consecutively.
+• IDs start n0, n1, n2 …
+${limit}
 
 Schema:
-{
- "link":"${t}",
- "root":"n0",
- "nodes":[{ "id":"n0","text":"<root label>","parent":"" }],
- "edges":[{ "source":"...","target":"...","label":"...","direction":"out" }]
-}
+{ "link":"${t}", "root":"n0",
+  "nodes":[{ "id":"n0","text":"<root>","parent":"" }],
+  "edges":[{ "source":"…","target":"…","label":"…","direction":"out" }] }
 
-Return ONLY the JSON object (no Markdown, no code fences).`;
-  }
+Return ONLY the JSON object.`;}
   return `Create a mind‑map for "${t}" and output ONLY raw JSON.
 
-• IDs must start with "n0" for the root, followed by n1, n2 … consecutively.
+• IDs start n0, n1, n2 …
+${limit}
 
 Schema:
-{
- "root":"n0",
- "nodes":[{ "id":"n0","text":"<root label>","parent":"" }],
- "edges":[{ "source":"...","target":"...","label":"...","direction":"out" }]
-}
+{ "root":"n0",
+  "nodes":[{ "id":"n0","text":"<root>","parent":"" }],
+  "edges":[{ "source":"…","target":"…","label":"…","direction":"out" }] }
 
-Return ONLY the JSON object (no Markdown, no code fences).`;
-}
-copyPromptBtn.onclick=()=>{const v=topicInput.value.trim();if(!v){alert("Enter topic or URL");return;}
-  navigator.clipboard.writeText(makePrompt(v));};
+Return ONLY the JSON object.`;}
+copyPromptBtn.onclick=()=>{const v=topicInput.value.trim();if(!v){alert("Enter topic or URL");return;}navigator.clipboard.writeText(makePrompt(v));};
 pastePromptBtn.onclick=async()=>{try{topicInput.value=(await navigator.clipboard.readText()).trim();}catch{}};
-helpBtn.onclick=()=>helpOverlay.style.display="flex";
-helpOverlay.onclick=()=>helpOverlay.style.display="none";
 
 /* ---------- history ---------- */
 let dataObj={},hist=[],idx=-1;
 const undoBtn=document.getElementById("undoBtn"),redoBtn=document.getElementById("redoBtn");
-const updateUR=()=>{undoBtn.disabled=idx<=0;redoBtn.disabled=idx>=hist.length-1;};
-const pushHist=t=>{hist.splice(idx+1);hist.push(t);idx=hist.length-1;updateUR();};
+function updateUR(){undoBtn.disabled=idx<=0;redoBtn.disabled=idx>=hist.length-1;}
+function pushHist(t){hist.splice(idx+1);hist.push(t);idx=hist.length-1;updateUR();}
 
-/* JSON field */
+/* JSON field & overlay paste */
 const jsonInput=document.getElementById("jsonInput");
 jsonInput.addEventListener("paste",e=>{e.preventDefault();jsonInput.value=sanitize(e.clipboardData.getData("text/plain"));});
 document.getElementById("copyJsonBtn").onclick=()=>navigator.clipboard.writeText(jsonInput.value||"");
-
-/* overlay paste */
 const overlay=document.getElementById("overlay");
 document.getElementById("pasteBtn").onclick=async()=>{
   try{jsonInput.value=sanitize(await navigator.clipboard.readText());}
@@ -205,64 +180,94 @@ function initCy(){
   cy=cytoscape({container:document.getElementById("cy"),wheelSensitivity:0.6,
     style:[
       {selector:"node",style:{label:"data(label)","text-wrap":"wrap","text-max-width":"220px","text-valign":"center","text-halign":"center",
-        "background-color":"var(--node)","shape":"round-rectangle","padding":"6px",width:"label",height:"label",
-        "font-size":"13px",color:"#fff","text-outline-color":"#000","text-outline-width":1}},
+        "background-color":"var(--node)","shape":"round-rectangle","padding":"6px",width:"label",height:"label","font-size":"13px",
+        color:"#fff","text-outline-color":"#000","text-outline-width":1}},
       {selector:"node.root",style:{"background-color":"var(--root)","border-width":4,"border-color":"var(--root-outline)",
         "text-outline-color":"#000","text-outline-width":3,"font-size":"15px","font-weight":"700"}},
       {selector:"node.selected",style:{'border-color':'#f9a825','border-width':2}},
-      {selector:"edge",style:{width:2,"line-color":"var(--edge)","target-arrow-color":"var(--edge)","target-arrow-shape":"triangle",
-        "curve-style":"bezier",label:"data(label)","font-size":"11px",color:"#e6edf3","text-rotation":"autorotate",
-        "text-background-opacity":.9,"text-background-color":"var(--edge-bg)","text-background-padding":"2px"}},
+      {selector:"edge",style:{width:2,"line-color":"var(--edge)","target-arrow-color":"var(--edge)",
+        "target-arrow-shape":"triangle","curve-style":"bezier",label:"data(label)","font-size":"11px",color:"#e6edf3",
+        "text-rotation":"autorotate","text-background-opacity":.9,"text-background-color":"var(--edge-bg)","text-background-padding":"2px"}},
       {selector:'edge[label=""]',style:{label:'','text-background-opacity':0}}
     ]});
 
   cy.on("zoom",()=>{zoomSlider.value=cy.zoom().toFixed(2);});
-  let ignoreTap=false;
-  cy.on("tap",e=>{if(ignoreTap){ignoreTap=false;return;} if(e.target===cy)clearSelection();});
+  let ignoreTap=false;cy.on("tap",e=>{if(ignoreTap){ignoreTap=false;return;} if(e.target===cy)clearSelection();});
   window._swallowCyTap=()=>ignoreTap=true;
   cy.on("tap","node",tapNode);
+
+  enableKineticPan();                 /* inertia + pinch‑safe */
 }
 
-/* —— restored original continuous Cola physics —— */
+/* Cola physics */
 function physics(){
   layout?.stop();
-  layout=cy.layout({
-    name:"cola",
-    infinite:true,          /* keep running / live physics */
-    animate:true,           /* smooth animation */
-    refresh:1,              /* refresh every frame */
-    nodeSpacing:25,
-    edgeLength:200,
-    padding:40,
-    fit:false,
-    avoidOverlap:true
-  });
+  layout=cy.layout({name:"cola",infinite:true,animate:true,refresh:1,nodeSpacing:25,edgeLength:200,padding:40,fit:false,avoidOverlap:true});
   layout.run();
+}
+
+/* ---------- kinetic pan with frozen‑pan pinch ---------- */
+function enableKineticPan(){
+  const C=cy.container();
+  let tracking=false,lastT=0,lastX=0,lastY=0,vx=0,vy=0,raf;
+  let touchCount=0,pinching=false,pinchPan={x:0,y:0};
+  const damp=0.97, stop=0.00025;
+
+  function cancelMomentum(){cancelAnimationFrame(raf);vx=vy=0;}
+
+  C.addEventListener("pointerdown",e=>{
+    if(e.pointerType==="touch"){touchCount++;
+      if(touchCount===2){                   /* pinch starts */
+        pinching=true; pinchPan=cy.pan(); tracking=false; cancelMomentum();
+      }}
+    if(pinching)return;
+    if(e.pointerType==="mouse"&&e.button!==0)return;
+    tracking=true;lastT=e.timeStamp;lastX=e.clientX;lastY=e.clientY;vx=vy=0;cancelMomentum();
+  });
+
+  C.addEventListener("pointermove",e=>{
+    if(pinching){cy.pan(pinchPan);return;}     /* freeze pan while zooming */
+    if(!tracking)return;
+    const dt=e.timeStamp-lastT;if(dt===0)return;
+    const dx=e.clientX-lastX,dy=e.clientY-lastY;
+    vx=0.8*vx+0.2*(dx/dt);vy=0.8*vy+0.2*(dy/dt);
+    lastT=e.timeStamp;lastX=e.clientX;lastY=e.clientY;
+  });
+
+  function pointerUp(e){
+    if(e.pointerType==="touch"){touchCount=Math.max(0,touchCount-1);
+      if(touchCount<2&&pinching){pinching=false;} }
+    if(pinching||!tracking){tracking=false;return;}
+    tracking=false;
+    let prev=performance.now();
+    function frame(now){
+      const dt=now-prev;prev=now;
+      vx*=damp;vy*=damp;
+      if(Math.hypot(vx,vy)<stop)return;
+      cy.panBy({x:vx*dt,y:vy*dt});raf=requestAnimationFrame(frame);
+    }
+    if(Math.hypot(vx,vy)>=stop)raf=requestAnimationFrame(frame);
+  }
+  window.addEventListener("pointerup",pointerUp);
+  window.addEventListener("pointercancel",pointerUp);
 }
 
 /* zoom slider */
 const zoomSlider=document.getElementById("zoomSlider");
-zoomSlider.oninput=()=>{if(!cy)return;const z=parseFloat(zoomSlider.value);cy.zoom({level:z,renderedPosition:{x:cy.width()/2,y:cy.height()/2}});};
+zoomSlider.oninput=()=>{if(!cy)return;cy.zoom({level:+zoomSlider.value,renderedPosition:{x:cy.width()/2,y:cy.height()/2}});};
 
-/* ---------- selection & menu ---------- */
-const sel=new Set(); let multi=false;
-const multiBtn=document.getElementById("multiBtn");
+/* ---------- selection & node menu ---------- */
+const sel=new Set(); let multi=false;const multiBtn=document.getElementById("multiBtn");
 multiBtn.onclick=()=>{multi=!multi;multiBtn.classList.toggle("active",multi);if(!multi)clearSelection();};
-
 function clearSelection(){sel.forEach(id=>cy.getElementById(id).removeClass("selected"));sel.clear();nodeMenu.style.display="none";}
 function selectionNames(){return [...sel].map(id=>cy.getElementById(id).data("full")).join(", ");}
 
 const nodeMenu=document.getElementById("nodeMenu"),
-      selectAllBtn=document.getElementById("selectAllBtn"),
-      copyTextBtn=document.getElementById("copyTextBtn"),
-      nodeCopyBtn=document.getElementById("nodeCopy"),
-      delBtn=document.getElementById("nodeDelete"),
+      selectAllBtn=document.getElementById("selectAllBtn"),copyTextBtn=document.getElementById("copyTextBtn"),
+      nodeCopyBtn=document.getElementById("nodeCopy"),delBtn=document.getElementById("nodeDelete"),
       childBtn=document.getElementById("childDelete");
-
-function clamp(x,y){
-  const mw=nodeMenu.offsetWidth,mh=nodeMenu.offsetHeight;
-  return [Math.max(10,Math.min(innerWidth-mw-10,x)),Math.max(10,Math.min(innerHeight-mh-10,y))];
-}
+function clamp(x,y){const mw=nodeMenu.offsetWidth,mh=nodeMenu.offsetHeight;
+  return [Math.max(10,Math.min(innerWidth-mw-10,x)),Math.max(10,Math.min(innerHeight-mh-10,y))];}
 function openMenu(pos){
   copyTextBtn.textContent=sel.size>1?"Copy texts":"Copy text";
   nodeCopyBtn.textContent=sel.size>1?"Copy Prompt for selected":"Copy Prompt for this node";
@@ -273,74 +278,55 @@ function openMenu(pos){
   nodeMenu.style.left=x+"px";nodeMenu.style.top=y+"px";
 }
 function tapNode(e){
-  const node=e.target,id=node.id();
-  if(!multi){clearSelection();sel.add(id);node.addClass("selected");}
-  else sel.has(id)?(sel.delete(id),node.removeClass("selected")):(sel.add(id),node.addClass("selected"));
+  const id=e.target.id();
+  if(!multi){clearSelection();sel.add(id);e.target.addClass("selected");}
+  else sel.has(id)?(sel.delete(id),e.target.removeClass("selected")):(sel.add(id),e.target.addClass("selected"));
   sel.size?openMenu(e.renderedPosition):nodeMenu.style.display="none";
 }
+selectAllBtn.onclick=()=>{sel.clear();cy.nodes().forEach(n=>{sel.add(n.id());n.addClass("selected");});
+  multi=true;multiBtn.classList.add("active");openMenu(cy.getElementById("n0").renderedPosition());};
 
-/* Select‑all */
-selectAllBtn.onclick=()=>{
-  sel.clear();cy.nodes().forEach(n=>{sel.add(n.id());n.addClass("selected");});
-  multi=true;multiBtn.classList.add("active");
-  openMenu(cy.getElementById("n0").renderedPosition());
-};
-
-/* draggable menu */
+/* context‑menu drag (unchanged) */
 let dragging=false,offset={x:0,y:0},start={x:0,y:0},cancelClick=false;
-nodeMenu.addEventListener("mousedown",dragStart);nodeMenu.addEventListener("touchstart",dragStart,{passive:false});
-function dragStart(ev){
-  if(ev.button!==undefined&&ev.button!==0)return;
-  const p=ev.touches?ev.touches[0]:ev;
-  start={x:p.clientX,y:p.clientY};offset.x=p.clientX-parseFloat(nodeMenu.style.left||0);offset.y=p.clientY-parseFloat(nodeMenu.style.top||0);
+nodeMenu.addEventListener("mousedown",ds);nodeMenu.addEventListener("touchstart",ds,{passive:false});
+function ds(ev){if(ev.button!==undefined&&ev.button!==0)return;
+  const p=ev.touches?ev.touches[0]:ev;start={x:p.clientX,y:p.clientY};
+  offset.x=p.clientX-parseFloat(nodeMenu.style.left||0);offset.y=p.clientY-parseFloat(nodeMenu.style.top||0);
   dragging=cancelClick=false;
-  document.addEventListener(ev.touches?"touchmove":"mousemove",dragMove,{passive:false});
-  document.addEventListener(ev.touches?"touchend":"mouseup",dragEnd,{once:true});
-}
-function dragMove(ev){
-  const p=ev.touches?ev.touches[0]:ev;
-  if(!dragging&&Math.hypot(p.clientX-start.x,p.clientY-start.y)>4)dragging=true;
-  if(!dragging)return;
-  ev.preventDefault();cancelClick=true;nodeMenu.classList.add("dragging");
-  const [x,y]=clamp(p.clientX-offset.x,p.clientY-offset.y);nodeMenu.style.left=x+"px";nodeMenu.style.top=y+"px";
-}
-function dragEnd(){nodeMenu.classList.remove("dragging");document.removeEventListener("mousemove",dragMove);document.removeEventListener("touchmove",dragMove);
+  document.addEventListener(ev.touches?"touchmove":"mousemove",dm,{passive:false});
+  document.addEventListener(ev.touches?"touchend":"mouseup",de,{once:true});}
+function dm(ev){const p=ev.touches?ev.touches[0]:ev;if(!dragging&&Math.hypot(p.clientX-start.x,p.clientY-start.y)>4)dragging=true;
+  if(!dragging)return;ev.preventDefault();cancelClick=true;nodeMenu.classList.add("dragging");
+  const [x,y]=clamp(p.clientX-offset.x,p.clientY-offset.y);nodeMenu.style.left=x+"px";nodeMenu.style.top=y+"px";}
+function de(){nodeMenu.classList.remove("dragging");document.removeEventListener("mousemove",dm);document.removeEventListener("touchmove",dm);
   if(dragging)_swallowCyTap();setTimeout(()=>cancelClick=false,0);}
 nodeMenu.addEventListener("click",e=>{if(cancelClick){e.stopImmediatePropagation();e.preventDefault();}},true);
 
-/* menu actions */
+/* copy / delete actions (unchanged) */
 copyTextBtn.onclick=()=>{navigator.clipboard.writeText(copyTextBtn.dataset.names||"");nodeMenu.style.display="none";};
-nodeCopyBtn.onclick=()=>{
-  const names=nodeCopyBtn.dataset.names||"";if(!names)return;
+nodeCopyBtn.onclick=()=>{const names=nodeCopyBtn.dataset.names||"";if(!names)return;
   const linkEntry=dataObj.link?` "link":"${dataObj.link}",\n`:``;
   const prompt=`Extend and refactor node "${names}"
 
-Keep "link" key if present, and IDs MUST remain n0 (root), n1, n2 …
+Keep "link" key if present, IDs stay n0, n1, n2…
+Each node text ≤ 50 chars.
 
 Schema:
 {
 ${linkEntry}"root":"n0",
- "nodes":[{ "id":"n0","text":"<root label>","parent":"" }, … ],
- "edges":[{ "source":"...","target":"...","label":"...","direction":"out" }]
+ "nodes":[{ "id":"n0","text":"<root>","parent":"" }, … ],
+ "edges":[{ "source":"…","target":"…","label":"…","direction":"out" }]
 }
 
 Return ONLY the JSON object.
 
 Current JSON:
 ${jsonInput.value}`;
-  navigator.clipboard.writeText(prompt);nodeMenu.style.display="none";
-};
-
-/* deletion helpers */
-function subtree(id,incRoot){
-  const s=new Set(incRoot?[id]:[]),q=[id];
-  while(q.length){
-    const cur=q.pop();
-    dataObj.edges.forEach(e=>{if(e.source===cur&&!s.has(e.target)){s.add(e.target);q.push(e.target);} });
-    dataObj.nodes.forEach(n=>{if(n.parent===cur&&!s.has(n.id)){s.add(n.id);q.push(n.id);} });
-  }return s;}
-function remove(set){dataObj.nodes=dataObj.nodes.filter(n=>!set.has(n.id));
-                     dataObj.edges=dataObj.edges.filter(e=>!set.has(e.source)&&!set.has(e.target));}
+  navigator.clipboard.writeText(prompt);nodeMenu.style.display="none";};
+function subtree(id,incRoot){const s=new Set(incRoot?[id]:[]),q=[id];while(q.length){
+  const cur=q.pop();dataObj.edges.forEach(e=>{if(e.source===cur&&!s.has(e.target)){s.add(e.target);q.push(e.target);}});
+  dataObj.nodes.forEach(n=>{if(n.parent===cur&&!s.has(n.id)){s.add(n.id);q.push(n.id);}});}return s;}
+function remove(set){dataObj.nodes=dataObj.nodes.filter(n=>!set.has(n.id));dataObj.edges=dataObj.edges.filter(e=>!set.has(e.source)&&!set.has(e.target));}
 delBtn.onclick=()=>{if(!sel.size)return;
   if(sel.has("n0")&&sel.size===1){if(!confirm("Delete entire graph?"))return;dataObj={};jsonInput.value="";cy.elements().remove();pushHist("");clearSelection();return;}
   const doomed=new Set();sel.forEach(id=>subtree(id,true).forEach(x=>doomed.add(x)));remove(doomed);
@@ -358,12 +344,9 @@ function buildEls(){const els=[],dup=new Set(dataObj.edges?.map(e=>e.source+"→
 function render(store=true){
   const txt=sanitize(jsonInput.value);if(!txt){cy&&cy.elements().remove();dataObj={};updateUR();return;}
   const obj=parseJSON(txt);if(!obj){alert("Invalid JSON");return;}
-  dataObj=obj;
-  initCy();cy.elements().remove();cy.add(buildEls());
+  dataObj=obj;initCy();cy.elements().remove();cy.add(buildEls());
   const root=cy.getElementById("n0");root.position({x:cy.width()/2,y:cy.height()/2}).lock();
-  physics();
-  cy.zoom(1);zoomSlider.value="1";
-  clearSelection();
+  physics();cy.zoom(1);zoomSlider.value="1";clearSelection();
   store?pushHist(JSON.stringify(dataObj,null,2)):updateUR();
 }
 document.getElementById("renderBtn").onclick=()=>render(true);
