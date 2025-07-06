@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=yes">
-<title>Mobile Mind‑Map</title>
+<title>Nodetrellis</title>
 
 <script src="https://unpkg.com/cytoscape@3/dist/cytoscape.min.js"></script>
 <script src="https://unpkg.com/webcola@3.4.0/WebCola/cola.min.js"></script>
 <script src="https://unpkg.com/cytoscape-cola@2/cytoscape-cola.js"></script>
 
 <style>
-/* —— palette & layout —— */
+/* —— colour palette —— */
 :root{
   --bg:#0d1117;  --panel:#161b22;  --border:#30363d;  --txt:#e6edf3;
   --node:#475569; --node-h:#64748b;
@@ -23,7 +23,7 @@ html,body{height:100%;display:flex;flex-direction:column;font-family:system-ui,s
 #controls{padding:8px;background:var(--panel);border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:6px}
 
 /* prompt row */
-#builderRow{display:flex;align-items:center;gap:6px}
+#builderRow{display:flex;align-items:center;gap:6px;margin-bottom:4px}
 #builderRow input{flex:1 1 auto;min-width:0;padding:6px;border-radius:6px;border:1px solid var(--border);
                   background:#0f172a;color:#c9d1d9}
 
@@ -35,7 +35,10 @@ html,body{height:100%;display:flex;flex-direction:column;font-family:system-ui,s
 .btn.aux:disabled{background:var(--btn-d);color:#666;cursor:not-allowed}
 #actionRow{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 
-/* textarea */
+/* zoom slider */
+#zoomWrap{display:flex;align-items:center;gap:4px;margin-left:auto}
+#zoomSlider{width:140px}
+
 #jsonBox textarea{width:100%;height:150px;font-family:monospace;background:#0f172a;color:#c9d1d9;border:1px solid var(--border);border-radius:6px}
 
 #cy{flex:1;touch-action:none}
@@ -49,17 +52,12 @@ html,body{height:100%;display:flex;flex-direction:column;font-family:system-ui,s
 #nodeMenu button:hover{background:var(--node-h)}
 .selected{border:2px solid #f9a825 !important}
 
-/* overlays & donate (unchanged) */
-#helpOverlay{position:fixed;inset:0;background:#000c;backdrop-filter:blur(2px);
-             display:none;align-items:center;justify-content:center;z-index:3000}
-#helpOverlay>div{max-width:480px;margin:0 5%;background:var(--panel);border:1px solid var(--border);
-                 border-radius:8px;padding:18px;font-size:15px;line-height:1.4}
-#overlay{position:fixed;inset:0;background:#000a;backdrop-filter:blur(2px);display:flex;
-         align-items:center;justify-content:center;z-index:2000}
-#overlayInner{width:90%;max-width:600px;background:var(--panel);border:1px solid var(--border);
-              border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:8px}
-#overlayInner textarea{flex:1;min-height:200px;background:#0f172a;color:#c9d1d9;border:1px solid var(--border);
-                       border-radius:6px;font-family:monospace}
+/* overlays & donate */
+#helpOverlay{position:fixed;inset:0;background:#000c;backdrop-filter:blur(2px);display:none;align-items:center;justify-content:center;z-index:3000}
+#helpOverlay>div{max-width:480px;margin:0 5%;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:18px;font-size:15px;line-height:1.4}
+#overlay{position:fixed;inset:0;background:#000a;backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center;z-index:2000}
+#overlayInner{width:90%;max-width:600px;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:8px}
+#overlayInner textarea{flex:1;min-height:200px;background:#0f172a;color:#c9d1d9;border:1px solid var(--border);border-radius:6px;font-family:monospace}
 #overlayInner div{display:flex;gap:8px;justify-content:flex-end}
 #donate{padding:10px;background:var(--panel);border-top:1px solid var(--border);cursor:pointer;font-size:13px}
 #donate.hide{opacity:0;height:0;padding:0;border:none;overflow:hidden;transition:.25s}
@@ -69,7 +67,6 @@ html,body{height:100%;display:flex;flex-direction:column;font-family:system-ui,s
 <body>
 
 <div id="controls">
-  <!-- prompt row -->
   <div id="builderRow">
     <input id="topicInput" placeholder="Topic or https://…" />
     <button id="copyPromptBtn"  class="btn main">Copy Prompt</button>
@@ -77,7 +74,6 @@ html,body{height:100%;display:flex;flex-direction:column;font-family:system-ui,s
     <button id="helpBtn"        class="btn aux" title="Help">?</button>
   </div>
 
-  <!-- JSON (collapsed) -->
   <details id="jsonBox">
     <summary>JSON (click to show / hide)</summary>
     <textarea id="jsonInput" placeholder="Paste ChatGPT’s JSON here, then hit Render Map"></textarea>
@@ -90,6 +86,8 @@ html,body{height:100%;display:flex;flex-direction:column;font-family:system-ui,s
     <button id="multiBtn"    class="btn aux"  title="Toggle multi‑select">⇳</button>
     <button id="undoBtn"     class="btn aux"  title="Undo" disabled>⟲</button>
     <button id="redoBtn"     class="btn aux"  title="Redo" disabled>⟳</button>
+    <span id="zoomWrap"><label for="zoomSlider" style="font-size:13px">Zoom</label>
+      <input type="range" id="zoomSlider" min="0.1" max="3" step="0.05" value="1"></span>
   </div>
 </div>
 
@@ -99,7 +97,7 @@ html,body{height:100%;display:flex;flex-direction:column;font-family:system-ui,s
 <div id="nodeMenu">
   <button id="selectAllBtn">Select all nodes</button>
   <button id="copyTextBtn">Copy text</button>
-  <button id="nodeCopy">Copy Prompt for this node</button>
+  <button id="nodeCopy">Copy Prompt for selected</button>
   <button id="nodeDelete">Delete node & subtree</button>
   <button id="childDelete">Delete ONLY children</button>
 </div>
@@ -133,27 +131,16 @@ html,body{height:100%;display:flex;flex-direction:column;font-family:system-ui,s
 
 <script>
 /* ---------- helpers ---------- */
-function sanitize(t){
-  t=t.replace(/^```[^\n]*\n?/,'')
-     .replace(/```$/,'')
-     .replace(/```/g,'')
-     .replace(/\\(?!["\/bfnrtu])/g,"")
-     .replace(/\\(?=[\[\]{}])/g,"")
-     .trim();
-  const m=t.match(/({[\s\S]*})/m);
-  return m?m[1]:"";
-}
-const MAXLEN=50, WRAP=12, ZWSP="\u200B";
-const wrap=t=>t.length>MAXLEN?t.slice(0,47)+"…":
-             (t.includes(" ")||t.length<=WRAP?t:t.replace(new RegExp(`(.{${WRAP}})`,"g"),`$1${ZWSP}`));
+const sanitize=t=>t.replace(/^```[^\n]*\n?/,'').replace(/```$/,'').replace(/```/g,'')
+                   .replace(/\\(?!["\/bfnrtu])/g,"").replace(/\\(?=[\[\]{}])/g,"").trim();
+const wrap=(t,max=50)=>t.length>max?t.slice(0,max-3)+"…":t;
 const parseJSON=t=>{try{return JSON.parse(t);}catch{return null;}};
 
 /* ---------- prompt builder (unchanged) ---------- */
 const topicInput=document.getElementById("topicInput"),
       copyPromptBtn=document.getElementById("copyPromptBtn"),
       pastePromptBtn=document.getElementById("pastePromptBtn"),
-      helpOverlay=document.getElementById("helpOverlay"),
-      helpBtn=document.getElementById("helpBtn");
+      helpOverlay=document.getElementById("helpOverlay"),helpBtn=document.getElementById("helpBtn");
 const isURL=s=>/^https?:\/\//i.test(s.trim());
 function makePrompt(t){
   if(isURL(t)){
@@ -194,10 +181,10 @@ helpOverlay.onclick=()=>helpOverlay.style.display="none";
 /* ---------- history ---------- */
 let dataObj={},hist=[],idx=-1;
 const undoBtn=document.getElementById("undoBtn"),redoBtn=document.getElementById("redoBtn");
-function updateUR(){undoBtn.disabled=idx<=0;redoBtn.disabled=idx>=hist.length-1;}
-function pushHist(t){hist.splice(idx+1);hist.push(t);idx=hist.length-1;updateUR();}
+const updateUR=()=>{undoBtn.disabled=idx<=0;redoBtn.disabled=idx>=hist.length-1;};
+const pushHist=t=>{hist.splice(idx+1);hist.push(t);idx=hist.length-1;updateUR();};
 
-/* ---------- JSON box ---------- */
+/* JSON field */
 const jsonInput=document.getElementById("jsonInput");
 jsonInput.addEventListener("paste",e=>{e.preventDefault();jsonInput.value=sanitize(e.clipboardData.getData("text/plain"));});
 document.getElementById("copyJsonBtn").onclick=()=>navigator.clipboard.writeText(jsonInput.value||"");
@@ -217,30 +204,33 @@ function initCy(){
   if(cy)return;
   cy=cytoscape({container:document.getElementById("cy"),wheelSensitivity:0.6,
     style:[
-      {selector:"node",style:{label:"data(label)","text-wrap":"wrap","text-max-width":"240px","text-valign":"center",
-        "text-halign":"center","background-color":"var(--node)","shape":"round-rectangle","padding":"6px",width:"label",height:"label",
+      {selector:"node",style:{label:"data(label)","text-wrap":"wrap","text-max-width":"220px","text-valign":"center","text-halign":"center",
+        "background-color":"var(--node)","shape":"round-rectangle","padding":"6px",width:"label",height:"label",
         "font-size":"13px",color:"#fff","text-outline-color":"#000","text-outline-width":1}},
       {selector:"node.root",style:{"background-color":"var(--root)","border-width":4,"border-color":"var(--root-outline)",
         "text-outline-color":"#000","text-outline-width":3,"font-size":"15px","font-weight":"700"}},
       {selector:"node.selected",style:{'border-color':'#f9a825','border-width':2}},
-      {selector:"node:hover",style:{"background-color":"var(--node-h)"}},
       {selector:"edge",style:{width:2,"line-color":"var(--edge)","target-arrow-color":"var(--edge)","target-arrow-shape":"triangle",
         "curve-style":"bezier",label:"data(label)","font-size":"11px",color:"#e6edf3","text-rotation":"autorotate",
         "text-background-opacity":.9,"text-background-color":"var(--edge-bg)","text-background-padding":"2px"}},
       {selector:'edge[label=""]',style:{label:'','text-background-opacity':0}}
     ]});
+
+  cy.on("zoom",()=>{zoomSlider.value=cy.zoom().toFixed(2);});
   let ignoreTap=false;
   cy.on("tap",e=>{if(ignoreTap){ignoreTap=false;return;} if(e.target===cy)clearSelection();});
   window._swallowCyTap=()=>ignoreTap=true;
   cy.on("tap","node",tapNode);
 }
-function physics(){layout?.stop();
+
+/* —— restored original continuous Cola physics —— */
+function physics(){
+  layout?.stop();
   layout=cy.layout({
     name:"cola",
-    infinite:true,
-    animate:true,
-    refresh:0.5,
-    gravity:20,
+    infinite:true,          /* keep running / live physics */
+    animate:true,           /* smooth animation */
+    refresh:1,              /* refresh every frame */
     nodeSpacing:25,
     edgeLength:200,
     padding:40,
@@ -249,6 +239,10 @@ function physics(){layout?.stop();
   });
   layout.run();
 }
+
+/* zoom slider */
+const zoomSlider=document.getElementById("zoomSlider");
+zoomSlider.oninput=()=>{if(!cy)return;const z=parseFloat(zoomSlider.value);cy.zoom({level:z,renderedPosition:{x:cy.width()/2,y:cy.height()/2}});};
 
 /* ---------- selection & menu ---------- */
 const sel=new Set(); let multi=false;
@@ -264,18 +258,16 @@ const nodeMenu=document.getElementById("nodeMenu"),
       nodeCopyBtn=document.getElementById("nodeCopy"),
       delBtn=document.getElementById("nodeDelete"),
       childBtn=document.getElementById("childDelete");
+
 function clamp(x,y){
   const mw=nodeMenu.offsetWidth,mh=nodeMenu.offsetHeight;
   return [Math.max(10,Math.min(innerWidth-mw-10,x)),Math.max(10,Math.min(innerHeight-mh-10,y))];
 }
-function refreshMenuLabels(){
+function openMenu(pos){
   copyTextBtn.textContent=sel.size>1?"Copy texts":"Copy text";
   nodeCopyBtn.textContent=sel.size>1?"Copy Prompt for selected":"Copy Prompt for this node";
   copyTextBtn.dataset.names=nodeCopyBtn.dataset.names=selectionNames();
-  delBtn.textContent=[...sel].includes("n0")&&sel.size===1?"Delete entire graph":"Delete node & subtree";
-}
-function openMenu(pos){
-  refreshMenuLabels();
+  delBtn.textContent=sel.has("n0")&&sel.size===1?"Delete entire graph":"Delete node & subtree";
   nodeMenu.style.display="block";
   const [x,y]=clamp(pos.x+20+cy.container().getBoundingClientRect().left,pos.y+20+cy.container().getBoundingClientRect().top);
   nodeMenu.style.left=x+"px";nodeMenu.style.top=y+"px";
@@ -287,15 +279,14 @@ function tapNode(e){
   sel.size?openMenu(e.renderedPosition):nodeMenu.style.display="none";
 }
 
-/* Select‑all button */
+/* Select‑all */
 selectAllBtn.onclick=()=>{
-  sel.clear();
-  cy.nodes().forEach(n=>{sel.add(n.id());n.addClass("selected");});
-  multi=true; multiBtn.classList.add("active");
-  refreshMenuLabels();
+  sel.clear();cy.nodes().forEach(n=>{sel.add(n.id());n.addClass("selected");});
+  multi=true;multiBtn.classList.add("active");
+  openMenu(cy.getElementById("n0").renderedPosition());
 };
 
-/* draggable node menu (unchanged) */
+/* draggable menu */
 let dragging=false,offset={x:0,y:0},start={x:0,y:0},cancelClick=false;
 nodeMenu.addEventListener("mousedown",dragStart);nodeMenu.addEventListener("touchstart",dragStart,{passive:false});
 function dragStart(ev){
@@ -313,15 +304,13 @@ function dragMove(ev){
   ev.preventDefault();cancelClick=true;nodeMenu.classList.add("dragging");
   const [x,y]=clamp(p.clientX-offset.x,p.clientY-offset.y);nodeMenu.style.left=x+"px";nodeMenu.style.top=y+"px";
 }
-function dragEnd(){
-  nodeMenu.classList.remove("dragging");document.removeEventListener("mousemove",dragMove);document.removeEventListener("touchmove",dragMove);
+function dragEnd(){nodeMenu.classList.remove("dragging");document.removeEventListener("mousemove",dragMove);document.removeEventListener("touchmove",dragMove);
   if(dragging)_swallowCyTap();setTimeout(()=>cancelClick=false,0);}
 nodeMenu.addEventListener("click",e=>{if(cancelClick){e.stopImmediatePropagation();e.preventDefault();}},true);
 
 /* menu actions */
 copyTextBtn.onclick=()=>{navigator.clipboard.writeText(copyTextBtn.dataset.names||"");nodeMenu.style.display="none";};
 nodeCopyBtn.onclick=()=>{
-  if(cancelClick)return;
   const names=nodeCopyBtn.dataset.names||"";if(!names)return;
   const linkEntry=dataObj.link?` "link":"${dataObj.link}",\n`:``;
   const prompt=`Extend and refactor node "${names}"
@@ -352,35 +341,29 @@ function subtree(id,incRoot){
   }return s;}
 function remove(set){dataObj.nodes=dataObj.nodes.filter(n=>!set.has(n.id));
                      dataObj.edges=dataObj.edges.filter(e=>!set.has(e.source)&&!set.has(e.target));}
-delBtn.onclick=()=>{if(cancelClick||!sel.size)return;
-  if(sel.has("n0")&&sel.size===1){
-    if(!confirm("Delete entire graph?"))return;
-    dataObj={};jsonInput.value="";cy.elements().remove();pushHist("");clearSelection();return;}
-  const doomed=new Set();sel.forEach(id=>subtree(id,true).forEach(x=>doomed.add(x)));
-  remove(doomed);jsonInput.value=JSON.stringify(dataObj,null,2);clearSelection();render(true,false);};
-childBtn.onclick=()=>{if(cancelClick||!sel.size)return;
-  const doomed=new Set();sel.forEach(id=>subtree(id,false).forEach(x=>doomed.add(x)));
-  remove(doomed);jsonInput.value=JSON.stringify(dataObj,null,2);clearSelection();render(true,false);};
+delBtn.onclick=()=>{if(!sel.size)return;
+  if(sel.has("n0")&&sel.size===1){if(!confirm("Delete entire graph?"))return;dataObj={};jsonInput.value="";cy.elements().remove();pushHist("");clearSelection();return;}
+  const doomed=new Set();sel.forEach(id=>subtree(id,true).forEach(x=>doomed.add(x)));remove(doomed);
+  jsonInput.value=JSON.stringify(dataObj,null,2);clearSelection();render(true,false);};
+childBtn.onclick=()=>{if(!sel.size)return;
+  const doomed=new Set();sel.forEach(id=>subtree(id,false).forEach(x=>doomed.add(x)));remove(doomed);
+  jsonInput.value=JSON.stringify(dataObj,null,2);clearSelection();render(true,false);};
 
-/* ---------- render with fixed root ---------- */
+/* ---------- render ---------- */
 function buildEls(){const els=[],dup=new Set(dataObj.edges?.map(e=>e.source+"→"+e.target)||[]);
   (dataObj.nodes||[]).forEach(n=>{els.push({data:{id:n.id,label:wrap(n.text),full:n.text},classes:n.id==="n0"?"root":""});
-    if(n.parent&&!dup.has(n.parent+"→"+n.id))
-      els.push({data:{source:n.parent,target:n.id,label:"parent"}});});
+    if(n.parent&&!dup.has(n.parent+"→"+n.id))els.push({data:{source:n.parent,target:n.id,label:"parent"}});});
   (dataObj.edges||[]).forEach(e=>els.push({data:{source:e.source,target:e.target,label:e.label||"rel"}}));
   return els;}
 function render(store=true){
-  const txt=sanitize(jsonInput.value);
-  if(!txt){cy&&cy.elements().remove();dataObj={};updateUR();return;}
+  const txt=sanitize(jsonInput.value);if(!txt){cy&&cy.elements().remove();dataObj={};updateUR();return;}
   const obj=parseJSON(txt);if(!obj){alert("Invalid JSON");return;}
-  dataObj=obj;dataObj.root="n0";
+  dataObj=obj;
   initCy();cy.elements().remove();cy.add(buildEls());
-
-  const root=cy.getElementById("n0");
-  root.position({x:cy.width()/2,y:cy.height()/2});
-  root.lock();
-
-  physics();clearSelection();
+  const root=cy.getElementById("n0");root.position({x:cy.width()/2,y:cy.height()/2}).lock();
+  physics();
+  cy.zoom(1);zoomSlider.value="1";
+  clearSelection();
   store?pushHist(JSON.stringify(dataObj,null,2)):updateUR();
 }
 document.getElementById("renderBtn").onclick=()=>render(true);
