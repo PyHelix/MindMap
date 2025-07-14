@@ -88,6 +88,7 @@ html,body{height:100%;display:flex;flex-direction:column;font-family:system-ui,s
     <button id="renderBtn" class="btn main" style="flex:1">Render Map</button>
     <button id="pasteBtn"  class="btn aux"  title="Paste JSON">📋</button>
     <button id="copyJsonBtn" class="btn aux" title="Copy JSON">📄</button>
+    <button id="exportBtn" class="btn aux" title="Export PNG">📥</button>
     <button id="multiBtn"  class="btn aux"  title="Toggle multi‑select">⇳</button>
     <button id="undoBtn"   class="btn aux"  title="Undo" disabled>⟲</button>
     <button id="redoBtn"   class="btn aux"  title="Redo" disabled>⟳</button>
@@ -104,6 +105,8 @@ html,body{height:100%;display:flex;flex-direction:column;font-family:system-ui,s
   <button id="selectAllBtn">Select all nodes</button>
   <button id="copyTextBtn">Copy text</button>
   <button id="nodeCopy">Copy Prompt for selected</button>
+  <button id="addChildBtn">Add child</button>
+  <button id="collapseBtn">Toggle collapse</button>
   <button id="nodeDelete">Delete node & subtree</button>
   <button id="childDelete">Delete ONLY children</button>
 </div>
@@ -139,7 +142,7 @@ html,body{height:100%;display:flex;flex-direction:column;font-family:system-ui,s
      Address: <code>SG5RCw9cf2RhbopCuXLzYYpXciARaZNCF8</code></p>
   <p><b>Curecoin</b> — rewards Folding@home protein‑folding research.<br>
      Address: <code>BRaK31UtcWKM6wqbFFU8bXDSc1b8NkvP7h</code></p>
-  <p>Feedback → <a href="mailto:Foxes.owo@gmaill.com">Foxes.owo@gmaill.com</a></p>
+  <p>Feedback → <a href="mailto:Foxes.owo@gmail.com">Foxes.owo@gmail.com</a></p>
 </section>
 
 <!-- ── application script ───────────────────────────────────── -->
@@ -259,6 +262,7 @@ function initCy(){
           'background-color':'var(--root)','border-width':4,'border-color':'var(--root-outline)',
           'text-outline-color':'#000','text-outline-width':3,'font-size':'15px','font-weight':'700'}},
       { selector:'node.selected', style:{ 'border-color':'#f9a825','border-width':2 }},
+      { selector:'node.collapsed', style:{ 'border-color':'#ef4444','border-width':2 }},
       { selector:'edge', style:{
           width:2,'line-color':'var(--edge)','target-arrow-color':'var(--edge)',
           'target-arrow-shape':'triangle','curve-style':'bezier',
@@ -276,8 +280,25 @@ function initCy(){
   window._swallowCyTap = () => ignoreTap=true;
 
   cy.on('tap','node',tapNode);
+  cy.on('dbltap','node',editNode);
 
   enableKineticPan();        // inertia + pinch‑safe
+}
+
+/* inline node edit */
+function editNode(e) {
+  const node = e.target;
+  const current = node.data('full');
+  const newText = prompt('Edit text:', current);
+  if (newText !== null && newText.trim() !== '') {
+    node.data('label', wrap(newText));
+    node.data('full', newText);
+    const objNode = dataObj.nodes.find(n => n.id === node.id());
+    if (objNode) objNode.text = newText;
+    jsonInput.value = JSON.stringify(dataObj, null, 2);
+    pushHist(jsonInput.value);
+    physics();
+  }
 }
 
 /* continuous Cola physics */
@@ -348,9 +369,9 @@ const sel=new Set();
 let multi=false;
 const multiBtn=document.getElementById('multiBtn');
 
-multiBtn.onclick = ()=>{
-  multi=!multi;
-  multiBtn.classList.toggle('active',multi);
+multiBtn.onclick = () => {
+  multi = !multi;
+  multiBtn.classList.toggle('active', multi);
   if(!multi) clearSelection();
 };
 
@@ -366,6 +387,8 @@ const nodeMenu=document.getElementById('nodeMenu'),
       selectAllBtn=document.getElementById('selectAllBtn'),
       copyTextBtn=document.getElementById('copyTextBtn'),
       nodeCopyBtn=document.getElementById('nodeCopy'),
+      addChildBtn = document.getElementById('addChildBtn'),
+      collapseBtn = document.getElementById('collapseBtn'),
       delBtn=document.getElementById('nodeDelete'),
       childBtn=document.getElementById('childDelete');
 
@@ -378,10 +401,10 @@ function clamp(x,y){
 }
 
 function openMenu(pos){
-  copyTextBtn.textContent = sel.size>1 ? 'Copy texts':'Copy text';
-  nodeCopyBtn.textContent= sel.size>1 ? 'Copy Prompt for selected':'Copy Prompt for this node';
+  copyTextBtn.textContent = sel.size>1 ? 'Copy texts' : 'Copy text';
+  nodeCopyBtn.textContent= sel.size>1 ? 'Copy Prompt for selected' : 'Copy Prompt for this node';
   copyTextBtn.dataset.names = nodeCopyBtn.dataset.names = selectionNames();
-  delBtn.textContent = sel.has('n0')&&sel.size===1 ? 'Delete entire graph':'Delete node & subtree';
+  delBtn.textContent = sel.has('n0')&&sel.size===1 ? 'Delete entire graph' : 'Delete node & subtree';
   nodeMenu.style.display='block';
   const [x,y]=clamp(
     pos.x+20+cy.container().getBoundingClientRect().left,
@@ -395,17 +418,27 @@ function tapNode(e){
   if(!multi){
     clearSelection(); sel.add(id); e.target.addClass('selected');
   }else{
-    sel.has(id) ? (sel.delete(id), e.target.removeClass('selected'))
-                : (sel.add(id),    e.target.addClass('selected'));
+    if(sel.has(id)) {
+      sel.delete(id);
+      e.target.removeClass('selected');
+    } else {
+      sel.add(id);
+      e.target.addClass('selected');
+    }
   }
-  sel.size ? openMenu(e.renderedPosition) : nodeMenu.style.display='none';
+  if(sel.size) openMenu(e.renderedPosition);
+  else nodeMenu.style.display='none';
 }
 
-selectAllBtn.onclick=()=>{
+selectAllBtn.onclick = () => {
   sel.clear();
-  cy.nodes().forEach(n=>{ sel.add(n.id()); n.addClass('selected'); });
-  multi=true; multiBtn.classList.add('active');
-  openMenu( cy.getElementById('n0').renderedPosition() );
+  cy.nodes().forEach(n => {
+    sel.add(n.id());
+    n.addClass('selected');
+  });
+  multi = true;
+  multiBtn.classList.add('active');
+  openMenu(cy.getElementById('n0').renderedPosition());
 };
 
 /* context‑menu drag */
@@ -415,8 +448,8 @@ function ds(ev){
   if(ev.button!==undefined && ev.button!==0) return;
   const p=ev.touches?ev.touches[0]:ev;
   start={x:p.clientX,y:p.clientY};
-  offset.x=p.clientX-parseFloat(nodeMenu.style.left||0);
-  offset.y=p.clientY-parseFloat(nodeMenu.style.top ||0);
+  offset={x:p.clientX - parseFloat(nodeMenu.style.left||0),
+    y:p.clientY - parseFloat(nodeMenu.style.top||0) };
   dragging=cancelClick=false;
   document.addEventListener(ev.touches?'touchmove':'mousemove',dm,{passive:false});
   document.addEventListener(ev.touches?'touchend':'mouseup',de,{once:true});
@@ -432,7 +465,7 @@ function dm(ev){
 function de(){
   nodeMenu.classList.remove('dragging');
   document.removeEventListener('mousemove',dm); document.removeEventListener('touchmove',dm);
-  if(dragging) _swallowCyTap(); setTimeout(()=>cancelClick=false,0);
+  if(dragging) _swallowCyTap(); setTimeout(() => cancelClick=false,0);
 }
 nodeMenu.addEventListener('click',e=>{
   if(cancelClick){ e.stopImmediatePropagation(); e.preventDefault(); }
@@ -441,20 +474,20 @@ nodeMenu.addEventListener('click',e=>{
 /* menu button actions */
 copyTextBtn.onclick = ()=>{ navigator.clipboard.writeText(copyTextBtn.dataset.names||''); nodeMenu.style.display='none'; };
 
-nodeCopyBtn.onclick = ()=>{
-  const names=nodeCopyBtn.dataset.names||'';
-  if(!names) return;
+nodeCopyBtn.onclick = () => {
+  const names = nodeCopyBtn.dataset.names || '';
+  if (!names) return;
   const linkEntry = dataObj.link ? ` "link":"${dataObj.link}",\n` : '';
-  const prompt=`Extend and refactor node "${names}"
+  const prompt = `Extend and refactor node "${names}"
 
-Keep "link" key if present, IDs stay n0, n1, n2 …
-Each node text ≤ 50 chars.
+Keep "link" key if present. IDs stay n0, n1, …
+Each node text ≤ 50 chars.
 
 Schema:
 {
 ${linkEntry}"root":"n0",
- "nodes":[{ "id":"n0","text":"<root>","parent":"" }, … ],
- "edges":[{ "source":"…","target":"…","label":"…","direction":"out" }]
+  "nodes":[{ "id":"n0","text":"<root>","parent":"" }, … ],
+  "edges":[{ "source":"…","target":"…","label":"…","direction":"out" }]
 }
 
 Return ONLY the JSON object.
@@ -462,96 +495,142 @@ Return ONLY the JSON object.
 Current JSON:
 ${jsonInput.value}`;
   navigator.clipboard.writeText(prompt);
-  nodeMenu.style.display='none';
+  nodeMenu.style.display = 'none';
+};
+
+/* add child */
+addChildBtn.onclick = () => {
+  if (!sel.size) return;
+  const parentId = Array.from(sel)[0]; // first selected
+  const newText = prompt('New child text:');
+  if (!newText || newText.trim() === '') return;
+  const newId = 'n' + dataObj.nodes.length;
+  dataObj.nodes.push({ id: newId, text: newText, parent: parentId });
+  dataObj.edges.push({ source: parentId, target: newId, label: '', direction: 'out' });
+  jsonInput.value = JSON.stringify(dataObj, null, 2);
+  clearSelection();
+  render(true);
+};
+
+/* toggle collapse */
+collapseBtn.onclick = () => {
+  sel.forEach(id => {
+    const node = cy.getElementById(id);
+    if (node.hasClass('collapsed')) {
+      node.removeClass('collapsed');
+      subtree(id, false).forEach(sid => {
+        cy.getElementById(sid).style({ display: 'element' });
+      });
+    } else {
+      node.addClass('collapsed');
+      subtree(id, false).forEach(sid => {
+        cy.getElementById(sid).style({ display: 'none' });
+      });
+    }
+  });
+  physics();
+  nodeMenu.style.display = 'none';
 };
 
 /* delete helpers */
-function subtree(id,incRoot){
-  const s=new Set(incRoot?[id]:[]),q=[id];
-  while(q.length){
-    const cur=q.pop();
-    dataObj.edges.forEach(e=>{ if(e.source===cur && !s.has(e.target)){ s.add(e.target); q.push(e.target);} });
-    dataObj.nodes.forEach(n=>{ if(n.parent===cur && !s.has(n.id)){ s.add(n.id); q.push(n.id);} });
+function subtree(id, incRoot) {
+  const s = new Set(incRoot ? [id] : []);
+  const q = [id];
+  while (q.length) {
+    const cur = q.pop();
+    dataObj.edges.forEach(e => { if (e.source === cur && !s.has(e.target)) { s.add(e.target); q.push(e.target); } });
+    dataObj.nodes.forEach(n => { if (n.parent === cur && !s.has(n.id)) { s.add(n.id); q.push(n.id); } });
   }
   return s;
 }
-function remove(set){
-  dataObj.nodes=dataObj.nodes.filter(n=>!set.has(n.id));
-  dataObj.edges=dataObj.edges.filter(e=>!set.has(e.source)&&!set.has(e.target));
+function remove(set) {
+  dataObj.nodes = dataObj.nodes.filter(n => !set.has(n.id));
+  dataObj.edges = dataObj.edges.filter(e => !set.has(e.source) && !set.has(e.target));
 }
 
-delBtn.onclick = ()=>{
-  if(!sel.size) return;
-  if(sel.has('n0') && sel.size===1){
-    if(!confirm('Delete entire graph?')) return;
-    dataObj={}; jsonInput.value=''; cy.elements().remove(); pushHist(''); clearSelection(); return;
+delBtn.onclick = () => {
+  if (!sel.size) return;
+  if (sel.has('n0') && sel.size === 1) {
+    if (!confirm('Delete entire graph?')) return;
+    dataObj = {}; jsonInput.value = ''; cy.elements().remove(); pushHist(''); clearSelection(); return;
   }
-  const doomed=new Set();
-  sel.forEach(id=> subtree(id,true).forEach(x=>doomed.add(x)) );
+  const doomed = new Set();
+  sel.forEach(id => subtree(id, true).forEach(x => doomed.add(x)));
   remove(doomed);
-  jsonInput.value=JSON.stringify(dataObj,null,2);
-  clearSelection(); render(true,false);
+  jsonInput.value = JSON.stringify(dataObj, null, 2);
+  clearSelection(); render(true);
 };
 
-childBtn.onclick = ()=>{
-  if(!sel.size) return;
-  const doomed=new Set();
-  sel.forEach(id=> subtree(id,false).forEach(x=>doomed.add(x)) );
+childBtn.onclick = () => {
+  if (!sel.size) return;
+  const doomed = new Set();
+  sel.forEach(id => subtree(id, false).forEach(x => doomed.add(x)));
   remove(doomed);
-  jsonInput.value=JSON.stringify(dataObj,null,2);
-  clearSelection(); render(true,false);
+  jsonInput.value = JSON.stringify(dataObj, null, 2);
+  clearSelection(); render(true);
 };
 
 /* ---------- render ---------- */
-function buildEls(){
-  const els=[], dup=new Set(dataObj.edges?.map(e=>e.source+'→'+e.target)||[]);
-  (dataObj.nodes||[]).forEach(n=>{
-    els.push({ data:{ id:n.id,label:wrap(n.text),full:n.text }, classes:n.id==='n0'?'root':'' });
-    if(n.parent && !dup.has(n.parent+'→'+n.id))
-      els.push({ data:{ source:n.parent,target:n.id,label:'parent' }});
+function buildEls() {
+  const els = [], dup = new Set(dataObj.edges?.map(e => e.source + '→' + e.target) || []);
+  (dataObj.nodes || []).forEach(n => {
+    els.push({ data: { id: n.id, label: wrap(n.text), full: n.text }, classes: n.id === 'n0' ? 'root' : '' });
+    if (n.parent && !dup.has(n.parent + '→' + n.id))
+      els.push({ data: { source: n.parent, target: n.id, label: 'parent' } });
   });
-  (dataObj.edges||[]).forEach(e=> els.push({ data:{ source:e.source,target:e.target,label:e.label||'rel' }}) );
+  (dataObj.edges || []).forEach(e => els.push({ data: { source: e.source, target: e.target, label: e.label || '' } }));
   return els;
 }
 
-function render(store=true){
-  const txt = extractJSON( sanitize( jsonInput.value ) );
-  if(!txt){ cy && cy.elements().remove(); dataObj={}; updateUR(); return; }
+function render(store = true) {
+  const txt = extractJSON(sanitize(jsonInput.value));
+  if (!txt) { if (cy) cy.elements().remove(); dataObj = {}; updateUR(); return; }
 
   const obj = parseJSON(txt);
-  if(!obj){ alert('Invalid JSON'); return; }
+  if (!obj) { alert('Invalid JSON - ensure it matches schema with root, nodes, edges.'); return; }
 
-  dataObj=obj;
-  initCy(); cy.elements().remove(); cy.add( buildEls() );
+  dataObj = obj;
+  initCy(); cy.elements().remove(); cy.add(buildEls());
 
-  const root=cy.getElementById('n0');
-  root.position({ x:cy.width()/2, y:cy.height()/2 }).lock();
+  const root = cy.getElementById('n0');
+  root.position({ x: cy.width() / 2, y: cy.height() / 2 }).lock();
 
   physics();
-  cy.zoom(1); zoomSlider.value='1';
+  cy.zoom(1); zoomSlider.value = '1';
   clearSelection();
 
-  store ? pushHist(JSON.stringify(dataObj,null,2)) : updateUR();
+  if (store) pushHist(JSON.stringify(dataObj, null, 2));
+  else updateUR();
 }
-document.getElementById('renderBtn').onclick = ()=> render(true);
+document.getElementById('renderBtn').onclick = () => render(true);
+
+/* export png */
+document.getElementById('exportBtn').onclick = () => {
+  if (!cy) return;
+  const png = cy.png({ full: true, scale: 2 });
+  const a = document.createElement('a');
+  a.href = png;
+  a.download = 'mindmap.png';
+  a.click();
+};
 
 /* undo / redo */
-undoBtn.onclick=()=>{ if(idx>0){ idx--; jsonInput.value=hist[idx]; render(false); } };
-redoBtn.onclick=()=>{ if(idx<hist.length-1){ idx++; jsonInput.value=hist[idx]; render(false); } };
-addEventListener('keydown',e=>{
-  if(e.ctrlKey && !e.shiftKey && e.key==='z'){ e.preventDefault(); undoBtn.onclick(); }
-  if(e.ctrlKey && (e.key==='y' || (e.key==='Z'&&e.shiftKey))){ e.preventDefault(); redoBtn.onclick(); }
+undoBtn.onclick = () => { if (idx > 0) { idx--; jsonInput.value = hist[idx]; render(false); } };
+redoBtn.onclick = () => { if (idx < hist.length - 1) { idx++; jsonInput.value = hist[idx]; render(false); } };
+addEventListener('keydown', e => {
+  if (e.ctrlKey && !e.shiftKey && e.key === 'z') { e.preventDefault(); undoBtn.onclick(); }
+  if (e.ctrlKey && (e.key === 'y' || (e.key === 'Z' && e.shiftKey))) { e.preventDefault(); redoBtn.onclick(); }
 });
 
 /* zoom slider */
-const zoomSlider=document.getElementById('zoomSlider');
-zoomSlider.oninput = ()=>{ if(!cy) return;
-  cy.zoom({ level:+zoomSlider.value,
-            renderedPosition:{ x:cy.width()/2, y:cy.height()/2 } });
+const zoomSlider = document.getElementById('zoomSlider');
+zoomSlider.oninput = () => { if (!cy) return;
+  cy.zoom({ level: +zoomSlider.value,
+            renderedPosition: { x: cy.width() / 2, y: cy.height() / 2 } });
 };
 
 /* donate footer hide */
-document.getElementById('donate').onclick = e=> e.currentTarget.classList.add('hide');
+document.getElementById('donate').onclick = e => e.currentTarget.classList.add('hide');
 </script>
 </body>
 </html>
