@@ -1,636 +1,806 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=yes">
-<title>Nodetrellis</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NodeTrellis</title>
+  <meta name="description" content="Interactive mind‑mapping tool" />
+  <meta name="theme-color" content="#0d1117" />
+  <script src="https://unpkg.com/cytoscape@3/dist/cytoscape.min.js" defer></script>
+  <script src="https://unpkg.com/webcola@3.4.0/WebCola/cola.min.js" defer></script>
+  <script src="https://unpkg.com/cytoscape-cola@2/cytoscape-cola.js" defer></script>
+  <style>
+    :root{ --bg:#0d1117; --panel:#161b22; --border:#30363d; --txt:#e6edf3; --node:#475569; --node-h:#64748b; --root:#3b82f6; --root-outline:#facc15; --edge:#cbd5e1; --edge-bg:#0f172a; --btn:#238636; --btn-h:#2ea043; --btn-d:#3d434a; }
+    *,*::before,*::after{ box-sizing:border-box; }
+    html,body{ margin:0; height:100%; display:flex; flex-direction:column; font-family:system-ui,sans-serif; background:var(--bg); color:var(--txt); }
+    #controls{ padding:8px; background:var(--panel); border-bottom:1px solid var(--border); display:flex; flex-direction:column; gap:8px; }
+    .row{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
+    #topicInput{ flex:1; min-width:0; padding:6px 8px; border-radius:6px; border:1px solid var(--border); background:#0f172a; color:#c9d1d9; }
+    .btn{ padding:6px 14px; border:0; border-radius:6px; font-weight:600; cursor:pointer; white-space:nowrap; flex:0 0 auto; transition:background .15s; }
+    .btn.main{ background:var(--btn); color:#fff; }
+    .btn.main:hover{ background:var(--btn-h); }
+    .btn.aux{ background:var(--node-h); color:#111; padding:6px 10px; }
+    .btn.aux.active{ background:var(--btn); color:#fff; }
+    .btn:disabled{ background:var(--btn-d); color:#666; cursor:not-allowed; }
 
-<!-- libraries -->
-<script src="https://unpkg.com/cytoscape@3/dist/cytoscape.min.js"></script>
-<script src="https://unpkg.com/webcola@3.4.0/WebCola/cola.min.js"></script>
-<script src="https://unpkg.com/cytoscape-cola@2/cytoscape-cola.js"></script>
+    /* Style the model select like a button for visual consistency */
+    select.btn { appearance:none; -webkit-appearance:none; -moz-appearance:none; padding:6px 10px; border-radius:6px; border:0; font-weight:600; cursor:pointer; background:var(--node-h); color:#111; }
+    select.btn:hover { background:var(--btn-h); color:#fff; }
+    select.btn:disabled { background:var(--btn-d); color:#666; cursor:not-allowed; }
+    #jsonBox textarea{ width:100%; height:150px; font-family:monospace; background:#0f172a; color:#c9d1d9; border:1px solid var(--border); border-radius:6px; padding:8px; resize:vertical; }
+    #cy{ flex:1; touch-action:none; outline:none; }
+    #nodeMenu{ position:absolute; display:none; background:rgba(22,27,34,.92); border-radius:8px; padding:8px; max-width:calc(100vw - 20px); box-shadow:0 4px 10px #000a; z-index:1000; }
+    #nodeMenu.dragging{ opacity:.85; }
+    #nodeMenu button{ display:block; width:100%; margin:3px 0; padding:6px 14px; font-size:13px; border:0; background:var(--node); color:#fff; border-radius:4px; white-space:nowrap; text-align:left; cursor:pointer; }
+    #nodeMenu button:hover{ background:var(--node-h); }
+    .selected{ border:2px solid #f9a825 !important; }
 
-<style>
-/* —— palette & layout —— */
-:root{
-  --bg:#0d1117;  --panel:#161b22;  --border:#30363d;  --txt:#e6edf3;
-  --node:#475569; --node-h:#64748b;
-  --root:#3b82f6; --root-outline:#facc15;
-  --edge:#cbd5e1; --edge-bg:#0f172a;
-  --btn:#238636;  --btn-h:#2ea043; --btn-d:#3d434a;
-}
-*{box-sizing:border-box;margin:0}
-html,body{height:100%;display:flex;flex-direction:column;font-family:system-ui,sans-serif;background:var(--bg);color:var(--txt)}
-#controls{padding:8px;background:var(--panel);border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:6px}
-
-#builderRow{display:flex;align-items:center;gap:6px;margin-bottom:4px}
-#builderRow input{flex:1 1 auto;min-width:0;padding:6px;border-radius:6px;border:1px solid var(--border);
-                  background:#0f172a;color:#c9d1d9}
-
-.btn{padding:6px 14px;border:0;border-radius:6px;font-weight:600;cursor:pointer;white-space:nowrap;flex:0 0 auto}
-.btn.main{background:var(--btn);color:#fff}.btn.main:hover{background:var(--btn-h)}
-.btn.aux{background:var(--node-h);color:#111;padding:6px 10px}
-.btn.aux.active{background:var(--btn);color:#fff}
-.btn.aux:disabled{background:var(--btn-d);color:#666;cursor:not-allowed}
-
-#actionRow{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
-#zoomWrap{display:flex;align-items:center;gap:4px;margin-left:auto}
-#zoomSlider{width:140px}
-
-#jsonBox textarea{width:100%;height:150px;font-family:monospace;background:#0f172a;color:#c9d1d9;border:1px solid var(--border);border-radius:6px}
-
-#cy{flex:1;touch-action:none}
-
-/* node context menu */
-#nodeMenu{position:absolute;display:none;background:rgba(22,27,34,.9);border-radius:8px;padding:8px;
-          max-width:calc(100vw - 20px);box-shadow:0 4px 10px #000a;z-index:1000}
-#nodeMenu.dragging{opacity:.85}
-#nodeMenu button{display:block;width:auto;margin:3px 0;padding:6px 14px;font-size:13px;border:0;
-                 background:var(--node);color:#fff;border-radius:4px;white-space:nowrap}
-#nodeMenu button:hover{background:var(--node-h)}
-.selected{border:2px solid #f9a825 !important}
-
-/* overlays & donate */
-#helpOverlay{position:fixed;inset:0;background:#000c;backdrop-filter:blur(2px);
-             display:none;align-items:center;justify-content:center;z-index:3000}
-#helpOverlay>div{max-width:480px;margin:0 5%;background:var(--panel);border:1px solid var(--border);
-                 border-radius:8px;padding:18px;font-size:15px;line-height:1.4}
-
-#overlay{position:fixed;inset:0;background:#000a;backdrop-filter:blur(2px);
-         display:flex;align-items:center;justify-content:center;z-index:2000}
-#overlayInner{width:90%;max-width:600px;background:var(--panel);border:1px solid var(--border);
-              border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:8px}
-#overlayInner textarea{flex:1;min-height:200px;background:#0f172a;color:#c9d1d9;border:1px solid var(--border);
-                       border-radius:6px;font-family:monospace}
-#overlayInner div{display:flex;gap:8px;justify-content:flex-end}
-
-#donate{padding:10px;background:var(--panel);border-top:1px solid var(--border);cursor:pointer;font-size:13px}
-#donate.hide{opacity:0;height:0;padding:0;border:none;overflow:hidden;transition:.25s}
-#donate b{color:#c9d1d9}#donate a{color:#58a6ff;text-decoration:none}
-</style>
+    /* API menu styling similar to node menu */
+    #apiMenu{ position:absolute; display:none; background:rgba(22,27,34,.92); border-radius:8px; padding:8px; max-width:calc(100vw - 20px); box-shadow:0 4px 10px #000a; z-index:1000; }
+    #apiMenu select{ width:100%; margin-bottom:6px; font-size:13px; color:#111; background:var(--node-h); border-radius:6px; border:0; font-weight:600; cursor:pointer; padding:6px 8px; }
+    #apiMenu select:hover{ background:var(--btn-h); color:#fff; }
+    #apiMenu button{ display:block; width:100%; margin:3px 0; padding:6px 14px; font-size:13px; border:0; background:var(--node); color:#fff; border-radius:4px; white-space:nowrap; text-align:left; cursor:pointer; }
+    #apiMenu button:hover{ background:var(--node-h); }
+    #helpOverlay,#overlay{ position:fixed; inset:0; background:#000a; backdrop-filter:blur(2px); display:none; align-items:center; justify-content:center; z-index:3000; }
+    #helpOverlay>div,#overlayInner{ background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:18px; max-width:480px; margin:0 5%; font-size:15px; line-height:1.4; }
+    #overlayInner{ width:90%; max-width:600px; display:flex; flex-direction:column; gap:8px; }
+    #overlayInner textarea{ flex:1; min-height:200px; background:#0f172a; color:#c9d1d9; border:1px solid var(--border); border-radius:6px; font-family:monospace; padding:8px; }
+    #overlayInner div{ display:flex; gap:8px; justify-content:flex-end; }
+    #donate{ padding:10px; background:var(--panel); border-top:1px solid var(--border); font-size:13px; cursor:pointer; }
+    #donate.hide{ opacity:0; height:0; padding:0; border:none; overflow:hidden; transition:.25s; }
+    #donate code{ font-family:monospace; }
+    #donate a{ color:#58a6ff; text-decoration:none; }
+    .btn:focus-visible, #topicInput:focus-visible{ outline:2px dashed #58a6ff; outline-offset:2px; }
+  </style>
 </head>
 <body>
-
-<!-- ── top controls ─────────────────────────────────────────── -->
-<div id="controls">
-  <div id="builderRow">
-    <input id="topicInput" placeholder="Topic or https://…">
-    <button id="copyPromptBtn"  class="btn main">Copy Prompt</button>
-    <button id="pastePromptBtn" class="btn aux" title="Paste from clipboard">📋</button>
-    <button id="helpBtn"        class="btn aux" title="Help">?</button>
-  </div>
-
-  <details id="jsonBox"><summary>JSON (click to show / hide)</summary>
-    <textarea id="jsonInput" placeholder="Paste LLM’s JSON here, then hit Render Map"></textarea>
-  </details>
-
-  <div id="actionRow">
-    <button id="renderBtn" class="btn main" style="flex:1">Render Map</button>
-    <button id="pasteBtn"  class="btn aux"  title="Paste JSON">📋</button>
-    <button id="copyJsonBtn" class="btn aux" title="Copy JSON">📄</button>
-    <button id="exportBtn" class="btn aux" title="Export PNG">📥</button>
-    <button id="multiBtn"  class="btn aux"  title="Toggle multi‑select">⇳</button>
-    <button id="undoBtn"   class="btn aux"  title="Undo" disabled>⟲</button>
-    <button id="redoBtn"   class="btn aux"  title="Redo" disabled>⟳</button>
-    <span id="zoomWrap"><label for="zoomSlider" style="font-size:13px">Zoom</label>
-      <input type="range" id="zoomSlider" min="0.1" max="3" step="0.05" value="1"></span>
-  </div>
-</div>
-
-<!-- ── graph container ──────────────────────────────────────── -->
-<div id="cy"></div>
-
-<!-- ── node context menu ─────────────────────────────────────── -->
-<div id="nodeMenu">
-  <button id="selectAllBtn">Select all nodes</button>
-  <button id="copyTextBtn">Copy text</button>
-  <button id="nodeCopy">Copy Prompt for selected</button>
-  <button id="addChildBtn">Add child</button>
-  <button id="collapseBtn">Toggle collapse</button>
-  <button id="nodeDelete">Delete node & subtree</button>
-  <button id="childDelete">Delete ONLY children</button>
-</div>
-
-<!-- ── paste overlay ────────────────────────────────────────── -->
-<div id="overlay" style="display:none">
-  <div id="overlayInner">
-    <textarea placeholder="Paste JSON here"></textarea>
-    <div>
-      <button id="ovCancel" class="btn aux">Cancel</button>
-      <button id="ovOk"     class="btn main">OK</button>
+  <div id="controls">
+    <div class="row" id="builderRow">
+      <!-- Removed visible label to avoid duplicate text -->
+      <input id="topicInput" placeholder="Topic or URL" aria-label="Topic or URL" />
+      <button id="copyPromptBtn" class="btn main" aria-label="Copy prompt">Copy Prompt</button>
+      <button id="pastePromptBtn" class="btn aux" aria-label="Paste prompt">📋</button>
+      <button id="helpBtn" class="btn aux" aria-label="Help">?</button>
+    </div>
+    <details id="jsonBox">
+      <summary>JSON (click to show / hide)</summary>
+      <textarea id="jsonInput" placeholder="Paste LLM’s JSON here, then hit Render Map" aria-label="JSON input"></textarea>
+      <small id="charCount" style="display:block;margin-top:4px;color:#7d8590;font-size:12px">0 characters</small>
+    </details>
+    <div class="row" id="actionRow">
+      <button id="renderBtn" class="btn main" style="flex:1" aria-label="Render map">Render Map</button>
+      <button id="apiRenderBtn" class="btn main" aria-label="API Render">API Render</button>
+    <!-- Hidden select to store the current model. Options populated via script -->
+    <select id="modelSelect" class="btn aux" title="Select model" style="display:none"></select>
+      <button id="pasteBtn" class="btn aux" aria-label="Paste JSON">📋</button>
+      <button id="copyJsonBtn" class="btn aux" aria-label="Copy JSON">📄</button>
+      <button id="exportBtn" class="btn aux" aria-label="Export PNG">📥</button>
+      <button id="multiBtn" class="btn aux" aria-label="Toggle multi-select" title="Toggle multi-select">⇳</button>
+      <button id="undoBtn" class="btn aux" disabled aria-label="Undo">⟲</button>
+      <button id="redoBtn" class="btn aux" disabled aria-label="Redo">⟳</button>
+      <span id="zoomWrap" class="row" style="margin-left:auto">
+        <label for="zoomSlider" style="font-size:13px">Zoom</label>
+        <input type="range" id="zoomSlider" min="0.1" max="3" step="0.05" value="1" aria-label="Zoom" />
+      </span>
+    </div>
+    <!-- Loading bar shown during API calls. Contains a progress indicator and a stop button to abort the request. -->
+    <div id="loadingBar" class="row" style="display:none;align-items:center;gap:6px;margin-top:4px">
+      <progress id="progressBar" max="0" value="0" style="flex:1;height:10px;border-radius:6px;"></progress>
+      <button id="stopBtn" class="btn aux" style="min-width:60px;">Stop</button>
     </div>
   </div>
-</div>
-
-<!-- ── help overlay ─────────────────────────────────────────── -->
-<div id="helpOverlay">
-  <div>
-    <h3 style="margin-top:0">Prompt builder help</h3>
-    <p><b>1.</b> Type a topic or any URL in the field at the top.</p>
-    <p><b>2.</b> Tap <i>Copy Prompt</i> – a ready‑made instruction for your LLM is copied to your clipboard.</p>
-    <p><b>3.</b> Paste that prompt into your LLM and wait for the JSON response.</p>
-    <p><b>4.</b> Paste the JSON into the box below, then press <i>Render Map</i>.</p>
-    <p style="margin-top:14px;text-align:center;font-style:italic">press anywhere to continue</p>
+  <div id="cy" tabindex="0" aria-label="Mind map canvas"></div>
+  <div id="nodeMenu" role="menu" aria-hidden="true">
+    <button id="selectAllBtn" role="menuitem">Select all nodes</button>
+    <button id="copyTextBtn" role="menuitem">Copy text</button>
+    <button id="nodeCopy" role="menuitem">Copy Prompt for selected</button>
+      <button id="apiExtendBtn" role="menuitem">API Extend</button>
+    <button id="addChildBtn" role="menuitem">Add child</button>
+    <button id="collapseBtn" role="menuitem">Toggle collapse</button>
+    <button id="nodeDelete" role="menuitem">Delete node & subtree</button>
+    <button id="childDelete" role="menuitem">Delete ONLY children</button>
   </div>
-</div>
+  <!-- API menu for model selection and API key editing. This appears when holding or right‑clicking
+       the API Render button. It contains a grouped select for available models and a button
+       to edit the API key. -->
+  <div id="apiMenu" role="menu" aria-hidden="true">
+    <label for="modelSelectOverlay" style="display:block;font-size:13px;margin:4px 0;color:#e6edf3;">Choose model</label>
+    <select id="modelSelectOverlay" style="width:100%;margin-bottom:6px;appearance:none;-webkit-appearance:none;-moz-appearance:none;padding:6px 8px;border-radius:6px;border:0;font-weight:600;cursor:pointer;background:var(--node-h);color:#111;"></select>
+    <button id="editApiKeyBtn" style="width:100%;margin:3px 0;padding:6px 14px;font-size:13px;border:0;background:var(--node);color:#fff;border-radius:4px;white-space:nowrap;">Edit API Key</button>
+  </div>
+  <div id="overlay" aria-hidden="true">
+    <div id="overlayInner">
+      <textarea placeholder="Paste JSON here" aria-label="Paste JSON"></textarea>
+      <div>
+        <button id="ovCancel" class="btn aux">Cancel</button>
+        <button id="ovOk" class="btn main">OK</button>
+      </div>
+    </div>
+  </div>
+  <div id="helpOverlay" aria-hidden="true">
+    <div>
+      <h3 style="margin-top:0">Prompt builder help</h3>
+      <p><b>1.</b> Type a topic or any URL in the field at the top.</p>
+      <p><b>2.</b> Tap <em>Copy Prompt</em> – a ready‑made instruction for your LLM is copied to your clipboard.</p>
+      <p><b>3.</b> Paste that prompt into your LLM and wait for the JSON response.</p>
+      <p><b>4.</b> Paste the JSON into the box below, then press <i>Render Map</i>.</p>
+      <p><b>5.</b> To open the node menu, right‑click on a node with a mouse or long‑press (~1 s) on touch. You can then manage children, collapse nodes, copy text, or delete.</p>
+      <p><b>6.</b> Use <em>API&nbsp;Render</em> to call OpenAI directly. Hold or right‑click the API button to open a small menu where you can choose a model or edit your API key. Both the key and your current graph persist between sessions. A loading bar appears during API calls with a stop button so you can cancel long requests.</p>
+      <p><b>7.</b> In the node menu you can use <em>API&nbsp;Extend</em> to extend and refactor the selected node(s) using the same prompt as Copy Prompt.</p>
+      <p style="margin-top:14px;text-align:center;font-style:italic">press anywhere to continue</p>
+    </div>
+  </div>
+  <section id="donate" title="Tap to hide">
+    <h3 style="margin:0 0 4px;font-size:14px">Support citizen‑science projects <span style="font-size:11px;opacity:.6">(tap to hide)</span></h3>
+    <p><strong>Gridcoin</strong> — rewards BOINC distributed‑computing research.<br>Address: <code>SG5RCw9cf2RhbopCuXLzYYpXciARaZNCF8</code></p>
+    <p><strong>Curecoin</strong> — rewards Folding@home protein‑folding research.<br>Address: <code>BRaK31UtcWKM6wqbFFU8bXDSc1b8NkvP7h</code></p>
+    <p>Feedback → <a href="mailto:Foxes.owo@gmail.com">Foxes.owo@gmail.com</a></p>
+  </section>
+  <script>
+    // Helper functions
+    const sanitize = t => t.replace(/^```[^\n]*\n?/, '').replace(/```$/, '').replace(/```/g, '').replace(/\\(?!["/bfnrtu])/g, '').replace(/\\(?=[\[\]{}])/g, '').trim();
+    const extractJSON = str => { const m = str.match(/({[\s\S]*})/m); return m ? m[1].trim() : str.trim(); };
+    const parseJSON = t => { try { return JSON.parse(t); } catch { return null; } };
+    const wrap = (txt, max=50) => txt.length > max ? txt.slice(0, max-1) + '…' : txt;
 
-<!-- ── donate / footer ──────────────────────────────────────── -->
-<section id="donate" title="Tap to hide">
-  <h3 style="margin:0 0 4px;font-size:14px">
-    Support citizen‑science projects <span style="font-size:11px;opacity:.6">(tap to hide)</span></h3>
-  <p><b>Gridcoin</b> — rewards BOINC distributed‑computing research.<br>
-     Address: <code>SG5RCw9cf2RhbopCuXLzYYpXciARaZNCF8</code></p>
-  <p><b>Curecoin</b> — rewards Folding@home protein‑folding research.<br>
-     Address: <code>BRaK31UtcWKM6wqbFFU8bXDSc1b8NkvP7h</code></p>
-  <p>Feedback → <a href="mailto:Foxes.owo@gmail.com">Foxes.owo@gmail.com</a></p>
-</section>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Elements
+      const topicInput = document.getElementById('topicInput');
+      const copyPromptBtn = document.getElementById('copyPromptBtn');
+      const pastePromptBtn = document.getElementById('pastePromptBtn');
+      const helpBtn = document.getElementById('helpBtn');
+      const helpOverlay = document.getElementById('helpOverlay');
+      const jsonInput = document.getElementById('jsonInput');
+      const charCount = document.getElementById('charCount');
+      const copyJsonBtn = document.getElementById('copyJsonBtn');
+      const pasteBtn = document.getElementById('pasteBtn');
+      const renderBtn = document.getElementById('renderBtn');
+      const apiRenderBtn = document.getElementById('apiRenderBtn');
+      const modelSelect = document.getElementById('modelSelect');
+      const exportBtn = document.getElementById('exportBtn');
+      const multiBtn = document.getElementById('multiBtn');
+      const undoBtn = document.getElementById('undoBtn');
+      const redoBtn = document.getElementById('redoBtn');
+      const zoomSlider = document.getElementById('zoomSlider');
+      const overlay = document.getElementById('overlay');
+      const ovCancel = document.getElementById('ovCancel');
+      const ovOk = document.getElementById('ovOk');
+      const nodeMenu = document.getElementById('nodeMenu');
+      const selectAllBtn = document.getElementById('selectAllBtn');
+      const copyTextBtn = document.getElementById('copyTextBtn');
+      const nodeCopyBtn = document.getElementById('nodeCopy');
+      const addChildBtn = document.getElementById('addChildBtn');
+      const collapseBtn = document.getElementById('collapseBtn');
+      const delBtn = document.getElementById('nodeDelete');
+      const childBtn = document.getElementById('childDelete');
+      const apiExtendBtn = document.getElementById('apiExtendBtn');
+      const donate = document.getElementById('donate');
 
-<!-- ── application script ───────────────────────────────────── -->
-<script>
-/* ---------- helpers ---------- */
-const sanitize = t => t
-  .replace(/^```[^\n]*\n?/,'')        // opening code fence
-  .replace(/```$/,'')                 // closing fence
-  .replace(/```/g,'')                 // stray triple‑backticks
-  .replace(/\\(?!["\/bfnrtu])/g,"")   // extraneous backslash
-  .replace(/\\(?=[\[\]{}])/g,"")      // stray escapes before braces/brackets
-  .trim();
-
-/* extract first balanced {...} group – everything else ignored */
-function extractJSON(str){
-  const m=str.match(/({[\s\S]*})/m);
-  return m ? m[1].trim() : str.trim();
-}
-
-const parseJSON = t => { try { return JSON.parse(t); } catch { return null; } };
-const wrap      = (t,max=50) => t.length>max ? t.slice(0,max-1)+'…' : t;
-
-/* ---------- prompt builder ---------- */
-const topicInput      = document.getElementById('topicInput');
-const copyPromptBtn   = document.getElementById('copyPromptBtn');
-const pastePromptBtn  = document.getElementById('pastePromptBtn');
-const helpOverlay     = document.getElementById('helpOverlay');
-
-document.getElementById('helpBtn').onclick = () => helpOverlay.style.display='flex';
-helpOverlay.onclick                        = () => helpOverlay.style.display='none';
-
-const isURL = s => /^https?:\/\//i.test(s.trim());
-
-function makePrompt(txt){
-  const limit = '• Each node “text” ≤ 50 chars (links unrestricted).';
-  if(isURL(txt)){
-    return `Analyse the page ${txt} and output ONLY raw JSON.
-
-• Add "link":"${txt}" at top level (do NOT add it as a node).
-• IDs start n0, n1, n2 …
-${limit}
-
-Schema:
-{ "link":"${txt}", "root":"n0",
-  "nodes":[{ "id":"n0","text":"<root>","parent":"" }],
-  "edges":[{ "source":"…","target":"…","label":"…","direction":"out" }] }
-
-Return ONLY the JSON object.`;
-  }
-  return `Create a mind‑map for "${txt}" and output ONLY raw JSON.
-
-• IDs start n0, n1, n2 …
-${limit}
-
-Schema:
-{ "root":"n0",
-  "nodes":[{ "id":"n0","text":"<root>","parent":"" }],
-  "edges":[{ "source":"…","target":"…","label":"…","direction":"out" }] }
-
-Return ONLY the JSON object.`;
-}
-
-copyPromptBtn.onclick = () => {
-  const v = topicInput.value.trim();
-  if(!v){ alert('Enter topic or URL'); return; }
-  navigator.clipboard.writeText( makePrompt(v) );
-};
-
-pastePromptBtn.onclick = async () => {
-  try{ topicInput.value = (await navigator.clipboard.readText()).trim(); } catch{}
-};
-
-/* ---------- history handling ---------- */
-let dataObj={}, hist=[], idx=-1;
-const undoBtn=document.getElementById('undoBtn'), redoBtn=document.getElementById('redoBtn');
-const updateUR=()=>{ undoBtn.disabled = idx<=0; redoBtn.disabled = idx>=hist.length-1; };
-const pushHist=t=>{ hist.splice(idx+1); hist.push(t); idx=hist.length-1; updateUR(); };
-
-/* ---------- JSON box with auto‑extraction ---------- */
-const jsonInput=document.getElementById('jsonInput');
-function putJSON(raw){ jsonInput.value = extractJSON( sanitize(raw) ); }
-
-/* paste directly into box */
-jsonInput.addEventListener('paste',e=>{
-  e.preventDefault();
-  putJSON( e.clipboardData.getData('text/plain') );
-});
-document.getElementById('copyJsonBtn').onclick=()=> navigator.clipboard.writeText( jsonInput.value || '' );
-
-/* overlay‑paste */
-const overlay=document.getElementById('overlay');
-document.getElementById('pasteBtn').onclick = async () => {
-  try { putJSON( await navigator.clipboard.readText() ); }
-  catch { overlay.style.display='flex'; }
-};
-document.getElementById('ovCancel').onclick = () => overlay.style.display='none';
-document.getElementById('ovOk').onclick     = () => {
-  putJSON( overlay.querySelector('textarea').value );
-  overlay.style.display='none';
-};
-
-/* ---------- Cytoscape ---------- */
-let cy, layout; cytoscape.use(cytoscapeCola);
-
-function initCy(){
-  if(cy) return;
-  cy = cytoscape({
-    container : document.getElementById('cy'),
-    wheelSensitivity:0.6,
-    style:[
-      { selector:'node', style:{
-          label:'data(label)','text-wrap':'wrap','text-max-width':'220px',
-          'text-valign':'center','text-halign':'center','background-color':'var(--node)',
-          'shape':'round-rectangle','padding':'6px',width:'label',height:'label',
-          'font-size':'13px',color:'#fff','text-outline-color':'#000','text-outline-width':1}},
-      { selector:'node.root', style:{
-          'background-color':'var(--root)','border-width':4,'border-color':'var(--root-outline)',
-          'text-outline-color':'#000','text-outline-width':3,'font-size':'15px','font-weight':'700'}},
-      { selector:'node.selected', style:{ 'border-color':'#f9a825','border-width':2 }},
-      { selector:'node.collapsed', style:{ 'border-color':'#ef4444','border-width':2 }},
-      { selector:'edge', style:{
-          width:2,'line-color':'var(--edge)','target-arrow-color':'var(--edge)',
-          'target-arrow-shape':'triangle','curve-style':'bezier',
-          label:'data(label)','font-size':'11px',color:'#e6edf3','text-rotation':'autorotate',
-          'text-background-opacity':.9,'text-background-color':'var(--edge-bg)',
-          'text-background-padding':'2px'}},
-      { selector:'edge[label=""]', style:{ label:'','text-background-opacity':0 }}
-    ]
-  });
-
-  cy.on('zoom',()=>{ zoomSlider.value=cy.zoom().toFixed(2); });
-
-  let ignoreTap=false;
-  cy.on('tap',(e)=>{ if(ignoreTap){ ignoreTap=false; return; } if(e.target===cy) clearSelection(); });
-  window._swallowCyTap = () => ignoreTap=true;
-
-  cy.on('tap','node',tapNode);
-  cy.on('dbltap','node',editNode);
-
-  enableKineticPan();        // inertia + pinch‑safe
-}
-
-/* inline node edit */
-function editNode(e) {
-  const node = e.target;
-  const current = node.data('full');
-  const newText = prompt('Edit text:', current);
-  if (newText !== null && newText.trim() !== '') {
-    node.data('label', wrap(newText));
-    node.data('full', newText);
-    const objNode = dataObj.nodes.find(n => n.id === node.id());
-    if (objNode) objNode.text = newText;
-    jsonInput.value = JSON.stringify(dataObj, null, 2);
-    pushHist(jsonInput.value);
-    physics();
-  }
-}
-
-/* continuous Cola physics */
-function physics(){
-  layout?.stop();
-  layout = cy.layout({
-    name:'cola', infinite:true, animate:true, refresh:1,
-    nodeSpacing:25, edgeLength:200, padding:40, fit:false, avoidOverlap:true
-  });
-  layout.run();
-}
-
-/* ---------- kinetic pan with pinch‑zoom guard ---------- */
-function enableKineticPan(){
-  const C = cy.container();
-  let tracking=false,lastT=0,lastX=0,lastY=0,vx=0,vy=0,raf;
-  let touchCount=0,pinching=false,pinchPan={x:0,y:0};
-  const damp=0.97, stop=0.00025;
-
-  const cancelMomentum = ()=>{ cancelAnimationFrame(raf); vx=vy=0; };
-
-  C.addEventListener('pointerdown',e=>{
-    if(e.pointerType==='touch'){
-      touchCount++;
-      if(touchCount===2){         // pinch starts
-        pinching=true; pinchPan=cy.pan();
-        tracking=false; cancelMomentum();
-      }
-    }
-    if(pinching) return;
-    if(e.pointerType==='mouse' && e.button!==0) return;
-    tracking=true; lastT=e.timeStamp; lastX=e.clientX; lastY=e.clientY;
-    vx=vy=0; cancelMomentum();
-  });
-
-  C.addEventListener('pointermove',e=>{
-    if(pinching){ cy.pan(pinchPan); return; }   // freeze pan
-    if(!tracking) return;
-    const dt=e.timeStamp-lastT; if(!dt) return;
-    const dx=e.clientX-lastX, dy=e.clientY-lastY;
-    vx=0.8*vx+0.2*(dx/dt); vy=0.8*vy+0.2*(dy/dt);
-    lastT=e.timeStamp; lastX=e.clientX; lastY=e.clientY;
-  });
-
-  function pointerUp(e){
-    if(e.pointerType==='touch'){
-      touchCount=Math.max(0,touchCount-1);
-      if(touchCount<2 && pinching){ pinching=false; }
-    }
-    if(pinching || !tracking){ tracking=false; return; }
-    tracking=false;
-    let prev=performance.now();
-    function frame(now){
-      const dt=now-prev; prev=now;
-      vx*=damp; vy*=damp;
-      if(Math.hypot(vx,vy)<stop) return;
-      cy.panBy({ x:vx*dt, y:vy*dt });
-      raf=requestAnimationFrame(frame);
-    }
-    if(Math.hypot(vx,vy)>=stop) raf=requestAnimationFrame(frame);
-  }
-  window.addEventListener('pointerup',pointerUp);
-  window.addEventListener('pointercancel',pointerUp);
-}
-
-/* ---------- selection & context menu ---------- */
-const sel=new Set();
-let multi=false;
-const multiBtn=document.getElementById('multiBtn');
-
-multiBtn.onclick = () => {
-  multi = !multi;
-  multiBtn.classList.toggle('active', multi);
-  if(!multi) clearSelection();
-};
-
-function clearSelection(){
-  sel.forEach(id=> cy.getElementById(id).removeClass('selected') );
-  sel.clear(); nodeMenu.style.display='none';
-}
-function selectionNames(){
-  return [...sel].map(id=> cy.getElementById(id).data('full')).join(', ');
-}
-
-const nodeMenu=document.getElementById('nodeMenu'),
-      selectAllBtn=document.getElementById('selectAllBtn'),
-      copyTextBtn=document.getElementById('copyTextBtn'),
-      nodeCopyBtn=document.getElementById('nodeCopy'),
-      addChildBtn = document.getElementById('addChildBtn'),
-      collapseBtn = document.getElementById('collapseBtn'),
-      delBtn=document.getElementById('nodeDelete'),
-      childBtn=document.getElementById('childDelete');
-
-function clamp(x,y){
-  const mw=nodeMenu.offsetWidth, mh=nodeMenu.offsetHeight;
-  return [
-    Math.max(10,Math.min(innerWidth -mw -10,x)),
-    Math.max(10,Math.min(innerHeight-mh -10,y))
-  ];
-}
-
-function openMenu(pos){
-  copyTextBtn.textContent = sel.size>1 ? 'Copy texts' : 'Copy text';
-  nodeCopyBtn.textContent= sel.size>1 ? 'Copy Prompt for selected' : 'Copy Prompt for this node';
-  copyTextBtn.dataset.names = nodeCopyBtn.dataset.names = selectionNames();
-  delBtn.textContent = sel.has('n0')&&sel.size===1 ? 'Delete entire graph' : 'Delete node & subtree';
-  nodeMenu.style.display='block';
-  const [x,y]=clamp(
-    pos.x+20+cy.container().getBoundingClientRect().left,
-    pos.y+20+cy.container().getBoundingClientRect().top
-  );
-  nodeMenu.style.left=x+'px'; nodeMenu.style.top=y+'px';
-}
-
-function tapNode(e){
-  const id=e.target.id();
-  if(!multi){
-    clearSelection(); sel.add(id); e.target.addClass('selected');
-  }else{
-    if(sel.has(id)) {
-      sel.delete(id);
-      e.target.removeClass('selected');
-    } else {
-      sel.add(id);
-      e.target.addClass('selected');
-    }
-  }
-  if(sel.size) openMenu(e.renderedPosition);
-  else nodeMenu.style.display='none';
-}
-
-selectAllBtn.onclick = () => {
-  sel.clear();
-  cy.nodes().forEach(n => {
-    sel.add(n.id());
-    n.addClass('selected');
-  });
-  multi = true;
-  multiBtn.classList.add('active');
-  openMenu(cy.getElementById('n0').renderedPosition());
-};
-
-/* context‑menu drag */
-let dragging=false,offset={x:0,y:0},start={x:0,y:0},cancelClick=false;
-nodeMenu.addEventListener('mousedown',ds); nodeMenu.addEventListener('touchstart',ds,{passive:false});
-function ds(ev){
-  if(ev.button!==undefined && ev.button!==0) return;
-  const p=ev.touches?ev.touches[0]:ev;
-  start={x:p.clientX,y:p.clientY};
-  offset={x:p.clientX - parseFloat(nodeMenu.style.left||0),
-    y:p.clientY - parseFloat(nodeMenu.style.top||0) };
-  dragging=cancelClick=false;
-  document.addEventListener(ev.touches?'touchmove':'mousemove',dm,{passive:false});
-  document.addEventListener(ev.touches?'touchend':'mouseup',de,{once:true});
-}
-function dm(ev){
-  const p=ev.touches?ev.touches[0]:ev;
-  if(!dragging && Math.hypot(p.clientX-start.x,p.clientY-start.y)>4) dragging=true;
-  if(!dragging) return;
-  ev.preventDefault(); cancelClick=true; nodeMenu.classList.add('dragging');
-  const [x,y]=clamp(p.clientX-offset.x, p.clientY-offset.y);
-  nodeMenu.style.left=x+'px'; nodeMenu.style.top=y+'px';
-}
-function de(){
-  nodeMenu.classList.remove('dragging');
-  document.removeEventListener('mousemove',dm); document.removeEventListener('touchmove',dm);
-  if(dragging) _swallowCyTap(); setTimeout(() => cancelClick=false,0);
-}
-nodeMenu.addEventListener('click',e=>{
-  if(cancelClick){ e.stopImmediatePropagation(); e.preventDefault(); }
-},true);
-
-/* menu button actions */
-copyTextBtn.onclick = ()=>{ navigator.clipboard.writeText(copyTextBtn.dataset.names||''); nodeMenu.style.display='none'; };
-
-nodeCopyBtn.onclick = () => {
-  const names = nodeCopyBtn.dataset.names || '';
-  if (!names) return;
-  const linkEntry = dataObj.link ? ` "link":"${dataObj.link}",\n` : '';
-  const prompt = `Extend and refactor node "${names}"
-
-Keep "link" key if present. IDs stay n0, n1, …
-Each node text ≤ 50 chars.
-
-Schema:
-{
-${linkEntry}"root":"n0",
-  "nodes":[{ "id":"n0","text":"<root>","parent":"" }, … ],
-  "edges":[{ "source":"…","target":"…","label":"…","direction":"out" }]
-}
-
-Return ONLY the JSON object.
-
-Current JSON:
-${jsonInput.value}`;
-  navigator.clipboard.writeText(prompt);
-  nodeMenu.style.display = 'none';
-};
-
-/* add child */
-addChildBtn.onclick = () => {
-  if (!sel.size) return;
-  const parentId = Array.from(sel)[0]; // first selected
-  const newText = prompt('New child text:');
-  if (!newText || newText.trim() === '') return;
-  const newId = 'n' + dataObj.nodes.length;
-  dataObj.nodes.push({ id: newId, text: newText, parent: parentId });
-  dataObj.edges.push({ source: parentId, target: newId, label: '', direction: 'out' });
-  jsonInput.value = JSON.stringify(dataObj, null, 2);
-  clearSelection();
-  render(true);
-};
-
-/* toggle collapse */
-collapseBtn.onclick = () => {
-  sel.forEach(id => {
-    const node = cy.getElementById(id);
-    if (node.hasClass('collapsed')) {
-      node.removeClass('collapsed');
-      subtree(id, false).forEach(sid => {
-        cy.getElementById(sid).style({ display: 'element' });
+      // Loading bar and abort handling
+      // These elements provide feedback during API calls and allow the user
+      // to abort a long‑running request. When a request begins, the
+      // loading bar becomes visible and both API buttons are disabled. A
+      // new AbortController is created for each request. The stop button
+      // aborts the pending fetch. Once the request completes or is
+      // aborted, the loading bar is hidden and the buttons re‑enabled.
+      const loadingBar  = document.getElementById('loadingBar');
+      const progressBar = document.getElementById('progressBar');
+      const stopBtn     = document.getElementById('stopBtn');
+      let abortController = null;
+      const showLoading = () => {
+        // Show the progress bar as an indeterminate bar (no value attribute)
+        loadingBar.style.display = 'flex';
+        progressBar.removeAttribute('value');
+        apiRenderBtn.disabled = true;
+        apiExtendBtn.disabled = true;
+      };
+      const hideLoading = () => {
+        loadingBar.style.display = 'none';
+        // Reset the progress element to its default indeterminate state
+        progressBar.value = 0;
+        progressBar.max = 0;
+        apiRenderBtn.disabled = false;
+        apiExtendBtn.disabled = false;
+        abortController = null;
+      };
+      // Clicking the stop button aborts the current API call if one is
+      // in progress. The AbortController is reset in hideLoading().
+      stopBtn.addEventListener('click', () => {
+        if (abortController) {
+          try { abortController.abort(); } catch {}
+        }
+        // Hide the loading bar immediately when the user aborts
+        hideLoading();
       });
-    } else {
-      node.addClass('collapsed');
-      subtree(id, false).forEach(sid => {
-        cy.getElementById(sid).style({ display: 'none' });
+      
+      // API key persistence
+      const API_KEY_STORAGE = 'openai_api_key';
+      const MODEL_STORAGE   = 'openai_model';
+
+      // Predefined model categories and their available model IDs. These come from
+      // user‑provided listings and reflect the actual models currently available
+      // in the OpenAI playground. When you hold or right‑click the API Render
+      // button, you can choose from these grouped models. They are also used
+      // internally when rendering via the API.
+      const modelCategories = {
+        'GPT-4.1': [
+          'gpt-4.1',
+          'gpt-4.1-mini',
+          'gpt-4.1-nano',
+          'gpt-4.1-nano-2025-04-14',
+          'gpt-4.1-mini-2025-04-14',
+          'gpt-4.1-2025-04-14'
+        ],
+        'REASONING': [
+          'o3',
+          'o4-mini',
+          'o1-pro',
+          'o1',
+          'o1-2024-12-17',
+          'o1-mini',
+          'o1-mini-2024-09-12',
+          'o1-preview',
+          'o1-preview-2024-09-12',
+          'o1-pro-2025-03-19',
+          'o3-2025-04-16',
+          'o3-mini',
+          'o3-mini-2025-01-31',
+          'o4-mini-2025-04-16',
+          'o4-mini-deep-research',
+          'o4-mini-deep-research-2025-06-26'
+        ],
+        'GPT-4o': [
+          'gpt-4o',
+          'gpt-4o-mini',
+          'gpt-4o-audio-preview',
+          'gpt-4o-search-preview',
+          'gpt-4o-search-preview-2025-03-11',
+          'gpt-4o-mini-search-preview-2025-03-11',
+          'gpt-4o-mini-search-preview',
+          'gpt-4o-mini-audio-preview-2024-12-17',
+          'gpt-4o-mini-audio-preview',
+          'gpt-4o-mini-2024-07-18',
+          'gpt-4o-audio-preview-2025-06-03',
+          'gpt-4o-audio-preview-2024-12-17',
+          'gpt-4o-audio-preview-2024-10-01',
+          'gpt-4o-2024-11-20',
+          'gpt-4o-2024-08-06',
+          'gpt-4o-2024-05-13'
+        ],
+        'GPT-4': [
+          'gpt-4-turbo-preview',
+          'gpt-4-turbo-2024-04-09',
+          'gpt-4-turbo',
+          'gpt-4-1106-preview',
+          'gpt-4-0613',
+          'gpt-4-0125-preview',
+          'gpt-4'
+        ],
+        'GPT-3.5': [
+          'gpt-3.5-turbo-16k',
+          'gpt-3.5-turbo-1106',
+          'gpt-3.5-turbo-0125',
+          'gpt-3.5-turbo'
+        ],
+        'OTHER': [
+          'chatgpt-4o-latest'
+        ]
+      };
+
+      // Extract the list of reasoning models once for quick lookup. These
+      // models behave differently when calling the API because they only
+      // accept the default temperature of 1. When a reasoning model is
+      // selected we will override the temperature parameter accordingly.
+      const reasoningModels = modelCategories['REASONING'] || [];
+
+      // Flatten all model IDs into a single array for internal use with the hidden
+      // select element. This array preserves the order of categories by
+      // concatenating their values in the order defined above.
+      const flatModels = [].concat(...Object.values(modelCategories));
+
+      // Default models fallback. Only used if something goes wrong; this is now
+      // equal to the flattened list of all models.
+      const defaultModels = flatModels.slice();
+
+      /**
+       * Populate the model select element with an array of model IDs. If a previously
+       * selected model exists in localStorage, set it as the selected option.
+       */
+      const populateModelSelect = (models) => {
+        modelSelect.innerHTML = '';
+        models.forEach(m => {
+          const id = typeof m === 'string' ? m : m.id;
+          if(!id) return;
+          const opt = document.createElement('option');
+          opt.value = id;
+          opt.textContent = id;
+          modelSelect.appendChild(opt);
+        });
+        const stored = localStorage.getItem(MODEL_STORAGE);
+        if(stored && Array.from(modelSelect.options).some(o => o.value === stored)) {
+          modelSelect.value = stored;
+        }
+      };
+
+      /**
+       * Load the predefined list of available models into the hidden select.
+       * This no longer fetches from the OpenAI API because the user provided
+       * a curated list of models. The list is flattened from the
+       * modelCategories object defined above. If a previously selected model
+       * exists in localStorage, it will be restored here.
+       */
+      const loadModels = () => {
+        populateModelSelect(flatModels);
+      };
+      const getApiKey = () => {
+        let key = localStorage.getItem(API_KEY_STORAGE) || '';
+        return key;
+      };
+
+      /**
+       * Prompt the user for an API key. If forcePrompt is true or no key exists,
+       * display a prompt pre-filled with the current key. Stores the trimmed
+       * key in localStorage and reloads the model list.
+       * @param {boolean} forcePrompt
+       */
+      const promptApiKey = (forcePrompt=false) => {
+        let key = localStorage.getItem(API_KEY_STORAGE) || '';
+        if(forcePrompt || !key) {
+          const entered = prompt('Enter your OpenAI API key:', key || '');
+          if(entered && entered.trim()) {
+            key = entered.trim();
+            localStorage.setItem(API_KEY_STORAGE, key);
+          }
+        }
+        loadModels();
+        return key;
+      };
+
+      // API render handling
+      // When the user holds or right‑clicks the API Render button, a small menu
+      // (apiMenu) appears near the button allowing the user to pick a model
+      // from grouped categories or edit their API key. A normal click calls
+      // the API using the currently selected model. Holding or right‑clicking
+      // will not trigger an API call until the menu is closed.
+      let apiHoldTimer = null;
+      let apiMenuOpen = false;
+
+      // Populate the API menu's select with grouped options. Called each time
+      // the menu is opened so that the current selection is highlighted.
+      const populateApiMenu = () => {
+        const overlaySelect = document.getElementById('modelSelectOverlay');
+        overlaySelect.innerHTML = '';
+        for(const [cat, models] of Object.entries(modelCategories)){
+          const optgroup = document.createElement('optgroup');
+          optgroup.label = cat;
+          models.forEach(m => {
+            const opt = document.createElement('option');
+            opt.value = m;
+            opt.textContent = m;
+            optgroup.appendChild(opt);
+          });
+          overlaySelect.appendChild(optgroup);
+        }
+        // Set the current selection
+        overlaySelect.value = modelSelect.value || flatModels[0];
+      };
+
+      // Show the API menu near the API Render button. Position is clamped
+      // to the viewport to avoid overflow.
+      const openApiMenu = (evt) => {
+        evt?.preventDefault();
+        populateApiMenu();
+        const menu = document.getElementById('apiMenu');
+        const rect = apiRenderBtn.getBoundingClientRect();
+        // Temporarily display to measure size
+        menu.style.display = 'block';
+        const mw = menu.offsetWidth;
+        const mh = menu.offsetHeight;
+        let x = rect.left;
+        let y = rect.bottom + 4;
+        x = Math.max(10, Math.min(window.innerWidth - mw - 10, x));
+        y = Math.max(10, Math.min(window.innerHeight - mh - 10, y));
+        menu.style.left = x + 'px';
+        menu.style.top = y + 'px';
+        apiMenuOpen = true;
+      };
+
+      // Hide the API menu if it is open
+      const closeApiMenu = () => {
+        const menu = document.getElementById('apiMenu');
+        if(apiMenuOpen){
+          menu.style.display = 'none';
+          apiMenuOpen = false;
+        }
+      };
+
+      // Event handlers for holding or right‑clicking the API Render button
+      apiRenderBtn.addEventListener('pointerdown', e => {
+        // Only left click or touch should start the hold timer
+        if((e.button === 0 || e.pointerType === 'touch') && !apiHoldTimer){
+          apiHoldTimer = setTimeout(() => {
+            openApiMenu(e);
+          }, 600);
+        }
       });
-    }
-  });
-  physics();
-  nodeMenu.style.display = 'none';
-};
+      const clearApiHoldTimeout = () => {
+        if(apiHoldTimer){ clearTimeout(apiHoldTimer); apiHoldTimer = null; }
+      };
+      apiRenderBtn.addEventListener('pointerup', clearApiHoldTimeout);
+      apiRenderBtn.addEventListener('pointerleave', clearApiHoldTimeout);
+      apiRenderBtn.addEventListener('contextmenu', e => {
+        e.preventDefault();
+        openApiMenu(e);
+      });
 
-/* delete helpers */
-function subtree(id, incRoot) {
-  const s = new Set(incRoot ? [id] : []);
-  const q = [id];
-  while (q.length) {
-    const cur = q.pop();
-    dataObj.edges.forEach(e => { if (e.source === cur && !s.has(e.target)) { s.add(e.target); q.push(e.target); } });
-    dataObj.nodes.forEach(n => { if (n.parent === cur && !s.has(n.id)) { s.add(n.id); q.push(n.id); } });
-  }
-  return s;
-}
-function remove(set) {
-  dataObj.nodes = dataObj.nodes.filter(n => !set.has(n.id));
-  dataObj.edges = dataObj.edges.filter(e => !set.has(e.source) && !set.has(e.target));
-}
+      // When the API Render button is clicked without having opened the menu,
+      // call the API using the selected model. If the menu is currently open,
+      // just close it and do nothing else.
+      apiRenderBtn.addEventListener('click', async () => {
+        if(apiMenuOpen){
+          closeApiMenu();
+          return;
+        }
+        const topic = topicInput.value.trim();
+        if(!topic){ alert('Enter a topic or URL first'); return; }
+        let key = getApiKey();
+        if(!key){
+          // Prompt user for API key if none is set
+          key = promptApiKey(true);
+          if(!key) return;
+        }
+        const prompt = makePrompt(topic);
+        // Use the currently selected model from the hidden select; fall back to the first model if missing
+        const model = modelSelect.value || flatModels[0];
+        // Prepare for the API call: create AbortController and show loading indicator
+        abortController = new AbortController();
+        const signal = abortController.signal;
+        showLoading();
+        try {
+          // Select temperature based on model category
+          const temperature = reasoningModels.includes(model) ? 1 : 0.2;
+          const body = { model, messages: [ { role: 'user', content: prompt } ], temperature: temperature };
+          const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + key
+            },
+            body: JSON.stringify(body),
+            signal
+          });
+          if(!response.ok){
+            const text = await response.text();
+            throw new Error('API error: ' + response.status + ' ' + response.statusText + '\n' + text);
+          }
+          const data = await response.json();
+          const content = data.choices?.[0]?.message?.content || '';
+          jsonInput.value = extractJSON(sanitize(content));
+          updateCharCount();
+          render(true);
+        } catch(err){
+          if(err.name === 'AbortError'){
+            console.warn('Request aborted');
+          } else {
+            console.error(err);
+            alert('Failed to fetch from OpenAI:\n' + err.message);
+          }
+        } finally {
+          hideLoading();
+        }
+      });
 
-delBtn.onclick = () => {
-  if (!sel.size) return;
-  if (sel.has('n0') && sel.size === 1) {
-    if (!confirm('Delete entire graph?')) return;
-    dataObj = {}; jsonInput.value = ''; cy.elements().remove(); pushHist(''); clearSelection(); return;
-  }
-  const doomed = new Set();
-  sel.forEach(id => subtree(id, true).forEach(x => doomed.add(x)));
-  remove(doomed);
-  jsonInput.value = JSON.stringify(dataObj, null, 2);
-  clearSelection(); render(true);
-};
+      // Char count update
+      const updateCharCount = () => {
+        const len = jsonInput.value.length;
+        charCount.textContent = `${len} character${len === 1 ? '' : 's'}`;
+      };
+      jsonInput.addEventListener('input', updateCharCount);
 
-childBtn.onclick = () => {
-  if (!sel.size) return;
-  const doomed = new Set();
-  sel.forEach(id => subtree(id, false).forEach(x => doomed.add(x)));
-  remove(doomed);
-  jsonInput.value = JSON.stringify(dataObj, null, 2);
-  clearSelection(); render(true);
-};
+      // Persist selected model across sessions
+      modelSelect.addEventListener('change', () => {
+        try { localStorage.setItem(MODEL_STORAGE, modelSelect.value); } catch {}
+      });
 
-/* ---------- render ---------- */
-function buildEls() {
-  const els = [], dup = new Set(dataObj.edges?.map(e => e.source + '→' + e.target) || []);
-  (dataObj.nodes || []).forEach(n => {
-    els.push({ data: { id: n.id, label: wrap(n.text), full: n.text }, classes: n.id === 'n0' ? 'root' : '' });
-    if (n.parent && !dup.has(n.parent + '→' + n.id))
-      els.push({ data: { source: n.parent, target: n.id, label: 'parent' } });
-  });
-  (dataObj.edges || []).forEach(e => els.push({ data: { source: e.source, target: e.target, label: e.label || '' } }));
-  return els;
-}
+      // Local storage for graph and json
+      const STORAGE_KEY = 'nodetrellis-json';
+      try { const stored = localStorage.getItem(STORAGE_KEY); if(stored){ jsonInput.value = stored; updateCharCount(); } } catch {}
+      jsonInput.addEventListener('input', () => { try { localStorage.setItem(STORAGE_KEY, jsonInput.value); } catch {} });
 
-function render(store = true) {
-  const txt = extractJSON(sanitize(jsonInput.value));
-  if (!txt) { if (cy) cy.elements().remove(); dataObj = {}; updateUR(); return; }
+      // Load available models from OpenAI or fall back to defaults
+      loadModels();
 
-  const obj = parseJSON(txt);
-  if (!obj) { alert('Invalid JSON - ensure it matches schema with root, nodes, edges.'); return; }
+      // URL detection: treat any string containing '://' as URL
+      const isURL = s => /:\/\//.test(s.trim());
+      const makePrompt = txt => {
+        const limit = '• Each node “text” ≤ 50 chars (links unrestricted).';
+        if(isURL(txt)){
+          return `Analyse the page ${txt} and output ONLY raw JSON.\n\n• Add "link":"${txt}" at top level (do NOT add it as a node).\n• IDs start n0, n1, n2 …\n${limit}\n\nSchema:\n{ "link":"${txt}", "root":"n0",\n  "nodes":[{ "id":"n0","text":"<root>","parent":"" }],\n  "edges":[{ "source":"…","target":"…","label":"…","direction":"out" }] }\n\nReturn ONLY the JSON object.`;
+        }
+        return `Create a mind‑map for "${txt}" and output ONLY raw JSON.\n\n• IDs start n0, n1, n2 …\n${limit}\n\nSchema:\n{ "root":"n0",\n  "nodes":[{ "id":"n0","text":"<root>","parent":"" }],\n  "edges":[{ "source":"…","target":"…","label":"…","direction":"out" }] }\n\nReturn ONLY the JSON object.`;
+      };
+      copyPromptBtn.addEventListener('click', () => {
+        const val = topicInput.value.trim(); if(!val){ alert('Enter topic or URL'); return; } navigator.clipboard.writeText(makePrompt(val));
+      });
+      pastePromptBtn.addEventListener('click', async () => {
+        try { topicInput.value = (await navigator.clipboard.readText()).trim(); } catch {}
+      });
+      
+      // Help overlay toggling
+      helpBtn.addEventListener('click', () => { helpOverlay.style.display='flex'; });
+      helpOverlay.addEventListener('click', () => { helpOverlay.style.display='none'; });
+      
+      // Copy/paste JSON
+      copyJsonBtn.addEventListener('click', () => { navigator.clipboard.writeText(jsonInput.value || ''); });
+      pasteBtn.addEventListener('click', async () => {
+        try { jsonInput.value = extractJSON(sanitize(await navigator.clipboard.readText())); updateCharCount(); }
+        catch { overlay.style.display='flex'; }
+      });
+      ovCancel.addEventListener('click', () => { overlay.style.display='none'; });
+      ovOk.addEventListener('click', () => { const ta = overlay.querySelector('textarea'); jsonInput.value = extractJSON(sanitize(ta.value)); overlay.style.display='none'; updateCharCount(); });
+      jsonInput.addEventListener('paste', e => { e.preventDefault(); const text = e.clipboardData.getData('text/plain'); jsonInput.value = extractJSON(sanitize(text)); updateCharCount(); });
 
-  dataObj = obj;
-  initCy(); cy.elements().remove(); cy.add(buildEls());
+      // History with selection
+      let dataObj = {};
+      let hist = [];
+      let idx = -1;
+      const updateHistoryButtons = () => { undoBtn.disabled = idx <= 0; redoBtn.disabled = idx >= hist.length - 1; };
+      const pushHist = state => {
+        const last = hist[hist.length-1];
+        if(last && last.json === state.json && JSON.stringify(last.selection) === JSON.stringify(state.selection)) return;
+        hist.splice(idx+1);
+        hist.push(state);
+        idx = hist.length-1;
+        updateHistoryButtons();
+      };
+      const pushHistState = () => { pushHist({ json: jsonInput.value, selection: [...sel] }); };
+      const loadState = state => {
+        if(state.json !== jsonInput.value){ jsonInput.value = state.json; render(false); }
+        applySelection(state.selection, false);
+        updateHistoryButtons();
+      };
+      
+      // Cytoscape graph
+      let cy, layout;
+      // Track when a taphold just occurred. This allows us to ignore the
+      // subsequent tap event that is fired when the user lifts their finger
+      // after a long press. Without this flag the menu would immediately
+      // disappear after showing on touch devices. See on('taphold','node') below.
+      let tapholdActive = false;
+      cytoscape.use(cytoscapeCola);
+      let menuOpened = false;
+      const initCy = () => {
+        if(cy) return;
+        cy = cytoscape({ container: document.getElementById('cy'), wheelSensitivity:0.6, style:[
+          { selector:'node', style:{ label:'data(label)','text-wrap':'wrap','text-max-width':'220px','text-valign':'center','text-halign':'center','background-color':'var(--node)',shape:'round-rectangle',padding:'6px',width:'label',height:'label','font-size':'13px',color:'#fff','text-outline-color':'#000','text-outline-width':1 } },
+          { selector:'node.root', style:{ 'background-color':'var(--root)','border-width':4,'border-color':'var(--root-outline)','text-outline-color':'#000','text-outline-width':3,'font-size':'15px','font-weight':'700' } },
+          { selector:'node.selected', style:{ 'border-color':'#f9a825','border-width':2 } },
+          { selector:'node.collapsed', style:{ 'border-color':'#ef4444','border-width':2 } },
+          { selector:'edge', style:{ width:2,'line-color':'var(--edge)','target-arrow-color':'var(--edge)','target-arrow-shape':'triangle','curve-style':'bezier',label:'data(label)','font-size':'11px',color:'#e6edf3','text-rotation':'autorotate','text-background-opacity':.9,'text-background-color':'var(--edge-bg)','text-background-padding':'2px' } },
+          { selector:'edge[label=""]', style:{ label:'','text-background-opacity':0 } }
+        ]});
+        cy.on('zoom', () => { zoomSlider.value = cy.zoom().toFixed(2); });
+        cy.on('tap', e => {
+          // Ignore the tap that follows a taphold. Lifting your finger after
+          // a long‑press still triggers a tap event in Cytoscape. If we
+          // process it, the selection or menu state will change unexpectedly.
+          if(tapholdActive) return;
+          // When the context menu has just opened via right‑click or tap‑hold,
+          // swallow the next generic tap so the menu remains visible.
+          if(menuOpened){ menuOpened=false; return; }
+          if(e.target === cy) clearSelection(true);
+        });
+        cy.on('dbltap','node', editNode);
+        // Custom tap handler for nodes. Skip processing if the tap event
+        // immediately follows a long press.
+        cy.on('tap','node', e => {
+          if(tapholdActive) return;
+          tapNode(e);
+        });
+        cy.on('cxttap','node', e => {
+          if(!sel.has(e.target.id())){ clearSelection(false); sel.add(e.target.id()); e.target.addClass('selected'); }
+          openMenu(e.renderedPosition);
+          menuOpened=true;
+        });
+        cy.on('taphold','node', e => {
+          // On long‑press, add the node to the current selection without clearing
+          // any existing selections. This allows you to hold a node to open
+          // the menu without deselecting it or other nodes. Mark tapholdActive
+          // so the subsequent tap event (fired when the finger lifts) is
+          // ignored by the generic tap handler. Reset the flag shortly
+          // thereafter so normal taps resume working.
+          const id = e.target.id();
+          if(!sel.has(id)){
+            sel.add(id);
+            e.target.addClass('selected');
+          }
+          openMenu(e.renderedPosition);
+          menuOpened = true;
+          tapholdActive = true;
+          setTimeout(() => { tapholdActive = false; }, 300);
+        });
+        enableKineticPan();
+      };
+      const editNode = e => {
+        const node=e.target; const current=node.data('full'); const newText=prompt('Edit text:', current);
+        if(newText!==null && newText.trim()!==''){ node.data('label', wrap(newText)); node.data('full', newText); const objNode=dataObj.nodes.find(n => n.id === node.id()); if(objNode) objNode.text=newText; jsonInput.value=JSON.stringify(dataObj,null,2); pushHistState(); physics(); }
+      };
+      const physics = () => { layout?.stop(); layout = cy.layout({ name:'cola', infinite:true, animate:true, refresh:1, nodeSpacing:25, edgeLength:200, padding:40, fit:false, avoidOverlap:true }); layout.run(); };
+      const enableKineticPan = () => {
+        const container=cy.container(); let tracking=false,lastT=0,lastX=0,lastY=0,vx=0,vy=0,raf; let touchCount=0,pinching=false,pinchPan={x:0,y:0}; const damp=0.97, stop=0.00025; const cancelMomentum=()=>{ cancelAnimationFrame(raf); vx=vy=0; };
+        container.addEventListener('pointerdown', e => {
+          if(e.pointerType==='touch'){ touchCount++; if(touchCount===2){ pinching=true; pinchPan=cy.pan(); tracking=false; cancelMomentum(); } }
+          if(pinching) return;
+          if(e.pointerType==='mouse' && e.button!==0) return;
+          tracking=true; lastT=e.timeStamp; lastX=e.clientX; lastY=e.clientY; vx=vy=0; cancelMomentum();
+        });
+        container.addEventListener('pointermove', e => {
+          if(pinching){ cy.pan(pinchPan); return; }
+          if(!tracking) return;
+          const dt=e.timeStamp-lastT; if(!dt) return;
+          const dx=e.clientX-lastX, dy=e.clientY-lastY; vx=0.8*vx+0.2*(dx/dt); vy=0.8*vy+0.2*(dy/dt); lastT=e.timeStamp; lastX=e.clientX; lastY=e.clientY;
+        });
+        const pointerUp=e => {
+          if(e.pointerType==='touch'){ touchCount=Math.max(0,touchCount-1); if(touchCount<2 && pinching) pinching=false; }
+          if(pinching || !tracking){ tracking=false; return; }
+          tracking=false; let prev=performance.now(); const frame=now => { const dt=now-prev; prev=now; vx*=damp; vy*=damp; if(Math.hypot(vx,vy)<stop) return; cy.panBy({ x:vx*dt, y:vy*dt }); raf=requestAnimationFrame(frame); }; if(Math.hypot(vx,vy)>=stop) raf=requestAnimationFrame(frame);
+        };
+        window.addEventListener('pointerup', pointerUp);
+        window.addEventListener('pointercancel', pointerUp);
+      };
+      
+      // Selection management
+      const sel = new Set();
+      let multi=false;
+      multiBtn.addEventListener('click', () => { multi=!multi; multiBtn.classList.toggle('active', multi); if(!multi) clearSelection(true); });
+      const clearSelection = (record=true) => { sel.forEach(id => cy.getElementById(id).removeClass('selected')); sel.clear(); nodeMenu.style.display='none'; if(record) pushHistState(); };
+      const applySelection = (list, record=false) => { clearSelection(false); list.forEach(id => { const node=cy.getElementById(id); if(node.length){ sel.add(id); node.addClass('selected'); } }); if(record) pushHistState(); };
+      const selectionNames = () => [...sel].map(id => cy.getElementById(id).data('full')).join(', ');
+      const clampPos = (x,y) => { const mw=nodeMenu.offsetWidth, mh=nodeMenu.offsetHeight; return [ Math.max(10, Math.min(window.innerWidth - mw - 10, x)), Math.max(10, Math.min(window.innerHeight - mh - 10, y)) ]; };
+      const openMenu = pos => {
+        if(!sel.size) return;
+        copyTextBtn.textContent = sel.size>1 ? 'Copy texts' : 'Copy text';
+        nodeCopyBtn.textContent = sel.size>1 ? 'Copy Prompt for selected' : 'Copy Prompt for this node';
+        copyTextBtn.dataset.names = nodeCopyBtn.dataset.names = selectionNames();
+        delBtn.textContent = sel.has('n0') && sel.size===1 ? 'Delete entire graph' : 'Delete node & subtree';
+        nodeMenu.style.display='block'; const rect=cy.container().getBoundingClientRect(); const [x,y]=clampPos(pos.x+20+rect.left, pos.y+20+rect.top); nodeMenu.style.left=x+'px'; nodeMenu.style.top=y+'px'; nodeMenu.setAttribute('aria-hidden','false');
+      };
+      const tapNode = e => {
+        const id=e.target.id(); if(!multi){ clearSelection(false); sel.add(id); e.target.addClass('selected'); } else { if(sel.has(id)){ sel.delete(id); e.target.removeClass('selected'); } else { sel.add(id); e.target.addClass('selected'); } }
+        if(!sel.size) nodeMenu.style.display='none'; pushHistState();
+      };
+      selectAllBtn.addEventListener('click', () => { sel.clear(); cy.nodes().forEach(n => { sel.add(n.id()); n.addClass('selected'); }); multi=true; multiBtn.classList.add('active'); pushHistState(); });
+      
+      // Menu drag
+      let dragging=false, off={x:0,y:0}, start={x:0,y:0}, cancelClick=false;
+      const dragStart = ev => { if(ev.button!==undefined && ev.button!==0) return; const p=ev.touches?ev.touches[0]:ev; start={x:p.clientX,y:p.clientY}; off={ x:p.clientX-parseFloat(nodeMenu.style.left||0), y:p.clientY-parseFloat(nodeMenu.style.top||0) }; dragging=cancelClick=false; document.addEventListener(ev.touches?'touchmove':'mousemove', dragMove, {passive:false}); document.addEventListener(ev.touches?'touchend':'mouseup', dragEnd, {once:true}); };
+      const dragMove = ev => { const p=ev.touches?ev.touches[0]:ev; if(!dragging && Math.hypot(p.clientX-start.x,p.clientY-start.y)>4) dragging=true; if(!dragging) return; ev.preventDefault(); cancelClick=true; nodeMenu.classList.add('dragging'); const [x,y]=clampPos(p.clientX-off.x, p.clientY-off.y); nodeMenu.style.left=x+'px'; nodeMenu.style.top=y+'px'; };
+      const dragEnd = () => { nodeMenu.classList.remove('dragging'); document.removeEventListener('mousemove', dragMove); document.removeEventListener('touchmove', dragMove); if(dragging) window._swallowCyTap=()=>{}; setTimeout(() => { cancelClick=false; }, 0); };
+      nodeMenu.addEventListener('mousedown', dragStart); nodeMenu.addEventListener('touchstart', dragStart, {passive:false}); nodeMenu.addEventListener('click', e => { if(cancelClick){ e.stopImmediatePropagation(); e.preventDefault(); } }, true);
+      
+      // Menu actions
+      copyTextBtn.addEventListener('click', () => { navigator.clipboard.writeText(copyTextBtn.dataset.names || ''); nodeMenu.style.display='none'; });
+      nodeCopyBtn.addEventListener('click', () => {
+        const names=nodeCopyBtn.dataset.names||''; if(!names) return;
+        const linkEntry=dataObj.link ? ` "link":"${dataObj.link}",\n` : '';
+        const prompt=`Extend and refactor node "${names}"\n\nKeep "link" key if present. IDs stay n0, n1, …\nEach node text ≤ 50 chars.\n\nSchema:\n{\n${linkEntry}"root":"n0",\n  "nodes":[{ "id":"n0","text":"<root>","parent":"" }, … ],\n  "edges":[{ "source":"…","target":"…","label":"…","direction":"out" }]\n}\n\nReturn ONLY the JSON object.\n\nCurrent JSON:\n${jsonInput.value}`;
+        navigator.clipboard.writeText(prompt); nodeMenu.style.display='none';
+      });
 
-  const root = cy.getElementById('n0');
-  root.position({ x: cy.width() / 2, y: cy.height() / 2 }).lock();
+      // API Extend: call OpenAI to extend and refactor the selected node(s) using
+      // the same prompt structure as Copy Prompt, but automatically update the
+      // current graph. Requires an API key and uses the selected model.
+      apiExtendBtn.addEventListener('click', async () => {
+        const names = nodeCopyBtn.dataset.names || '';
+        if(!names) return;
+        let key = getApiKey();
+        if(!key){
+          key = promptApiKey(true);
+          if(!key) return;
+        }
+        const linkEntry = dataObj.link ? ` "link":"${dataObj.link}",\n` : '';
+        const prompt = `Extend and refactor node "${names}"\n\nKeep "link" key if present. IDs stay n0, n1, …\nEach node text ≤ 50 chars.\n\nSchema:\n{\n${linkEntry}"root":"n0",\n  "nodes":[{ "id":"n0","text":"<root>","parent":"" }, … ],\n  "edges":[{ "source":"…","target":"…","label":"…","direction":"out" }]\n}\n\nReturn ONLY the JSON object.\n\nCurrent JSON:\n${jsonInput.value}`;
+        const model = modelSelect.value || defaultModels[0];
+        // Prepare for the API call: create AbortController and show loading indicator
+        abortController = new AbortController();
+        const signal = abortController.signal;
+        showLoading();
+        try {
+          // Select temperature based on model category
+          const temperature = reasoningModels.includes(model) ? 1 : 0.2;
+          const body = { model, messages: [ { role: 'user', content: prompt } ], temperature: temperature };
+          const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + key
+            },
+            body: JSON.stringify(body),
+            signal
+          });
+          if(!response.ok){
+            const text = await response.text();
+            throw new Error('API error: ' + response.status + ' ' + response.statusText + '\n' + text);
+          }
+          const data = await response.json();
+          const content = data.choices?.[0]?.message?.content || '';
+          // Update JSON input and render new graph
+          jsonInput.value = extractJSON(sanitize(content));
+          updateCharCount();
+          render(true);
+          nodeMenu.style.display = 'none';
+        } catch(err){
+          if(err.name === 'AbortError'){
+            console.warn('Request aborted');
+          } else {
+            console.error(err);
+            alert('Failed to fetch from OpenAI:\n' + err.message);
+          }
+        } finally {
+          hideLoading();
+        }
+      });
+      addChildBtn.addEventListener('click', () => {
+        if(!sel.size) return; const parentId=[...sel][0]; const newText=prompt('New child text:'); if(!newText||newText.trim()==='') return;
+        const newId='n'+dataObj.nodes.length;
+        dataObj.nodes.push({id:newId,text:newText,parent:parentId}); dataObj.edges.push({source:parentId,target:newId,label:'',direction:'out'});
+        cy.add({ group:'nodes', data:{ id:newId, label:wrap(newText), full:newText } }); cy.add({ group:'edges', data:{ source:parentId, target:newId, label:'parent' } }); physics(); jsonInput.value=JSON.stringify(dataObj,null,2); pushHistState();
+      });
+      collapseBtn.addEventListener('click', () => {
+        sel.forEach(id => { const node=cy.getElementById(id); if(node.hasClass('collapsed')){ node.removeClass('collapsed'); subtree(id,false).forEach(sid => cy.getElementById(sid).style({ display:'element' })); } else { node.addClass('collapsed'); subtree(id,false).forEach(sid => cy.getElementById(sid).style({ display:'none' })); } }); physics(); nodeMenu.style.display='none'; pushHistState();
+      });
+      const subtree = (id, includeRoot) => { const s=new Set(includeRoot?[id]:[]); const q=[id]; while(q.length){ const cur=q.pop(); dataObj.edges.forEach(e => { if(e.source===cur && !s.has(e.target)){ s.add(e.target); q.push(e.target); } }); dataObj.nodes.forEach(n => { if(n.parent===cur && !s.has(n.id)){ s.add(n.id); q.push(n.id); } }); } return s; };
+      delBtn.addEventListener('click', () => {
+        if(!sel.size) return;
+        if(sel.has('n0') && sel.size===1){ if(!confirm('Delete entire graph?')) return; dataObj={}; jsonInput.value=''; cy.elements().remove(); clearSelection(false); pushHistState(); return; }
+        const doomed=new Set(); sel.forEach(id => subtree(id,true).forEach(x => doomed.add(x)));
+        doomed.forEach(id => { dataObj.nodes = dataObj.nodes.filter(n => n.id !== id); dataObj.edges = dataObj.edges.filter(e => e.source !== id && e.target !== id); const node=cy.getElementById(id); if(node.length) node.remove(); });
+        jsonInput.value = JSON.stringify(dataObj, null, 2); physics(); clearSelection(false); pushHistState();
+      });
+      childBtn.addEventListener('click', () => {
+        if(!sel.size) return;
+        const doomed=new Set(); sel.forEach(id => subtree(id,false).forEach(x => doomed.add(x)));
+        doomed.forEach(id => { dataObj.nodes = dataObj.nodes.filter(n => n.id !== id); dataObj.edges = dataObj.edges.filter(e => e.source !== id && e.target !== id); const node=cy.getElementById(id); if(node.length) node.remove(); });
+        jsonInput.value = JSON.stringify(dataObj, null, 2); physics(); clearSelection(false); pushHistState();
+      });
+      
+      // Building elements and rendering
+      const buildElements = () => { const els=[]; const dup=new Set(dataObj.edges?.map(e=>e.source+'→'+e.target) || []); (dataObj.nodes||[]).forEach(n => { els.push({ data:{ id:n.id, label:wrap(n.text), full:n.text }, classes:n.id==='n0' ? 'root' : '' }); if(n.parent && !dup.has(n.parent+'→'+n.id)){ els.push({ data:{ source:n.parent, target:n.id, label:'parent' } }); } }); (dataObj.edges||[]).forEach(e => els.push({ data:{ source:e.source, target:e.target, label:e.label || '' } })); return els; };
+      const render = (store=true) => { const txt=extractJSON(sanitize(jsonInput.value)); if(!txt){ if(cy) cy.elements().remove(); dataObj={}; updateHistoryButtons(); return; } const obj=parseJSON(txt); if(!obj){ alert('Invalid JSON - ensure it matches schema with root, nodes, edges.'); return; } dataObj=obj; initCy(); cy.elements().remove(); cy.add(buildElements()); const root=cy.getElementById('n0'); root.position({ x: cy.width()/2, y: cy.height()/2 }).lock(); physics(); cy.zoom(1); zoomSlider.value='1'; clearSelection(false); if(store) pushHistState(); else updateHistoryButtons(); };
+      renderBtn.addEventListener('click', () => render(true));
+      exportBtn.addEventListener('click', () => { if(!cy) return; const png=cy.png({ full:true, scale:2 }); const a=document.createElement('a'); a.href=png; a.download='mindmap.png'; a.click(); });
+      undoBtn.addEventListener('click', () => { if(idx>0){ idx--; loadState(hist[idx]); } });
+      redoBtn.addEventListener('click', () => { if(idx<hist.length-1){ idx++; loadState(hist[idx]); } });
+      document.addEventListener('keydown', e => {
+        if(e.ctrlKey && !e.shiftKey && e.key.toLowerCase()==='z'){ e.preventDefault(); undoBtn.click(); }
+        if(e.ctrlKey && (e.key.toLowerCase()==='y' || (e.key.toLowerCase()==='z' && e.shiftKey))){ e.preventDefault(); redoBtn.click(); }
+      });
+      zoomSlider.addEventListener('input', () => { if(!cy) return; cy.zoom({ level:+zoomSlider.value, renderedPosition:{ x: cy.width()/2, y: cy.height()/2 } }); });
+      donate.addEventListener('click', e => { e.currentTarget.classList.add('hide'); });
+      
+      // Initial push and render persistence
+      pushHistState(); updateCharCount(); if(jsonInput.value.trim()) render(false);
 
-  physics();
-  cy.zoom(1); zoomSlider.value = '1';
-  clearSelection();
-
-  if (store) pushHist(JSON.stringify(dataObj, null, 2));
-  else updateUR();
-}
-document.getElementById('renderBtn').onclick = () => render(true);
-
-/* export png */
-document.getElementById('exportBtn').onclick = () => {
-  if (!cy) return;
-  const png = cy.png({ full: true, scale: 2 });
-  const a = document.createElement('a');
-  a.href = png;
-  a.download = 'mindmap.png';
-  a.click();
-};
-
-/* undo / redo */
-undoBtn.onclick = () => { if (idx > 0) { idx--; jsonInput.value = hist[idx]; render(false); } };
-redoBtn.onclick = () => { if (idx < hist.length - 1) { idx++; jsonInput.value = hist[idx]; render(false); } };
-addEventListener('keydown', e => {
-  if (e.ctrlKey && !e.shiftKey && e.key === 'z') { e.preventDefault(); undoBtn.onclick(); }
-  if (e.ctrlKey && (e.key === 'y' || (e.key === 'Z' && e.shiftKey))) { e.preventDefault(); redoBtn.onclick(); }
-});
-
-/* zoom slider */
-const zoomSlider = document.getElementById('zoomSlider');
-zoomSlider.oninput = () => { if (!cy) return;
-  cy.zoom({ level: +zoomSlider.value,
-            renderedPosition: { x: cy.width() / 2, y: cy.height() / 2 } });
-};
-
-/* donate footer hide */
-document.getElementById('donate').onclick = e => e.currentTarget.classList.add('hide');
-</script>
+      // API menu interactions. These handlers connect the overlay controls to
+      // the underlying model select and API key storage. Selecting a model
+      // updates the hidden select and persists the choice. Editing the API
+      // key prompts the user and reloads models (though models are now static
+      // but reloaded for consistency). After either action the API menu
+      // closes.
+      const modelSelectOverlay = document.getElementById('modelSelectOverlay');
+      const editApiKeyBtn = document.getElementById('editApiKeyBtn');
+      modelSelectOverlay.addEventListener('change', () => {
+        const value = modelSelectOverlay.value;
+        modelSelect.value = value;
+        try { localStorage.setItem(MODEL_STORAGE, value); } catch {}
+        closeApiMenu();
+      });
+      editApiKeyBtn.addEventListener('click', () => {
+        promptApiKey(true);
+        loadModels();
+        closeApiMenu();
+      });
+    });
+  </script>
 </body>
 </html>
