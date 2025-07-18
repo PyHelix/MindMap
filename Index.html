@@ -17,6 +17,9 @@
     .row{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
     #topicInput{ flex:1; min-width:0; padding:6px 8px; border-radius:6px; border:1px solid var(--border); background:#0f172a; color:#c9d1d9; }
     .btn{ padding:6px 14px; border:0; border-radius:6px; font-weight:600; cursor:pointer; white-space:nowrap; flex:0 0 auto; transition:background .15s; }
+    .btn{ -webkit-user-select:none; user-select:none; }
+    /* Prevent text selection on all buttons when long‑pressed on mobile */
+    button{ -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
     .btn.main{ background:var(--btn); color:#fff; }
     .btn.main:hover{ background:var(--btn-h); }
     .btn.aux{ background:var(--node-h); color:#111; padding:6px 10px; }
@@ -50,6 +53,7 @@
     #donate.hide{ opacity:0; height:0; padding:0; border:none; overflow:hidden; transition:.25s; }
     #donate code{ font-family:monospace; }
     #donate a{ color:#58a6ff; text-decoration:none; }
+
     .btn:focus-visible, #topicInput:focus-visible{ outline:2px dashed #58a6ff; outline-offset:2px; }
   </style>
 </head>
@@ -83,9 +87,10 @@
         <input type="range" id="zoomSlider" min="0.1" max="3" step="0.05" value="1" aria-label="Zoom" />
       </span>
     </div>
-    <!-- Loading bar shown during API calls. Contains a progress indicator and a stop button to abort the request. -->
+    <!-- Loading bar shown during API calls. Shows incoming character count and has a stop button. -->
     <div id="loadingBar" class="row" style="display:none;align-items:center;gap:6px;margin-top:4px">
-      <progress id="progressBar" max="0" value="0" style="flex:1;height:10px;border-radius:6px;"></progress>
+      <!-- Removed the progress bar; only show character count and stop button -->
+      <span id="charCounter" style="flex:1;text-align:left;font-size:12px;color:#e6edf3;">0</span>
       <button id="stopBtn" class="btn aux" style="min-width:60px;">Stop</button>
     </div>
   </div>
@@ -119,17 +124,18 @@
   </div>
   <div id="helpOverlay" aria-hidden="true">
     <div>
-      <h3 style="margin-top:0">Prompt builder help</h3>
+    <h3 style="margin-top:0">Guide</h3>
       <p><b>1.</b> Type a topic or any URL in the field at the top.</p>
       <p><b>2.</b> Tap <em>Copy Prompt</em> – a ready‑made instruction for your LLM is copied to your clipboard.</p>
       <p><b>3.</b> Paste that prompt into your LLM and wait for the JSON response.</p>
       <p><b>4.</b> Paste the JSON into the box below, then press <i>Render Map</i>.</p>
       <p><b>5.</b> To open the node menu, right‑click on a node with a mouse or long‑press (~1 s) on touch. You can then manage children, collapse nodes, copy text, or delete.</p>
-      <p><b>6.</b> Use <em>API&nbsp;Render</em> to call OpenAI directly. Hold or right‑click the API button to open a small menu where you can choose a model or edit your API key. Both the key and your current graph persist between sessions. A loading bar appears during API calls with a stop button so you can cancel long requests.</p>
+      <p><b>6.</b> Use <em>API&nbsp;Render</em> to call OpenAI directly. Hold or right‑click the API button to open a small menu where you can choose a model or edit your API key. Both the key and your current graph persist between sessions. During API calls a small counter appears showing the number of incoming characters; the adjacent stop button lets you cancel long requests while you continue exploring the current graph.</p>
       <p><b>7.</b> In the node menu you can use <em>API&nbsp;Extend</em> to extend and refactor the selected node(s) using the same prompt as Copy Prompt.</p>
       <p style="margin-top:14px;text-align:center;font-style:italic">press anywhere to continue</p>
     </div>
   </div>
+
   <section id="donate" title="Tap to hide">
     <h3 style="margin:0 0 4px;font-size:14px">Support citizen‑science projects <span style="font-size:11px;opacity:.6">(tap to hide)</span></h3>
     <p><strong>Gridcoin</strong> — rewards BOINC distributed‑computing research.<br>Address: <code>SG5RCw9cf2RhbopCuXLzYYpXciARaZNCF8</code></p>
@@ -178,38 +184,35 @@
 
       // Loading bar and abort handling
       // These elements provide feedback during API calls and allow the user
-      // to abort a long‑running request. When a request begins, the
-      // loading bar becomes visible and both API buttons are disabled. A
-      // new AbortController is created for each request. The stop button
-      // aborts the pending fetch. Once the request completes or is
-      // aborted, the loading bar is hidden and the buttons re‑enabled.
+      // to abort a long‑running request. When a request begins, the loading
+      // bar becomes visible and both API buttons are disabled. A new
+      // AbortController is created for each request. The stop button aborts
+      // the pending fetch. Once the request completes or is aborted, the bar
+      // is hidden and the buttons re‑enabled.
       const loadingBar  = document.getElementById('loadingBar');
-      const progressBar = document.getElementById('progressBar');
+      // progressBar element has been removed; only a character counter and stop button remain
+      const charCounter = document.getElementById('charCounter');
       const stopBtn     = document.getElementById('stopBtn');
       let abortController = null;
       const showLoading = () => {
-        // Show the progress bar as an indeterminate bar (no value attribute)
+        // Reset the character counter. The counter shows how many characters
+        // have been streamed so far.
+        charCounter.textContent = '0';
         loadingBar.style.display = 'flex';
-        progressBar.removeAttribute('value');
         apiRenderBtn.disabled = true;
         apiExtendBtn.disabled = true;
       };
       const hideLoading = () => {
         loadingBar.style.display = 'none';
-        // Reset the progress element to its default indeterminate state
-        progressBar.value = 0;
-        progressBar.max = 0;
         apiRenderBtn.disabled = false;
         apiExtendBtn.disabled = false;
         abortController = null;
       };
-      // Clicking the stop button aborts the current API call if one is
-      // in progress. The AbortController is reset in hideLoading().
+      // Clicking the stop button aborts the current API call if one is in progress.
       stopBtn.addEventListener('click', () => {
         if (abortController) {
           try { abortController.abort(); } catch {}
         }
-        // Hide the loading bar immediately when the user aborts
         hideLoading();
       });
       
@@ -433,6 +436,19 @@
         openApiMenu(e);
       });
 
+      // Close the API menu when clicking or tapping outside of it. If the menu
+      // is open and the user interacts anywhere other than the menu or the API
+      // render button, the menu will be hidden. This prevents it from staying
+      // on screen unintentionally.
+      document.addEventListener('pointerdown', (e) => {
+        if(apiMenuOpen){
+          const menuEl = document.getElementById('apiMenu');
+          if(!menuEl.contains(e.target) && e.target !== apiRenderBtn){
+            closeApiMenu();
+          }
+        }
+      });
+
       // When the API Render button is clicked without having opened the menu,
       // call the API using the selected model. If the menu is currently open,
       // just close it and do nothing else.
@@ -457,9 +473,9 @@
         const signal = abortController.signal;
         showLoading();
         try {
-          // Select temperature based on model category
+          // Select temperature based on model category and enable streaming for all models.
           const temperature = reasoningModels.includes(model) ? 1 : 0.2;
-          const body = { model, messages: [ { role: 'user', content: prompt } ], temperature: temperature };
+          const body = { model, messages: [ { role: 'user', content: prompt } ], temperature: temperature, stream: true };
           const response = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -473,9 +489,39 @@
             const text = await response.text();
             throw new Error('API error: ' + response.status + ' ' + response.statusText + '\n' + text);
           }
-          const data = await response.json();
-          const content = data.choices?.[0]?.message?.content || '';
-          jsonInput.value = extractJSON(sanitize(content));
+          // Stream the response. Accumulate full message and update character count as chunks arrive.
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder('utf-8');
+          let buffer = '';
+          let full = '';
+          let charCnt = 0;
+          outer: while(true){
+            const { value, done } = await reader.read();
+            if(done) break;
+            buffer += decoder.decode(value, { stream: true });
+            let lines = buffer.split(/\r?\n/);
+            buffer = lines.pop() || '';
+            for(const line of lines){
+              const trimmed = line.trim();
+              if(!trimmed.startsWith('data:')) continue;
+              const dataLine = trimmed.slice(5).trim();
+              if(dataLine === '[DONE]'){
+                break outer;
+              }
+              try {
+                const obj = JSON.parse(dataLine);
+                const delta = obj.choices?.[0]?.delta?.content;
+                if(delta){
+                  full += delta;
+                  charCnt += delta.length;
+                  charCounter.textContent = String(charCnt);
+                }
+              } catch(e){ /* ignore malformed lines */ }
+            }
+          }
+          // Once complete, extract JSON from the accumulated content, update input and render
+          const extracted = extractJSON(sanitize(full));
+          jsonInput.value = extracted;
           updateCharCount();
           render(true);
         } catch(err){
@@ -510,8 +556,12 @@
       // Load available models from OpenAI or fall back to defaults
       loadModels();
 
-      // URL detection: treat any string containing '://' as URL
-      const isURL = s => /:\/\//.test(s.trim());
+      // URL detection: treat as URL if it contains "://" (any scheme) or resembles a bare domain name.
+      // The regex below matches strings with a dot and no whitespace, e.g. "example.com" or "sub.domain.org/path".
+      const isURL = s => {
+        const str = s.trim();
+        return /:\/\//.test(str) || /^[^\s]+\.[^\s]{2,}(?:[\/\?#].*)?$/.test(str);
+      };
       const makePrompt = txt => {
         const limit = '• Each node “text” ≤ 50 chars (links unrestricted).';
         if(isURL(txt)){
@@ -706,9 +756,9 @@
         const signal = abortController.signal;
         showLoading();
         try {
-          // Select temperature based on model category
+          // Select temperature based on model category and enable streaming
           const temperature = reasoningModels.includes(model) ? 1 : 0.2;
-          const body = { model, messages: [ { role: 'user', content: prompt } ], temperature: temperature };
+          const body = { model, messages: [ { role: 'user', content: prompt } ], temperature: temperature, stream: true };
           const response = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -722,10 +772,38 @@
             const text = await response.text();
             throw new Error('API error: ' + response.status + ' ' + response.statusText + '\n' + text);
           }
-          const data = await response.json();
-          const content = data.choices?.[0]?.message?.content || '';
-          // Update JSON input and render new graph
-          jsonInput.value = extractJSON(sanitize(content));
+          // Stream the response and update char counter
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder('utf-8');
+          let buffer = '';
+          let full = '';
+          let charCnt = 0;
+          outer2: while(true){
+            const { value, done } = await reader.read();
+            if(done) break;
+            buffer += decoder.decode(value, { stream: true });
+            let lines = buffer.split(/\r?\n/);
+            buffer = lines.pop() || '';
+            for(const line of lines){
+              const trimmed = line.trim();
+              if(!trimmed.startsWith('data:')) continue;
+              const dataLine = trimmed.slice(5).trim();
+              if(dataLine === '[DONE]'){
+                break outer2;
+              }
+              try {
+                const obj = JSON.parse(dataLine);
+                const delta = obj.choices?.[0]?.delta?.content;
+                if(delta){
+                  full += delta;
+                  charCnt += delta.length;
+                  charCounter.textContent = String(charCnt);
+                }
+              } catch(e){ /* ignore */ }
+            }
+          }
+          const extracted = extractJSON(sanitize(full));
+          jsonInput.value = extracted;
           updateCharCount();
           render(true);
           nodeMenu.style.display = 'none';
