@@ -3,8 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>NodeTrellis</title>
-  <meta name="description" content="Interactive mind‑mapping tool" />
+  <!-- Updated page title for better SEO. Originally the title was simply
+       “NodeTrellis”, which is too short for search engines. This new
+       title describes the site’s purpose without changing the UI. -->
+  <title>NodeTrellis – Interactive Mind‑Mapping Tool</title>
+  <!-- Updated meta description. The old description was minimal. This
+       concise description highlights the key features of NodeTrellis and
+       improves the page’s appearance in search results. -->
+  <meta name="description" content="NodeTrellis is an interactive mind‑mapping tool for organising and visualising ideas. Analyse topics or URLs to generate dynamic mind maps, edit nodes, collapse or extend branches, and integrate AI for expansions." />
   <meta name="theme-color" content="#0d1117" />
   <script src="https://unpkg.com/cytoscape@3/dist/cytoscape.min.js" defer></script>
   <script src="https://unpkg.com/webcola@3.4.0/WebCola/cola.min.js" defer></script>
@@ -55,9 +61,18 @@
     #donate a{ color:#58a6ff; text-decoration:none; }
 
     .btn:focus-visible, #topicInput:focus-visible{ outline:2px dashed #58a6ff; outline-offset:2px; }
+
+    /* Visually hidden class for SEO-friendly H1. This hides the heading
+       visually while keeping it in the DOM for screen readers and
+       search engines. It matches a common accessibility pattern. */
+    .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
   </style>
 </head>
 <body>
+  <!-- Hidden heading for accessibility and SEO. This heading will not
+       disturb the visual layout but will provide a primary topic for
+       screen readers and search engine crawlers. -->
+  <h1 class="visually-hidden">NodeTrellis – interactive mind‑mapping tool</h1>
   <div id="controls">
     <div class="row" id="builderRow">
       <!-- Removed visible label to avoid duplicate text -->
@@ -89,7 +104,7 @@
     </div>
     <!-- Loading bar shown during API calls. Shows incoming character count and has a stop button. -->
     <div id="loadingBar" class="row" style="display:none;align-items:center;gap:6px;margin-top:4px">
-      <!-- Removed the progress bar; only show character count and stop button -->
+      <!-- Removed the progress bar; only show character count and stop button remain -->
       <span id="charCounter" style="flex:1;text-align:left;font-size:12px;color:#e6edf3;">0</span>
       <button id="stopBtn" class="btn aux" style="min-width:60px;">Stop</button>
     </div>
@@ -189,10 +204,10 @@
       // AbortController is created for each request. The stop button aborts
       // the pending fetch. Once the request completes or is aborted, the bar
       // is hidden and the buttons re‑enabled.
-      const loadingBar  = document.getElementById('loadingBar');
+      const loadingBar  = document.getElementById('loadingBar');
       // progressBar element has been removed; only a character counter and stop button remain
       const charCounter = document.getElementById('charCounter');
-      const stopBtn     = document.getElementById('stopBtn');
+      const stopBtn     = document.getElementById('stopBtn');
       let abortController = null;
       const showLoading = () => {
         // Reset the character counter. The counter shows how many characters
@@ -215,10 +230,10 @@
         }
         hideLoading();
       });
-      
+      
       // API key persistence
       const API_KEY_STORAGE = 'openai_api_key';
-      const MODEL_STORAGE   = 'openai_model';
+      const MODEL_STORAGE   = 'openai_model';
 
       // Predefined model categories and their available model IDs. These come from
       // user‑provided listings and reflect the actual models currently available
@@ -575,11 +590,11 @@
       pastePromptBtn.addEventListener('click', async () => {
         try { topicInput.value = (await navigator.clipboard.readText()).trim(); } catch {}
       });
-      
+      
       // Help overlay toggling
       helpBtn.addEventListener('click', () => { helpOverlay.style.display='flex'; });
       helpOverlay.addEventListener('click', () => { helpOverlay.style.display='none'; });
-      
+      
       // Copy/paste JSON
       copyJsonBtn.addEventListener('click', () => { navigator.clipboard.writeText(jsonInput.value || ''); });
       pasteBtn.addEventListener('click', async () => {
@@ -609,7 +624,7 @@
         applySelection(state.selection, false);
         updateHistoryButtons();
       };
-      
+      
       // Cytoscape graph
       let cy, layout;
       // Track when a taphold just occurred. This allows us to ignore the
@@ -698,7 +713,7 @@
         window.addEventListener('pointerup', pointerUp);
         window.addEventListener('pointercancel', pointerUp);
       };
-      
+      
       // Selection management
       const sel = new Set();
       let multi=false;
@@ -720,14 +735,14 @@
         if(!sel.size) nodeMenu.style.display='none'; pushHistState();
       };
       selectAllBtn.addEventListener('click', () => { sel.clear(); cy.nodes().forEach(n => { sel.add(n.id()); n.addClass('selected'); }); multi=true; multiBtn.classList.add('active'); pushHistState(); });
-      
+      
       // Menu drag
       let dragging=false, off={x:0,y:0}, start={x:0,y:0}, cancelClick=false;
       const dragStart = ev => { if(ev.button!==undefined && ev.button!==0) return; const p=ev.touches?ev.touches[0]:ev; start={x:p.clientX,y:p.clientY}; off={ x:p.clientX-parseFloat(nodeMenu.style.left||0), y:p.clientY-parseFloat(nodeMenu.style.top||0) }; dragging=cancelClick=false; document.addEventListener(ev.touches?'touchmove':'mousemove', dragMove, {passive:false}); document.addEventListener(ev.touches?'touchend':'mouseup', dragEnd, {once:true}); };
       const dragMove = ev => { const p=ev.touches?ev.touches[0]:ev; if(!dragging && Math.hypot(p.clientX-start.x,p.clientY-start.y)>4) dragging=true; if(!dragging) return; ev.preventDefault(); cancelClick=true; nodeMenu.classList.add('dragging'); const [x,y]=clampPos(p.clientX-off.x, p.clientY-off.y); nodeMenu.style.left=x+'px'; nodeMenu.style.top=y+'px'; };
       const dragEnd = () => { nodeMenu.classList.remove('dragging'); document.removeEventListener('mousemove', dragMove); document.removeEventListener('touchmove', dragMove); if(dragging) window._swallowCyTap=()=>{}; setTimeout(() => { cancelClick=false; }, 0); };
       nodeMenu.addEventListener('mousedown', dragStart); nodeMenu.addEventListener('touchstart', dragStart, {passive:false}); nodeMenu.addEventListener('click', e => { if(cancelClick){ e.stopImmediatePropagation(); e.preventDefault(); } }, true);
-      
+      
       // Menu actions
       copyTextBtn.addEventListener('click', () => { navigator.clipboard.writeText(copyTextBtn.dataset.names || ''); nodeMenu.style.display='none'; });
       nodeCopyBtn.addEventListener('click', () => {
@@ -841,7 +856,7 @@
         doomed.forEach(id => { dataObj.nodes = dataObj.nodes.filter(n => n.id !== id); dataObj.edges = dataObj.edges.filter(e => e.source !== id && e.target !== id); const node=cy.getElementById(id); if(node.length) node.remove(); });
         jsonInput.value = JSON.stringify(dataObj, null, 2); physics(); clearSelection(false); pushHistState();
       });
-      
+      
       // Building elements and rendering
       const buildElements = () => { const els=[]; const dup=new Set(dataObj.edges?.map(e=>e.source+'→'+e.target) || []); (dataObj.nodes||[]).forEach(n => { els.push({ data:{ id:n.id, label:wrap(n.text), full:n.text }, classes:n.id==='n0' ? 'root' : '' }); if(n.parent && !dup.has(n.parent+'→'+n.id)){ els.push({ data:{ source:n.parent, target:n.id, label:'parent' } }); } }); (dataObj.edges||[]).forEach(e => els.push({ data:{ source:e.source, target:e.target, label:e.label || '' } })); return els; };
       const render = (store=true) => { const txt=extractJSON(sanitize(jsonInput.value)); if(!txt){ if(cy) cy.elements().remove(); dataObj={}; updateHistoryButtons(); return; } const obj=parseJSON(txt); if(!obj){ alert('Invalid JSON - ensure it matches schema with root, nodes, edges.'); return; } dataObj=obj; initCy(); cy.elements().remove(); cy.add(buildElements()); const root=cy.getElementById('n0'); root.position({ x: cy.width()/2, y: cy.height()/2 }).lock(); physics(); cy.zoom(1); zoomSlider.value='1'; clearSelection(false); if(store) pushHistState(); else updateHistoryButtons(); };
@@ -855,7 +870,7 @@
       });
       zoomSlider.addEventListener('input', () => { if(!cy) return; cy.zoom({ level:+zoomSlider.value, renderedPosition:{ x: cy.width()/2, y: cy.height()/2 } }); });
       donate.addEventListener('click', e => { e.currentTarget.classList.add('hide'); });
-      
+      
       // Initial push and render persistence
       pushHistState(); updateCharCount(); if(jsonInput.value.trim()) render(false);
 
