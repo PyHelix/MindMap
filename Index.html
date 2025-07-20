@@ -1,81 +1,308 @@
 <!DOCTYPE html>
+<!--
+  NodeTrellis landing page
+
+  This version preserves the original dark‑themed interface and
+  interactive functionality while addressing SEO recommendations from
+  Bing Webmaster Tools.  The DOCTYPE declaration is kept at the very
+  top to ensure browsers operate in standards mode.  The head
+  contains a descriptive meta description and a more informative title
+  to help search engines and users understand the purpose of the
+  page.  A top‑level <h1> headline is added within the body for
+  improved accessibility and semantic structure without breaking the
+  layout.
+-->
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <!-- Updated page title for better SEO. Originally the title was simply
-       “NodeTrellis”, which is too short for search engines. This new
-       title describes the site’s purpose without changing the UI. -->
-  <title>NodeTrellis – Interactive Mind‑Mapping Tool</title>
-  <!-- Updated meta description. The old description was minimal. This
-       concise description highlights the key features of NodeTrellis and
-       improves the page’s appearance in search results. -->
-  <meta name="description" content="NodeTrellis is an interactive mind‑mapping tool for organising and visualising ideas. Analyse topics or URLs to generate dynamic mind maps, edit nodes, collapse or extend branches, and integrate AI for expansions." />
+  <!-- Updated title for better SEO. The original title “NodeTrellis”
+       was too short and generic. This title clearly describes the
+       application. -->
+  <title>NodeTrellis – interactive mind‑mapping tool</title>
+  <!-- Descriptive meta tag. Describes NodeTrellis’s purpose and
+       features in concise, keyword‑rich language to improve click‑through
+       rates in search results. -->
+  <meta name="description" content="NodeTrellis is an interactive mind‑mapping tool that helps you organise and visualise ideas. Analyse any topic or URL to generate dynamic mind maps from JSON, edit and manage nodes with multi‑select and collapse features, extend your map via integrated AI, and export high‑resolution images." />
   <meta name="theme-color" content="#0d1117" />
   <script src="https://unpkg.com/cytoscape@3/dist/cytoscape.min.js" defer></script>
   <script src="https://unpkg.com/webcola@3.4.0/WebCola/cola.min.js" defer></script>
   <script src="https://unpkg.com/cytoscape-cola@2/cytoscape-cola.js" defer></script>
   <style>
-    :root{ --bg:#0d1117; --panel:#161b22; --border:#30363d; --txt:#e6edf3; --node:#475569; --node-h:#64748b; --root:#3b82f6; --root-outline:#facc15; --edge:#cbd5e1; --edge-bg:#0f172a; --btn:#238636; --btn-h:#2ea043; --btn-d:#3d434a; }
-    *,*::before,*::after{ box-sizing:border-box; }
-    html,body{ margin:0; height:100%; display:flex; flex-direction:column; font-family:system-ui,sans-serif; background:var(--bg); color:var(--txt); }
-    #controls{ padding:8px; background:var(--panel); border-bottom:1px solid var(--border); display:flex; flex-direction:column; gap:8px; }
-    .row{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
-    #topicInput{ flex:1; min-width:0; padding:6px 8px; border-radius:6px; border:1px solid var(--border); background:#0f172a; color:#c9d1d9; }
-    .btn{ padding:6px 14px; border:0; border-radius:6px; font-weight:600; cursor:pointer; white-space:nowrap; flex:0 0 auto; transition:background .15s; }
-    .btn{ -webkit-user-select:none; user-select:none; }
+    /* Colour palette variables for the dark theme */
+    :root {
+      --bg:           #0d1117;
+      --panel:        #161b22;
+      --border:       #30363d;
+      --txt:          #e6edf3;
+      --node:         #475569;
+      --node-h:       #64748b;
+      --root:         #3b82f6;
+      --root-outline: #facc15;
+      --edge:         #cbd5e1;
+      --edge-bg:      #0f172a;
+      --btn:          #238636;
+      --btn-h:        #2ea043;
+      --btn-d:        #3d434a;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    /* Layout: full height flex column with dark background */
+    html, body {
+      margin: 0;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      font-family: system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--txt);
+    }
+
+    /* Control panel styling */
+    #controls {
+      padding: 8px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+    }
+
+    #topicInput {
+      flex: 1;
+      min-width: 0;
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: #0f172a;
+      color: #c9d1d9;
+    }
+
+    .btn {
+      padding: 6px 14px;
+      border: 0;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      flex: 0 0 auto;
+      transition: background 0.15s;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
     /* Prevent text selection on all buttons when long‑pressed on mobile */
-    button{ -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
-    .btn.main{ background:var(--btn); color:#fff; }
-    .btn.main:hover{ background:var(--btn-h); }
-    .btn.aux{ background:var(--node-h); color:#111; padding:6px 10px; }
-    .btn.aux.active{ background:var(--btn); color:#fff; }
-    .btn:disabled{ background:var(--btn-d); color:#666; cursor:not-allowed; }
+    button {
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
+    }
+
+    .btn.main { background: var(--btn); color: #fff; }
+    .btn.main:hover { background: var(--btn-h); }
+    .btn.aux { background: var(--node-h); color: #111; padding: 6px 10px; }
+    .btn.aux.active { background: var(--btn); color: #fff; }
+    .btn:disabled { background: var(--btn-d); color: #666; cursor: not-allowed; }
 
     /* Style the model select like a button for visual consistency */
-    select.btn { appearance:none; -webkit-appearance:none; -moz-appearance:none; padding:6px 10px; border-radius:6px; border:0; font-weight:600; cursor:pointer; background:var(--node-h); color:#111; }
-    select.btn:hover { background:var(--btn-h); color:#fff; }
-    select.btn:disabled { background:var(--btn-d); color:#666; cursor:not-allowed; }
-    #jsonBox textarea{ width:100%; height:150px; font-family:monospace; background:#0f172a; color:#c9d1d9; border:1px solid var(--border); border-radius:6px; padding:8px; resize:vertical; }
-    #cy{ flex:1; touch-action:none; outline:none; }
-    #nodeMenu{ position:absolute; display:none; background:rgba(22,27,34,.92); border-radius:8px; padding:8px; max-width:calc(100vw - 20px); box-shadow:0 4px 10px #000a; z-index:1000; }
-    #nodeMenu.dragging{ opacity:.85; }
-    #nodeMenu button{ display:block; width:100%; margin:3px 0; padding:6px 14px; font-size:13px; border:0; background:var(--node); color:#fff; border-radius:4px; white-space:nowrap; text-align:left; cursor:pointer; }
-    #nodeMenu button:hover{ background:var(--node-h); }
-    .selected{ border:2px solid #f9a825 !important; }
+    select.btn {
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: 0;
+      font-weight: 600;
+      cursor: pointer;
+      background: var(--node-h);
+      color: #111;
+    }
+
+    select.btn:hover { background: var(--btn-h); color: #fff; }
+    select.btn:disabled { background: var(--btn-d); color: #666; cursor: not-allowed; }
+
+    #jsonBox textarea {
+      width: 100%;
+      height: 150px;
+      font-family: monospace;
+      background: #0f172a;
+      color: #c9d1d9;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px;
+      resize: vertical;
+    }
+
+    #cy {
+      flex: 1;
+      touch-action: none;
+      outline: none;
+    }
+
+    #nodeMenu {
+      position: absolute;
+      display: none;
+      background: rgba(22, 27, 34, 0.92);
+      border-radius: 8px;
+      padding: 8px;
+      max-width: calc(100vw - 20px);
+      box-shadow: 0 4px 10px #000a;
+      z-index: 1000;
+    }
+    #nodeMenu.dragging { opacity: 0.85; }
+    #nodeMenu button {
+      display: block;
+      width: 100%;
+      margin: 3px 0;
+      padding: 6px 14px;
+      font-size: 13px;
+      border: 0;
+      background: var(--node);
+      color: #fff;
+      border-radius: 4px;
+      white-space: nowrap;
+      text-align: left;
+      cursor: pointer;
+    }
+    #nodeMenu button:hover { background: var(--node-h); }
+
+    .selected { border: 2px solid #f9a825 !important; }
 
     /* API menu styling similar to node menu */
-    #apiMenu{ position:absolute; display:none; background:rgba(22,27,34,.92); border-radius:8px; padding:8px; max-width:calc(100vw - 20px); box-shadow:0 4px 10px #000a; z-index:1000; }
-    #apiMenu select{ width:100%; margin-bottom:6px; font-size:13px; color:#111; background:var(--node-h); border-radius:6px; border:0; font-weight:600; cursor:pointer; padding:6px 8px; }
-    #apiMenu select:hover{ background:var(--btn-h); color:#fff; }
-    #apiMenu button{ display:block; width:100%; margin:3px 0; padding:6px 14px; font-size:13px; border:0; background:var(--node); color:#fff; border-radius:4px; white-space:nowrap; text-align:left; cursor:pointer; }
-    #apiMenu button:hover{ background:var(--node-h); }
-    #helpOverlay,#overlay{ position:fixed; inset:0; background:#000a; backdrop-filter:blur(2px); display:none; align-items:center; justify-content:center; z-index:3000; }
-    #helpOverlay>div,#overlayInner{ background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:18px; max-width:480px; margin:0 5%; font-size:15px; line-height:1.4; }
-    #overlayInner{ width:90%; max-width:600px; display:flex; flex-direction:column; gap:8px; }
-    #overlayInner textarea{ flex:1; min-height:200px; background:#0f172a; color:#c9d1d9; border:1px solid var(--border); border-radius:6px; font-family:monospace; padding:8px; }
-    #overlayInner div{ display:flex; gap:8px; justify-content:flex-end; }
-    #donate{ padding:10px; background:var(--panel); border-top:1px solid var(--border); font-size:13px; cursor:pointer; }
-    #donate.hide{ opacity:0; height:0; padding:0; border:none; overflow:hidden; transition:.25s; }
-    #donate code{ font-family:monospace; }
-    #donate a{ color:#58a6ff; text-decoration:none; }
+    #apiMenu {
+      position: absolute;
+      display: none;
+      background: rgba(22, 27, 34, 0.92);
+      border-radius: 8px;
+      padding: 8px;
+      max-width: calc(100vw - 20px);
+      box-shadow: 0 4px 10px #000a;
+      z-index: 1000;
+    }
+    #apiMenu select {
+      width: 100%;
+      margin-bottom: 6px;
+      font-size: 13px;
+      color: #111;
+      background: var(--node-h);
+      border-radius: 6px;
+      border: 0;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 6px 8px;
+    }
+    #apiMenu select:hover { background: var(--btn-h); color: #fff; }
+    #apiMenu button {
+      display: block;
+      width: 100%;
+      margin: 3px 0;
+      padding: 6px 14px;
+      font-size: 13px;
+      border: 0;
+      background: var(--node);
+      color: #fff;
+      border-radius: 4px;
+      white-space: nowrap;
+      text-align: left;
+      cursor: pointer;
+    }
+    #apiMenu button:hover { background: var(--node-h); }
 
-    .btn:focus-visible, #topicInput:focus-visible{ outline:2px dashed #58a6ff; outline-offset:2px; }
+    #helpOverlay,
+    #overlay {
+      position: fixed;
+      inset: 0;
+      background: #000a;
+      backdrop-filter: blur(2px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 3000;
+    }
+    #helpOverlay > div,
+    #overlayInner {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px;
+      max-width: 480px;
+      margin: 0 5%;
+      font-size: 15px;
+      line-height: 1.4;
+    }
+    #overlayInner {
+      width: 90%;
+      max-width: 600px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    #overlayInner textarea {
+      flex: 1;
+      min-height: 200px;
+      background: #0f172a;
+      color: #c9d1d9;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-family: monospace;
+      padding: 8px;
+    }
+    #overlayInner div { display: flex; gap: 8px; justify-content: flex-end; }
+    #donate {
+      padding: 10px;
+      background: var(--panel);
+      border-top: 1px solid var(--border);
+      font-size: 13px;
+      cursor: pointer;
+    }
+    #donate.hide {
+      opacity: 0;
+      height: 0;
+      padding: 0;
+      border: none;
+      overflow: hidden;
+      transition: 0.25s;
+    }
+    #donate code { font-family: monospace; }
+    #donate a { color: #58a6ff; text-decoration: none; }
+
+    .btn:focus-visible,
+    #topicInput:focus-visible { outline: 2px dashed #58a6ff; outline-offset: 2px; }
 
     /* Visually hidden class for SEO-friendly H1. This hides the heading
        visually while keeping it in the DOM for screen readers and
        search engines. It matches a common accessibility pattern. */
-    .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+      border: 0;
+    }
   </style>
 </head>
 <body>
-  <!-- Hidden heading for accessibility and SEO. This heading will not
-       disturb the visual layout but will provide a primary topic for
-       screen readers and search engine crawlers. -->
+  <!-- Top‑level headline for improved semantic structure and SEO. Styled
+       inline to match the dark theme using CSS variables. -->
+  <!-- Hidden primary heading for SEO and accessibility. Using
+       class="visually-hidden" keeps the heading out of view while
+       retaining semantic structure. -->
   <h1 class="visually-hidden">NodeTrellis – interactive mind‑mapping tool</h1>
   <div id="controls">
     <div class="row" id="builderRow">
-      <!-- Removed visible label to avoid duplicate text -->
+      <!-- Input field for user topic or URL -->
       <input id="topicInput" placeholder="Topic or URL" aria-label="Topic or URL" />
       <button id="copyPromptBtn" class="btn main" aria-label="Copy prompt">Copy Prompt</button>
       <button id="pastePromptBtn" class="btn aux" aria-label="Paste prompt">📋</button>
@@ -89,8 +316,8 @@
     <div class="row" id="actionRow">
       <button id="renderBtn" class="btn main" style="flex:1" aria-label="Render map">Render Map</button>
       <button id="apiRenderBtn" class="btn main" aria-label="API Render">API Render</button>
-    <!-- Hidden select to store the current model. Options populated via script -->
-    <select id="modelSelect" class="btn aux" title="Select model" style="display:none"></select>
+      <!-- Hidden select to store the current model. Options populated via script -->
+      <select id="modelSelect" class="btn aux" title="Select model" style="display:none"></select>
       <button id="pasteBtn" class="btn aux" aria-label="Paste JSON">📋</button>
       <button id="copyJsonBtn" class="btn aux" aria-label="Copy JSON">📄</button>
       <button id="exportBtn" class="btn aux" aria-label="Export PNG">📥</button>
@@ -104,7 +331,6 @@
     </div>
     <!-- Loading bar shown during API calls. Shows incoming character count and has a stop button. -->
     <div id="loadingBar" class="row" style="display:none;align-items:center;gap:6px;margin-top:4px">
-      <!-- Removed the progress bar; only show character count and stop button remain -->
       <span id="charCounter" style="flex:1;text-align:left;font-size:12px;color:#e6edf3;">0</span>
       <button id="stopBtn" class="btn aux" style="min-width:60px;">Stop</button>
     </div>
@@ -114,15 +340,13 @@
     <button id="selectAllBtn" role="menuitem">Select all nodes</button>
     <button id="copyTextBtn" role="menuitem">Copy text</button>
     <button id="nodeCopy" role="menuitem">Copy Prompt for selected</button>
-      <button id="apiExtendBtn" role="menuitem">API Extend</button>
+    <button id="apiExtendBtn" role="menuitem">API Extend</button>
     <button id="addChildBtn" role="menuitem">Add child</button>
     <button id="collapseBtn" role="menuitem">Toggle collapse</button>
     <button id="nodeDelete" role="menuitem">Delete node & subtree</button>
     <button id="childDelete" role="menuitem">Delete ONLY children</button>
   </div>
-  <!-- API menu for model selection and API key editing. This appears when holding or right‑clicking
-       the API Render button. It contains a grouped select for available models and a button
-       to edit the API key. -->
+  <!-- API menu for model selection and API key editing. Appears when holding or right‑clicking the API Render button. -->
   <div id="apiMenu" role="menu" aria-hidden="true">
     <label for="modelSelectOverlay" style="display:block;font-size:13px;margin:4px 0;color:#e6edf3;">Choose model</label>
     <select id="modelSelectOverlay" style="width:100%;margin-bottom:6px;appearance:none;-webkit-appearance:none;-moz-appearance:none;padding:6px 8px;border-radius:6px;border:0;font-weight:600;cursor:pointer;background:var(--node-h);color:#111;"></select>
@@ -139,18 +363,17 @@
   </div>
   <div id="helpOverlay" aria-hidden="true">
     <div>
-    <h3 style="margin-top:0">Guide</h3>
-      <p><b>1.</b> Type a topic or any URL in the field at the top.</p>
-      <p><b>2.</b> Tap <em>Copy Prompt</em> – a ready‑made instruction for your LLM is copied to your clipboard.</p>
-      <p><b>3.</b> Paste that prompt into your LLM and wait for the JSON response.</p>
-      <p><b>4.</b> Paste the JSON into the box below, then press <i>Render Map</i>.</p>
-      <p><b>5.</b> To open the node menu, right‑click on a node with a mouse or long‑press (~1 s) on touch. You can then manage children, collapse nodes, copy text, or delete.</p>
-      <p><b>6.</b> Use <em>API&nbsp;Render</em> to call OpenAI directly. Hold or right‑click the API button to open a small menu where you can choose a model or edit your API key. Both the key and your current graph persist between sessions. During API calls a small counter appears showing the number of incoming characters; the adjacent stop button lets you cancel long requests while you continue exploring the current graph.</p>
-      <p><b>7.</b> In the node menu you can use <em>API&nbsp;Extend</em> to extend and refactor the selected node(s) using the same prompt as Copy Prompt.</p>
+      <h3 style="margin-top:0">Guide</h3>
+      <p><strong>1.</strong> Type a topic or any URL in the field at the top.</p>
+      <p><strong>2.</strong> Tap <em>Copy Prompt</em> – a ready‑made instruction for your LLM is copied to your clipboard.</p>
+      <p><strong>3.</strong> Paste that prompt into your LLM and wait for the JSON response.</p>
+      <p><strong>4.</strong> Paste the JSON into the box below, then press <i>Render Map</i>.</p>
+      <p><strong>5.</strong> To open the node menu, right‑click on a node with a mouse or long‑press (~1 s) on touch. You can then manage children, collapse nodes, copy text, or delete.</p>
+      <p><strong>6.</strong> Use <em>API&nbsp;Render</em> to call OpenAI directly. Hold or right‑click the API button to open a small menu where you can choose a model or edit your API key. Both the key and your current graph persist between sessions. During API calls a small counter appears showing the number of incoming characters; the adjacent stop button lets you cancel long requests while you continue exploring the current graph.</p>
+      <p><strong>7.</strong> In the node menu you can use <em>API&nbsp;Extend</em> to extend and refactor the selected node(s) using the same prompt as Copy Prompt.</p>
       <p style="margin-top:14px;text-align:center;font-style:italic">press anywhere to continue</p>
     </div>
   </div>
-
   <section id="donate" title="Tap to hide">
     <h3 style="margin:0 0 4px;font-size:14px">Support citizen‑science projects <span style="font-size:11px;opacity:.6">(tap to hide)</span></h3>
     <p><strong>Gridcoin</strong> — rewards BOINC distributed‑computing research.<br>Address: <code>SG5RCw9cf2RhbopCuXLzYYpXciARaZNCF8</code></p>
@@ -198,20 +421,11 @@
       const donate = document.getElementById('donate');
 
       // Loading bar and abort handling
-      // These elements provide feedback during API calls and allow the user
-      // to abort a long‑running request. When a request begins, the loading
-      // bar becomes visible and both API buttons are disabled. A new
-      // AbortController is created for each request. The stop button aborts
-      // the pending fetch. Once the request completes or is aborted, the bar
-      // is hidden and the buttons re‑enabled.
-      const loadingBar  = document.getElementById('loadingBar');
-      // progressBar element has been removed; only a character counter and stop button remain
+      const loadingBar  = document.getElementById('loadingBar');
       const charCounter = document.getElementById('charCounter');
-      const stopBtn     = document.getElementById('stopBtn');
+      const stopBtn     = document.getElementById('stopBtn');
       let abortController = null;
       const showLoading = () => {
-        // Reset the character counter. The counter shows how many characters
-        // have been streamed so far.
         charCounter.textContent = '0';
         loadingBar.style.display = 'flex';
         apiRenderBtn.disabled = true;
@@ -223,23 +437,20 @@
         apiExtendBtn.disabled = false;
         abortController = null;
       };
-      // Clicking the stop button aborts the current API call if one is in progress.
       stopBtn.addEventListener('click', () => {
         if (abortController) {
           try { abortController.abort(); } catch {}
         }
         hideLoading();
       });
-      
+
       // API key persistence
       const API_KEY_STORAGE = 'openai_api_key';
-      const MODEL_STORAGE   = 'openai_model';
+      const MODEL_STORAGE   = 'openai_model';
 
       // Predefined model categories and their available model IDs. These come from
       // user‑provided listings and reflect the actual models currently available
-      // in the OpenAI playground. When you hold or right‑click the API Render
-      // button, you can choose from these grouped models. They are also used
-      // internally when rendering via the API.
+      // in the OpenAI playground.
       const modelCategories = {
         'GPT-4.1': [
           'gpt-4.1',
@@ -263,7 +474,7 @@
           'o3-2025-04-16',
           'o3-mini',
           'o3-mini-2025-01-31',
-          'o4-mini-2025-04-16',
+          'o4-mini',
           'o4-mini-deep-research',
           'o4-mini-deep-research-2025-06-26'
         ],
@@ -305,19 +516,10 @@
         ]
       };
 
-      // Extract the list of reasoning models once for quick lookup. These
-      // models behave differently when calling the API because they only
-      // accept the default temperature of 1. When a reasoning model is
-      // selected we will override the temperature parameter accordingly.
+      // Extract the list of reasoning models once for quick lookup
       const reasoningModels = modelCategories['REASONING'] || [];
-
-      // Flatten all model IDs into a single array for internal use with the hidden
-      // select element. This array preserves the order of categories by
-      // concatenating their values in the order defined above.
+      // Flatten all model IDs into a single array for internal use with the hidden select element
       const flatModels = [].concat(...Object.values(modelCategories));
-
-      // Default models fallback. Only used if something goes wrong; this is now
-      // equal to the flattened list of all models.
       const defaultModels = flatModels.slice();
 
       /**
@@ -328,14 +530,14 @@
         modelSelect.innerHTML = '';
         models.forEach(m => {
           const id = typeof m === 'string' ? m : m.id;
-          if(!id) return;
+          if (!id) return;
           const opt = document.createElement('option');
           opt.value = id;
           opt.textContent = id;
           modelSelect.appendChild(opt);
         });
         const stored = localStorage.getItem(MODEL_STORAGE);
-        if(stored && Array.from(modelSelect.options).some(o => o.value === stored)) {
+        if (stored && Array.from(modelSelect.options).some(o => o.value === stored)) {
           modelSelect.value = stored;
         }
       };
@@ -344,8 +546,7 @@
        * Load the predefined list of available models into the hidden select.
        * This no longer fetches from the OpenAI API because the user provided
        * a curated list of models. The list is flattened from the
-       * modelCategories object defined above. If a previously selected model
-       * exists in localStorage, it will be restored here.
+       * modelCategories object defined above.
        */
       const loadModels = () => {
         populateModelSelect(flatModels);
@@ -357,15 +558,15 @@
 
       /**
        * Prompt the user for an API key. If forcePrompt is true or no key exists,
-       * display a prompt pre-filled with the current key. Stores the trimmed
+       * display a prompt pre‑filled with the current key. Stores the trimmed
        * key in localStorage and reloads the model list.
        * @param {boolean} forcePrompt
        */
       const promptApiKey = (forcePrompt=false) => {
         let key = localStorage.getItem(API_KEY_STORAGE) || '';
-        if(forcePrompt || !key) {
+        if (forcePrompt || !key) {
           const entered = prompt('Enter your OpenAI API key:', key || '');
-          if(entered && entered.trim()) {
+          if (entered && entered.trim()) {
             key = entered.trim();
             localStorage.setItem(API_KEY_STORAGE, key);
           }
@@ -375,11 +576,6 @@
       };
 
       // API render handling
-      // When the user holds or right‑clicks the API Render button, a small menu
-      // (apiMenu) appears near the button allowing the user to pick a model
-      // from grouped categories or edit their API key. A normal click calls
-      // the API using the currently selected model. Holding or right‑clicking
-      // will not trigger an API call until the menu is closed.
       let apiHoldTimer = null;
       let apiMenuOpen = false;
 
@@ -388,7 +584,7 @@
       const populateApiMenu = () => {
         const overlaySelect = document.getElementById('modelSelectOverlay');
         overlaySelect.innerHTML = '';
-        for(const [cat, models] of Object.entries(modelCategories)){
+        for (const [cat, models] of Object.entries(modelCategories)) {
           const optgroup = document.createElement('optgroup');
           optgroup.label = cat;
           models.forEach(m => {
@@ -426,7 +622,7 @@
       // Hide the API menu if it is open
       const closeApiMenu = () => {
         const menu = document.getElementById('apiMenu');
-        if(apiMenuOpen){
+        if (apiMenuOpen) {
           menu.style.display = 'none';
           apiMenuOpen = false;
         }
@@ -434,15 +630,14 @@
 
       // Event handlers for holding or right‑clicking the API Render button
       apiRenderBtn.addEventListener('pointerdown', e => {
-        // Only left click or touch should start the hold timer
-        if((e.button === 0 || e.pointerType === 'touch') && !apiHoldTimer){
+        if ((e.button === 0 || e.pointerType === 'touch') && !apiHoldTimer) {
           apiHoldTimer = setTimeout(() => {
             openApiMenu(e);
           }, 600);
         }
       });
       const clearApiHoldTimeout = () => {
-        if(apiHoldTimer){ clearTimeout(apiHoldTimer); apiHoldTimer = null; }
+        if (apiHoldTimer) { clearTimeout(apiHoldTimer); apiHoldTimer = null; }
       };
       apiRenderBtn.addEventListener('pointerup', clearApiHoldTimeout);
       apiRenderBtn.addEventListener('pointerleave', clearApiHoldTimeout);
@@ -451,14 +646,11 @@
         openApiMenu(e);
       });
 
-      // Close the API menu when clicking or tapping outside of it. If the menu
-      // is open and the user interacts anywhere other than the menu or the API
-      // render button, the menu will be hidden. This prevents it from staying
-      // on screen unintentionally.
+      // Close the API menu when clicking or tapping outside of it
       document.addEventListener('pointerdown', (e) => {
-        if(apiMenuOpen){
+        if (apiMenuOpen) {
           const menuEl = document.getElementById('apiMenu');
-          if(!menuEl.contains(e.target) && e.target !== apiRenderBtn){
+          if (!menuEl.contains(e.target) && e.target !== apiRenderBtn) {
             closeApiMenu();
           }
         }
@@ -468,304 +660,21 @@
       // call the API using the selected model. If the menu is currently open,
       // just close it and do nothing else.
       apiRenderBtn.addEventListener('click', async () => {
-        if(apiMenuOpen){
+        if (apiMenuOpen) {
           closeApiMenu();
           return;
         }
         const topic = topicInput.value.trim();
-        if(!topic){ alert('Enter a topic or URL first'); return; }
+        if (!topic) { alert('Enter a topic or URL first'); return; }
         let key = getApiKey();
-        if(!key){
+        if (!key) {
           // Prompt user for API key if none is set
           key = promptApiKey(true);
-          if(!key) return;
+          if (!key) return;
         }
         const prompt = makePrompt(topic);
         // Use the currently selected model from the hidden select; fall back to the first model if missing
         const model = modelSelect.value || flatModels[0];
-        // Prepare for the API call: create AbortController and show loading indicator
-        abortController = new AbortController();
-        const signal = abortController.signal;
-        showLoading();
-        try {
-          // Select temperature based on model category and enable streaming for all models.
-          const temperature = reasoningModels.includes(model) ? 1 : 0.2;
-          const body = { model, messages: [ { role: 'user', content: prompt } ], temperature: temperature, stream: true };
-          const response = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer ' + key
-            },
-            body: JSON.stringify(body),
-            signal
-          });
-          if(!response.ok){
-            const text = await response.text();
-            throw new Error('API error: ' + response.status + ' ' + response.statusText + '\n' + text);
-          }
-          // Stream the response. Accumulate full message and update character count as chunks arrive.
-          const reader = response.body.getReader();
-          const decoder = new TextDecoder('utf-8');
-          let buffer = '';
-          let full = '';
-          let charCnt = 0;
-          outer: while(true){
-            const { value, done } = await reader.read();
-            if(done) break;
-            buffer += decoder.decode(value, { stream: true });
-            let lines = buffer.split(/\r?\n/);
-            buffer = lines.pop() || '';
-            for(const line of lines){
-              const trimmed = line.trim();
-              if(!trimmed.startsWith('data:')) continue;
-              const dataLine = trimmed.slice(5).trim();
-              if(dataLine === '[DONE]'){
-                break outer;
-              }
-              try {
-                const obj = JSON.parse(dataLine);
-                const delta = obj.choices?.[0]?.delta?.content;
-                if(delta){
-                  full += delta;
-                  charCnt += delta.length;
-                  charCounter.textContent = String(charCnt);
-                }
-              } catch(e){ /* ignore malformed lines */ }
-            }
-          }
-          // Once complete, extract JSON from the accumulated content, update input and render
-          const extracted = extractJSON(sanitize(full));
-          jsonInput.value = extracted;
-          updateCharCount();
-          render(true);
-        } catch(err){
-          if(err.name === 'AbortError'){
-            console.warn('Request aborted');
-          } else {
-            console.error(err);
-            alert('Failed to fetch from OpenAI:\n' + err.message);
-          }
-        } finally {
-          hideLoading();
-        }
-      });
-
-      // Char count update
-      const updateCharCount = () => {
-        const len = jsonInput.value.length;
-        charCount.textContent = `${len} character${len === 1 ? '' : 's'}`;
-      };
-      jsonInput.addEventListener('input', updateCharCount);
-
-      // Persist selected model across sessions
-      modelSelect.addEventListener('change', () => {
-        try { localStorage.setItem(MODEL_STORAGE, modelSelect.value); } catch {}
-      });
-
-      // Local storage for graph and json
-      const STORAGE_KEY = 'nodetrellis-json';
-      try { const stored = localStorage.getItem(STORAGE_KEY); if(stored){ jsonInput.value = stored; updateCharCount(); } } catch {}
-      jsonInput.addEventListener('input', () => { try { localStorage.setItem(STORAGE_KEY, jsonInput.value); } catch {} });
-
-      // Load available models from OpenAI or fall back to defaults
-      loadModels();
-
-      // URL detection: treat as URL if it contains "://" (any scheme) or resembles a bare domain name.
-      // The regex below matches strings with a dot and no whitespace, e.g. "example.com" or "sub.domain.org/path".
-      const isURL = s => {
-        const str = s.trim();
-        return /:\/\//.test(str) || /^[^\s]+\.[^\s]{2,}(?:[\/\?#].*)?$/.test(str);
-      };
-      const makePrompt = txt => {
-        const limit = '• Each node “text” ≤ 50 chars (links unrestricted).';
-        if(isURL(txt)){
-          return `Analyse the page ${txt} and output ONLY raw JSON.\n\n• Add "link":"${txt}" at top level (do NOT add it as a node).\n• IDs start n0, n1, n2 …\n${limit}\n\nSchema:\n{ "link":"${txt}", "root":"n0",\n  "nodes":[{ "id":"n0","text":"<root>","parent":"" }],\n  "edges":[{ "source":"…","target":"…","label":"…","direction":"out" }] }\n\nReturn ONLY the JSON object.`;
-        }
-        return `Create a mind‑map for "${txt}" and output ONLY raw JSON.\n\n• IDs start n0, n1, n2 …\n${limit}\n\nSchema:\n{ "root":"n0",\n  "nodes":[{ "id":"n0","text":"<root>","parent":"" }],\n  "edges":[{ "source":"…","target":"…","label":"…","direction":"out" }] }\n\nReturn ONLY the JSON object.`;
-      };
-      copyPromptBtn.addEventListener('click', () => {
-        const val = topicInput.value.trim(); if(!val){ alert('Enter topic or URL'); return; } navigator.clipboard.writeText(makePrompt(val));
-      });
-      pastePromptBtn.addEventListener('click', async () => {
-        try { topicInput.value = (await navigator.clipboard.readText()).trim(); } catch {}
-      });
-      
-      // Help overlay toggling
-      helpBtn.addEventListener('click', () => { helpOverlay.style.display='flex'; });
-      helpOverlay.addEventListener('click', () => { helpOverlay.style.display='none'; });
-      
-      // Copy/paste JSON
-      copyJsonBtn.addEventListener('click', () => { navigator.clipboard.writeText(jsonInput.value || ''); });
-      pasteBtn.addEventListener('click', async () => {
-        try { jsonInput.value = extractJSON(sanitize(await navigator.clipboard.readText())); updateCharCount(); }
-        catch { overlay.style.display='flex'; }
-      });
-      ovCancel.addEventListener('click', () => { overlay.style.display='none'; });
-      ovOk.addEventListener('click', () => { const ta = overlay.querySelector('textarea'); jsonInput.value = extractJSON(sanitize(ta.value)); overlay.style.display='none'; updateCharCount(); });
-      jsonInput.addEventListener('paste', e => { e.preventDefault(); const text = e.clipboardData.getData('text/plain'); jsonInput.value = extractJSON(sanitize(text)); updateCharCount(); });
-
-      // History with selection
-      let dataObj = {};
-      let hist = [];
-      let idx = -1;
-      const updateHistoryButtons = () => { undoBtn.disabled = idx <= 0; redoBtn.disabled = idx >= hist.length - 1; };
-      const pushHist = state => {
-        const last = hist[hist.length-1];
-        if(last && last.json === state.json && JSON.stringify(last.selection) === JSON.stringify(state.selection)) return;
-        hist.splice(idx+1);
-        hist.push(state);
-        idx = hist.length-1;
-        updateHistoryButtons();
-      };
-      const pushHistState = () => { pushHist({ json: jsonInput.value, selection: [...sel] }); };
-      const loadState = state => {
-        if(state.json !== jsonInput.value){ jsonInput.value = state.json; render(false); }
-        applySelection(state.selection, false);
-        updateHistoryButtons();
-      };
-      
-      // Cytoscape graph
-      let cy, layout;
-      // Track when a taphold just occurred. This allows us to ignore the
-      // subsequent tap event that is fired when the user lifts their finger
-      // after a long press. Without this flag the menu would immediately
-      // disappear after showing on touch devices. See on('taphold','node') below.
-      let tapholdActive = false;
-      cytoscape.use(cytoscapeCola);
-      let menuOpened = false;
-      const initCy = () => {
-        if(cy) return;
-        cy = cytoscape({ container: document.getElementById('cy'), wheelSensitivity:0.6, style:[
-          { selector:'node', style:{ label:'data(label)','text-wrap':'wrap','text-max-width':'220px','text-valign':'center','text-halign':'center','background-color':'var(--node)',shape:'round-rectangle',padding:'6px',width:'label',height:'label','font-size':'13px',color:'#fff','text-outline-color':'#000','text-outline-width':1 } },
-          { selector:'node.root', style:{ 'background-color':'var(--root)','border-width':4,'border-color':'var(--root-outline)','text-outline-color':'#000','text-outline-width':3,'font-size':'15px','font-weight':'700' } },
-          { selector:'node.selected', style:{ 'border-color':'#f9a825','border-width':2 } },
-          { selector:'node.collapsed', style:{ 'border-color':'#ef4444','border-width':2 } },
-          { selector:'edge', style:{ width:2,'line-color':'var(--edge)','target-arrow-color':'var(--edge)','target-arrow-shape':'triangle','curve-style':'bezier',label:'data(label)','font-size':'11px',color:'#e6edf3','text-rotation':'autorotate','text-background-opacity':.9,'text-background-color':'var(--edge-bg)','text-background-padding':'2px' } },
-          { selector:'edge[label=""]', style:{ label:'','text-background-opacity':0 } }
-        ]});
-        cy.on('zoom', () => { zoomSlider.value = cy.zoom().toFixed(2); });
-        cy.on('tap', e => {
-          // Ignore the tap that follows a taphold. Lifting your finger after
-          // a long‑press still triggers a tap event in Cytoscape. If we
-          // process it, the selection or menu state will change unexpectedly.
-          if(tapholdActive) return;
-          // When the context menu has just opened via right‑click or tap‑hold,
-          // swallow the next generic tap so the menu remains visible.
-          if(menuOpened){ menuOpened=false; return; }
-          if(e.target === cy) clearSelection(true);
-        });
-        cy.on('dbltap','node', editNode);
-        // Custom tap handler for nodes. Skip processing if the tap event
-        // immediately follows a long press.
-        cy.on('tap','node', e => {
-          if(tapholdActive) return;
-          tapNode(e);
-        });
-        cy.on('cxttap','node', e => {
-          if(!sel.has(e.target.id())){ clearSelection(false); sel.add(e.target.id()); e.target.addClass('selected'); }
-          openMenu(e.renderedPosition);
-          menuOpened=true;
-        });
-        cy.on('taphold','node', e => {
-          // On long‑press, add the node to the current selection without clearing
-          // any existing selections. This allows you to hold a node to open
-          // the menu without deselecting it or other nodes. Mark tapholdActive
-          // so the subsequent tap event (fired when the finger lifts) is
-          // ignored by the generic tap handler. Reset the flag shortly
-          // thereafter so normal taps resume working.
-          const id = e.target.id();
-          if(!sel.has(id)){
-            sel.add(id);
-            e.target.addClass('selected');
-          }
-          openMenu(e.renderedPosition);
-          menuOpened = true;
-          tapholdActive = true;
-          setTimeout(() => { tapholdActive = false; }, 300);
-        });
-        enableKineticPan();
-      };
-      const editNode = e => {
-        const node=e.target; const current=node.data('full'); const newText=prompt('Edit text:', current);
-        if(newText!==null && newText.trim()!==''){ node.data('label', wrap(newText)); node.data('full', newText); const objNode=dataObj.nodes.find(n => n.id === node.id()); if(objNode) objNode.text=newText; jsonInput.value=JSON.stringify(dataObj,null,2); pushHistState(); physics(); }
-      };
-      const physics = () => { layout?.stop(); layout = cy.layout({ name:'cola', infinite:true, animate:true, refresh:1, nodeSpacing:25, edgeLength:200, padding:40, fit:false, avoidOverlap:true }); layout.run(); };
-      const enableKineticPan = () => {
-        const container=cy.container(); let tracking=false,lastT=0,lastX=0,lastY=0,vx=0,vy=0,raf; let touchCount=0,pinching=false,pinchPan={x:0,y:0}; const damp=0.97, stop=0.00025; const cancelMomentum=()=>{ cancelAnimationFrame(raf); vx=vy=0; };
-        container.addEventListener('pointerdown', e => {
-          if(e.pointerType==='touch'){ touchCount++; if(touchCount===2){ pinching=true; pinchPan=cy.pan(); tracking=false; cancelMomentum(); } }
-          if(pinching) return;
-          if(e.pointerType==='mouse' && e.button!==0) return;
-          tracking=true; lastT=e.timeStamp; lastX=e.clientX; lastY=e.clientY; vx=vy=0; cancelMomentum();
-        });
-        container.addEventListener('pointermove', e => {
-          if(pinching){ cy.pan(pinchPan); return; }
-          if(!tracking) return;
-          const dt=e.timeStamp-lastT; if(!dt) return;
-          const dx=e.clientX-lastX, dy=e.clientY-lastY; vx=0.8*vx+0.2*(dx/dt); vy=0.8*vy+0.2*(dy/dt); lastT=e.timeStamp; lastX=e.clientX; lastY=e.clientY;
-        });
-        const pointerUp=e => {
-          if(e.pointerType==='touch'){ touchCount=Math.max(0,touchCount-1); if(touchCount<2 && pinching) pinching=false; }
-          if(pinching || !tracking){ tracking=false; return; }
-          tracking=false; let prev=performance.now(); const frame=now => { const dt=now-prev; prev=now; vx*=damp; vy*=damp; if(Math.hypot(vx,vy)<stop) return; cy.panBy({ x:vx*dt, y:vy*dt }); raf=requestAnimationFrame(frame); }; if(Math.hypot(vx,vy)>=stop) raf=requestAnimationFrame(frame);
-        };
-        window.addEventListener('pointerup', pointerUp);
-        window.addEventListener('pointercancel', pointerUp);
-      };
-      
-      // Selection management
-      const sel = new Set();
-      let multi=false;
-      multiBtn.addEventListener('click', () => { multi=!multi; multiBtn.classList.toggle('active', multi); if(!multi) clearSelection(true); });
-      const clearSelection = (record=true) => { sel.forEach(id => cy.getElementById(id).removeClass('selected')); sel.clear(); nodeMenu.style.display='none'; if(record) pushHistState(); };
-      const applySelection = (list, record=false) => { clearSelection(false); list.forEach(id => { const node=cy.getElementById(id); if(node.length){ sel.add(id); node.addClass('selected'); } }); if(record) pushHistState(); };
-      const selectionNames = () => [...sel].map(id => cy.getElementById(id).data('full')).join(', ');
-      const clampPos = (x,y) => { const mw=nodeMenu.offsetWidth, mh=nodeMenu.offsetHeight; return [ Math.max(10, Math.min(window.innerWidth - mw - 10, x)), Math.max(10, Math.min(window.innerHeight - mh - 10, y)) ]; };
-      const openMenu = pos => {
-        if(!sel.size) return;
-        copyTextBtn.textContent = sel.size>1 ? 'Copy texts' : 'Copy text';
-        nodeCopyBtn.textContent = sel.size>1 ? 'Copy Prompt for selected' : 'Copy Prompt for this node';
-        copyTextBtn.dataset.names = nodeCopyBtn.dataset.names = selectionNames();
-        delBtn.textContent = sel.has('n0') && sel.size===1 ? 'Delete entire graph' : 'Delete node & subtree';
-        nodeMenu.style.display='block'; const rect=cy.container().getBoundingClientRect(); const [x,y]=clampPos(pos.x+20+rect.left, pos.y+20+rect.top); nodeMenu.style.left=x+'px'; nodeMenu.style.top=y+'px'; nodeMenu.setAttribute('aria-hidden','false');
-      };
-      const tapNode = e => {
-        const id=e.target.id(); if(!multi){ clearSelection(false); sel.add(id); e.target.addClass('selected'); } else { if(sel.has(id)){ sel.delete(id); e.target.removeClass('selected'); } else { sel.add(id); e.target.addClass('selected'); } }
-        if(!sel.size) nodeMenu.style.display='none'; pushHistState();
-      };
-      selectAllBtn.addEventListener('click', () => { sel.clear(); cy.nodes().forEach(n => { sel.add(n.id()); n.addClass('selected'); }); multi=true; multiBtn.classList.add('active'); pushHistState(); });
-      
-      // Menu drag
-      let dragging=false, off={x:0,y:0}, start={x:0,y:0}, cancelClick=false;
-      const dragStart = ev => { if(ev.button!==undefined && ev.button!==0) return; const p=ev.touches?ev.touches[0]:ev; start={x:p.clientX,y:p.clientY}; off={ x:p.clientX-parseFloat(nodeMenu.style.left||0), y:p.clientY-parseFloat(nodeMenu.style.top||0) }; dragging=cancelClick=false; document.addEventListener(ev.touches?'touchmove':'mousemove', dragMove, {passive:false}); document.addEventListener(ev.touches?'touchend':'mouseup', dragEnd, {once:true}); };
-      const dragMove = ev => { const p=ev.touches?ev.touches[0]:ev; if(!dragging && Math.hypot(p.clientX-start.x,p.clientY-start.y)>4) dragging=true; if(!dragging) return; ev.preventDefault(); cancelClick=true; nodeMenu.classList.add('dragging'); const [x,y]=clampPos(p.clientX-off.x, p.clientY-off.y); nodeMenu.style.left=x+'px'; nodeMenu.style.top=y+'px'; };
-      const dragEnd = () => { nodeMenu.classList.remove('dragging'); document.removeEventListener('mousemove', dragMove); document.removeEventListener('touchmove', dragMove); if(dragging) window._swallowCyTap=()=>{}; setTimeout(() => { cancelClick=false; }, 0); };
-      nodeMenu.addEventListener('mousedown', dragStart); nodeMenu.addEventListener('touchstart', dragStart, {passive:false}); nodeMenu.addEventListener('click', e => { if(cancelClick){ e.stopImmediatePropagation(); e.preventDefault(); } }, true);
-      
-      // Menu actions
-      copyTextBtn.addEventListener('click', () => { navigator.clipboard.writeText(copyTextBtn.dataset.names || ''); nodeMenu.style.display='none'; });
-      nodeCopyBtn.addEventListener('click', () => {
-        const names=nodeCopyBtn.dataset.names||''; if(!names) return;
-        const linkEntry=dataObj.link ? ` "link":"${dataObj.link}",\n` : '';
-        const prompt=`Extend and refactor node "${names}"\n\nKeep "link" key if present. IDs stay n0, n1, …\nEach node text ≤ 50 chars.\n\nSchema:\n{\n${linkEntry}"root":"n0",\n  "nodes":[{ "id":"n0","text":"<root>","parent":"" }, … ],\n  "edges":[{ "source":"…","target":"…","label":"…","direction":"out" }]\n}\n\nReturn ONLY the JSON object.\n\nCurrent JSON:\n${jsonInput.value}`;
-        navigator.clipboard.writeText(prompt); nodeMenu.style.display='none';
-      });
-
-      // API Extend: call OpenAI to extend and refactor the selected node(s) using
-      // the same prompt structure as Copy Prompt, but automatically update the
-      // current graph. Requires an API key and uses the selected model.
-      apiExtendBtn.addEventListener('click', async () => {
-        const names = nodeCopyBtn.dataset.names || '';
-        if(!names) return;
-        let key = getApiKey();
-        if(!key){
-          key = promptApiKey(true);
-          if(!key) return;
-        }
-        const linkEntry = dataObj.link ? ` "link":"${dataObj.link}",\n` : '';
-        const prompt = `Extend and refactor node "${names}"\n\nKeep "link" key if present. IDs stay n0, n1, …\nEach node text ≤ 50 chars.\n\nSchema:\n{\n${linkEntry}"root":"n0",\n  "nodes":[{ "id":"n0","text":"<root>","parent":"" }, … ],\n  "edges":[{ "source":"…","target":"…","label":"…","direction":"out" }]\n}\n\nReturn ONLY the JSON object.\n\nCurrent JSON:\n${jsonInput.value}`;
-        const model = modelSelect.value || defaultModels[0];
         // Prepare for the API call: create AbortController and show loading indicator
         abortController = new AbortController();
         const signal = abortController.signal;
@@ -783,38 +692,331 @@
             body: JSON.stringify(body),
             signal
           });
-          if(!response.ok){
+          if (!response.ok) {
             const text = await response.text();
             throw new Error('API error: ' + response.status + ' ' + response.statusText + '\n' + text);
           }
-          // Stream the response and update char counter
+          // Stream the response
           const reader = response.body.getReader();
           const decoder = new TextDecoder('utf-8');
           let buffer = '';
           let full = '';
           let charCnt = 0;
-          outer2: while(true){
+          outer: while (true) {
             const { value, done } = await reader.read();
-            if(done) break;
+            if (done) break;
             buffer += decoder.decode(value, { stream: true });
             let lines = buffer.split(/\r?\n/);
             buffer = lines.pop() || '';
-            for(const line of lines){
+            for (const line of lines) {
               const trimmed = line.trim();
-              if(!trimmed.startsWith('data:')) continue;
+              if (!trimmed.startsWith('data:')) continue;
               const dataLine = trimmed.slice(5).trim();
-              if(dataLine === '[DONE]'){
+              if (dataLine === '[DONE]') {
+                break outer;
+              }
+              try {
+                const obj = JSON.parse(dataLine);
+                const delta = obj.choices?.[0]?.delta?.content;
+                if (delta) {
+                  full += delta;
+                  charCnt += delta.length;
+                  charCounter.textContent = String(charCnt);
+                }
+              } catch (e) { /* ignore malformed lines */ }
+            }
+          }
+          // Once complete, extract JSON from the accumulated content, update input and render
+          const extracted = extractJSON(sanitize(full));
+          jsonInput.value = extracted;
+          updateCharCount();
+          render(true);
+        } catch (err) {
+          if (err.name === 'AbortError') {
+            console.warn('Request aborted');
+          } else {
+            console.error(err);
+            alert('Failed to fetch from OpenAI:\n' + err.message);
+          }
+        } finally {
+          hideLoading();
+        }
+      });
+
+      // Character count update for JSON input
+      const updateCharCount = () => {
+        const len = jsonInput.value.length;
+        charCount.textContent = `${len} character${len === 1 ? '' : 's'}`;
+      };
+      jsonInput.addEventListener('input', updateCharCount);
+
+      // Persist selected model across sessions
+      modelSelect.addEventListener('change', () => {
+        try { localStorage.setItem(MODEL_STORAGE, modelSelect.value); } catch {}
+      });
+
+      // Local storage for graph and JSON
+      const STORAGE_KEY = 'nodetrellis-json';
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          jsonInput.value = stored;
+          updateCharCount();
+        }
+      } catch {}
+      jsonInput.addEventListener('input', () => {
+        try { localStorage.setItem(STORAGE_KEY, jsonInput.value); } catch {}
+      });
+
+      // Load available models from the predefined list
+      loadModels();
+
+      // URL detection helper for constructing prompts
+      const isURL = s => {
+        const str = s.trim();
+        return /:\/\//.test(str) || /^[^\s]+\.[^\s]{2,}(?:[\/\?#].*)?$/.test(str);
+      };
+      const makePrompt = txt => {
+        const limit = '• Each node “text” ≤ 50 chars (links unrestricted).';
+        if (isURL(txt)) {
+          return `Analyse the page ${txt} and output ONLY raw JSON.\n\n• Add "link":"${txt}" at top level (do NOT add it as a node).\n• IDs start n0, n1, n2 …\n${limit}\n\nSchema:\n{ "link":"${txt}", "root":"n0",\n  "nodes":[{ "id":"n0","text":"<root>","parent":"" }],\n  "edges":[{ "source":"…","target":"…","label":"…","direction":"out" }] }\n\nReturn ONLY the JSON object.`;
+        }
+        return `Create a mind‑map for "${txt}" and output ONLY raw JSON.\n\n• IDs start n0, n1, n2 …\n${limit}\n\nSchema:\n{ "root":"n0",\n  "nodes":[{ "id":"n0","text":"<root>","parent":"" }],\n  "edges":[{ "source":"…","target":"…","label":"…","direction":"out" }] }\n\nReturn ONLY the JSON object.`;
+      };
+      copyPromptBtn.addEventListener('click', () => {
+        const val = topicInput.value.trim(); if (!val) { alert('Enter topic or URL'); return; } navigator.clipboard.writeText(makePrompt(val));
+      });
+      pastePromptBtn.addEventListener('click', async () => {
+        try { topicInput.value = (await navigator.clipboard.readText()).trim(); } catch {}
+      });
+
+      // Help overlay toggling
+      helpBtn.addEventListener('click', () => { helpOverlay.style.display = 'flex'; });
+      helpOverlay.addEventListener('click', () => { helpOverlay.style.display = 'none'; });
+
+      // Copy/paste JSON
+      copyJsonBtn.addEventListener('click', () => { navigator.clipboard.writeText(jsonInput.value || ''); });
+      pasteBtn.addEventListener('click', async () => {
+        try {
+          jsonInput.value = extractJSON(sanitize(await navigator.clipboard.readText()));
+          updateCharCount();
+        } catch {
+          overlay.style.display = 'flex';
+        }
+      });
+      ovCancel.addEventListener('click', () => { overlay.style.display = 'none'; });
+      ovOk.addEventListener('click', () => {
+        const ta = overlay.querySelector('textarea');
+        jsonInput.value = extractJSON(sanitize(ta.value));
+        overlay.style.display = 'none';
+        updateCharCount();
+      });
+      jsonInput.addEventListener('paste', e => {
+        e.preventDefault();
+        const text = e.clipboardData.getData('text/plain');
+        jsonInput.value = extractJSON(sanitize(text));
+        updateCharCount();
+      });
+
+      // History with selection
+      let dataObj = {};
+      let hist = [];
+      let idx = -1;
+      const updateHistoryButtons = () => { undoBtn.disabled = idx <= 0; redoBtn.disabled = idx >= hist.length - 1; };
+      const pushHist = state => {
+        const last = hist[hist.length - 1];
+        if (last && last.json === state.json && JSON.stringify(last.selection) === JSON.stringify(state.selection)) return;
+        hist.splice(idx + 1);
+        hist.push(state);
+        idx = hist.length - 1;
+        updateHistoryButtons();
+      };
+      const pushHistState = () => { pushHist({ json: jsonInput.value, selection: [...sel] }); };
+      const loadState = state => {
+        if (state.json !== jsonInput.value) { jsonInput.value = state.json; render(false); }
+        applySelection(state.selection, false);
+        updateHistoryButtons();
+      };
+
+      // Cytoscape graph
+      let cy, layout;
+      let tapholdActive = false;
+      cytoscape.use(cytoscapeCola);
+      let menuOpened = false;
+      const initCy = () => {
+        if (cy) return;
+        cy = cytoscape({
+          container: document.getElementById('cy'),
+          wheelSensitivity: 0.6,
+          style: [
+            { selector: 'node', style: { label: 'data(label)', 'text-wrap': 'wrap', 'text-max-width': '220px', 'text-valign': 'center', 'text-halign': 'center', 'background-color': 'var(--node)', shape: 'round-rectangle', padding: '6px', width: 'label', height: 'label', 'font-size': '13px', color: '#fff', 'text-outline-color': '#000', 'text-outline-width': 1 } },
+            { selector: 'node.root', style: { 'background-color': 'var(--root)', 'border-width': 4, 'border-color': 'var(--root-outline)', 'text-outline-color': '#000', 'text-outline-width': 3, 'font-size': '15px', 'font-weight': '700' } },
+            { selector: 'node.selected', style: { 'border-color': '#f9a825', 'border-width': 2 } },
+            { selector: 'node.collapsed', style: { 'border-color': '#ef4444', 'border-width': 2 } },
+            { selector: 'edge', style: { width: 2, 'line-color': 'var(--edge)', 'target-arrow-color': 'var(--edge)', 'target-arrow-shape': 'triangle', 'curve-style': 'bezier', label: 'data(label)', 'font-size': '11px', color: '#e6edf3', 'text-rotation': 'autorotate', 'text-background-opacity': .9, 'text-background-color': 'var(--edge-bg)', 'text-background-padding': '2px' } },
+            { selector: 'edge[label=""]', style: { label: '', 'text-background-opacity': 0 } }
+          ]
+        });
+        cy.on('zoom', () => { zoomSlider.value = cy.zoom().toFixed(2); });
+        cy.on('tap', e => {
+          if (tapholdActive) return;
+          if (menuOpened) { menuOpened = false; return; }
+          if (e.target === cy) clearSelection(true);
+        });
+        cy.on('dbltap', 'node', editNode);
+        cy.on('tap', 'node', e => {
+          if (tapholdActive) return;
+          tapNode(e);
+        });
+        cy.on('cxttap', 'node', e => {
+          if (!sel.has(e.target.id())) { clearSelection(false); sel.add(e.target.id()); e.target.addClass('selected'); }
+          openMenu(e.renderedPosition);
+          menuOpened = true;
+        });
+        cy.on('taphold', 'node', e => {
+          const id = e.target.id();
+          if (!sel.has(id)) {
+            sel.add(id);
+            e.target.addClass('selected');
+          }
+          openMenu(e.renderedPosition);
+          menuOpened = true;
+          tapholdActive = true;
+          setTimeout(() => { tapholdActive = false; }, 300);
+        });
+        enableKineticPan();
+      };
+      const editNode = e => {
+        const node = e.target; const current = node.data('full'); const newText = prompt('Edit text:', current);
+        if (newText !== null && newText.trim() !== '') { node.data('label', wrap(newText)); node.data('full', newText); const objNode = dataObj.nodes.find(n => n.id === node.id()); if (objNode) objNode.text = newText; jsonInput.value = JSON.stringify(dataObj, null, 2); pushHistState(); physics(); }
+      };
+      const physics = () => { layout?.stop(); layout = cy.layout({ name: 'cola', infinite: true, animate: true, refresh: 1, nodeSpacing: 25, edgeLength: 200, padding: 40, fit: false, avoidOverlap: true }); layout.run(); };
+      const enableKineticPan = () => {
+        const container = cy.container(); let tracking = false, lastT = 0, lastX = 0, lastY = 0, vx = 0, vy = 0, raf; let touchCount = 0, pinching = false, pinchPan = { x: 0, y: 0 }; const damp = 0.97, stop = 0.00025; const cancelMomentum = () => { cancelAnimationFrame(raf); vx = vy = 0; };
+        container.addEventListener('pointerdown', e => {
+          if (e.pointerType === 'touch') { touchCount++; if (touchCount === 2) { pinching = true; pinchPan = cy.pan(); tracking = false; cancelMomentum(); } }
+          if (pinching) return;
+          if (e.pointerType === 'mouse' && e.button !== 0) return;
+          tracking = true; lastT = e.timeStamp; lastX = e.clientX; lastY = e.clientY; vx = vy = 0; cancelMomentum();
+        });
+        container.addEventListener('pointermove', e => {
+          if (pinching) { cy.pan(pinchPan); return; }
+          if (!tracking) return;
+          const dt = e.timeStamp - lastT; if (!dt) return;
+          const dx = e.clientX - lastX, dy = e.clientY - lastY; vx = 0.8 * vx + 0.2 * (dx / dt); vy = 0.8 * vy + 0.2 * (dy / dt); lastT = e.timeStamp; lastX = e.clientX; lastY = e.clientY;
+        });
+        const pointerUp = e => {
+          if (e.pointerType === 'touch') { touchCount = Math.max(0, touchCount - 1); if (touchCount < 2 && pinching) pinching = false; }
+          if (pinching || !tracking) { tracking = false; return; }
+          tracking = false; let prev = performance.now(); const frame = now => { const dt = now - prev; prev = now; vx *= damp; vy *= damp; if (Math.hypot(vx, vy) < stop) return; cy.panBy({ x: vx * dt, y: vy * dt }); raf = requestAnimationFrame(frame); }; if (Math.hypot(vx, vy) >= stop) raf = requestAnimationFrame(frame);
+        };
+        window.addEventListener('pointerup', pointerUp);
+        window.addEventListener('pointercancel', pointerUp);
+      };
+
+      // Selection management
+      const sel = new Set();
+      let multi = false;
+      multiBtn.addEventListener('click', () => { multi = !multi; multiBtn.classList.toggle('active', multi); if (!multi) clearSelection(true); });
+      const clearSelection = (record = true) => { sel.forEach(id => cy.getElementById(id).removeClass('selected')); sel.clear(); nodeMenu.style.display = 'none'; if (record) pushHistState(); };
+      const applySelection = (list, record = false) => { clearSelection(false); list.forEach(id => { const node = cy.getElementById(id); if (node.length) { sel.add(id); node.addClass('selected'); } }); if (record) pushHistState(); };
+      const selectionNames = () => [...sel].map(id => cy.getElementById(id).data('full')).join(', ');
+      const clampPos = (x, y) => { const mw = nodeMenu.offsetWidth, mh = nodeMenu.offsetHeight; return [ Math.max(10, Math.min(window.innerWidth - mw - 10, x)), Math.max(10, Math.min(window.innerHeight - mh - 10, y)) ]; };
+      const openMenu = pos => {
+        if (!sel.size) return;
+        copyTextBtn.textContent = sel.size > 1 ? 'Copy texts' : 'Copy text';
+        nodeCopyBtn.textContent = sel.size > 1 ? 'Copy Prompt for selected' : 'Copy Prompt for this node';
+        copyTextBtn.dataset.names = nodeCopyBtn.dataset.names = selectionNames();
+        delBtn.textContent = sel.has('n0') && sel.size === 1 ? 'Delete entire graph' : 'Delete node & subtree';
+        nodeMenu.style.display = 'block';
+        const rect = cy.container().getBoundingClientRect();
+        const [x, y] = clampPos(pos.x + 20 + rect.left, pos.y + 20 + rect.top);
+        nodeMenu.style.left = x + 'px';
+        nodeMenu.style.top = y + 'px';
+        nodeMenu.setAttribute('aria-hidden', 'false');
+      };
+      const tapNode = e => {
+        const id = e.target.id(); if (!multi) { clearSelection(false); sel.add(id); e.target.addClass('selected'); } else { if (sel.has(id)) { sel.delete(id); e.target.removeClass('selected'); } else { sel.add(id); e.target.addClass('selected'); } }
+        if (!sel.size) nodeMenu.style.display = 'none'; pushHistState();
+      };
+      selectAllBtn.addEventListener('click', () => { sel.clear(); cy.nodes().forEach(n => { sel.add(n.id()); n.addClass('selected'); }); multi = true; multiBtn.classList.add('active'); pushHistState(); });
+
+      // Menu drag
+      let dragging = false, off = { x: 0, y: 0 }, start = { x: 0, y: 0 }, cancelClick = false;
+      const dragStart = ev => { if (ev.button !== undefined && ev.button !== 0) return; const p = ev.touches ? ev.touches[0] : ev; start = { x: p.clientX, y: p.clientY }; off = { x: p.clientX - parseFloat(nodeMenu.style.left || 0), y: p.clientY - parseFloat(nodeMenu.style.top || 0) }; dragging = cancelClick = false; document.addEventListener(ev.touches ? 'touchmove' : 'mousemove', dragMove, { passive: false }); document.addEventListener(ev.touches ? 'touchend' : 'mouseup', dragEnd, { once: true }); };
+      const dragMove = ev => { const p = ev.touches ? ev.touches[0] : ev; if (!dragging && Math.hypot(p.clientX - start.x, p.clientY - start.y) > 4) dragging = true; if (!dragging) return; ev.preventDefault(); cancelClick = true; nodeMenu.classList.add('dragging'); const [x, y] = clampPos(p.clientX - off.x, p.clientY - off.y); nodeMenu.style.left = x + 'px'; nodeMenu.style.top = y + 'px'; };
+      const dragEnd = () => { nodeMenu.classList.remove('dragging'); document.removeEventListener('mousemove', dragMove); document.removeEventListener('touchmove', dragMove); if (dragging) window._swallowCyTap = () => {}; setTimeout(() => { cancelClick = false; }, 0); };
+      nodeMenu.addEventListener('mousedown', dragStart); nodeMenu.addEventListener('touchstart', dragStart, { passive: false }); nodeMenu.addEventListener('click', e => { if (cancelClick) { e.stopImmediatePropagation(); e.preventDefault(); } }, true);
+
+      // Menu actions
+      copyTextBtn.addEventListener('click', () => { navigator.clipboard.writeText(copyTextBtn.dataset.names || ''); nodeMenu.style.display = 'none'; });
+      nodeCopyBtn.addEventListener('click', () => {
+        const names = nodeCopyBtn.dataset.names || '';
+        if (!names) return;
+        const linkEntry = dataObj.link ? ` "link":"${dataObj.link}",\n` : '';
+        const prompt = `Extend and refactor node "${names}"\n\nKeep "link" key if present. IDs stay n0, n1, …\nEach node text ≤ 50 chars.\n\nSchema:\n{\n${linkEntry}"root":"n0",\n  "nodes":[{ "id":"n0","text":"<root>","parent":"" }, … ],\n  "edges":[{ "source":"…","target":"…","label":"…","direction":"out" }]\n}\n\nReturn ONLY the JSON object.\n\nCurrent JSON:\n${jsonInput.value}`;
+        navigator.clipboard.writeText(prompt);
+        nodeMenu.style.display = 'none';
+      });
+
+      // API Extend: call OpenAI to extend and refactor the selected node(s) using the same prompt structure as Copy Prompt, but automatically update the current graph.
+      apiExtendBtn.addEventListener('click', async () => {
+        const names = nodeCopyBtn.dataset.names || '';
+        if (!names) return;
+        let key = getApiKey();
+        if (!key) {
+          key = promptApiKey(true);
+          if (!key) return;
+        }
+        const linkEntry = dataObj.link ? ` "link":"${dataObj.link}",\n` : '';
+        const prompt = `Extend and refactor node "${names}"\n\nKeep "link" key if present. IDs stay n0, n1, …\nEach node text ≤ 50 chars.\n\nSchema:\n{\n${linkEntry}"root":"n0",\n  "nodes":[{ "id":"n0","text":"<root>","parent":"" }, … ],\n  "edges":[{ "source":"…","target":"…","label":"…","direction":"out" }]\n}\n\nReturn ONLY the JSON object.\n\nCurrent JSON:\n${jsonInput.value}`;
+        const model = modelSelect.value || defaultModels[0];
+        abortController = new AbortController();
+        const signal = abortController.signal;
+        showLoading();
+        try {
+          const temperature = reasoningModels.includes(model) ? 1 : 0.2;
+          const body = { model, messages: [ { role: 'user', content: prompt } ], temperature: temperature, stream: true };
+          const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + key
+            },
+            body: JSON.stringify(body),
+            signal
+          });
+          if (!response.ok) {
+            const text = await response.text();
+            throw new Error('API error: ' + response.status + ' ' + response.statusText + '\n' + text);
+          }
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder('utf-8');
+          let buffer = '';
+          let full = '';
+          let charCnt = 0;
+          outer2: while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            let lines = buffer.split(/\r?\n/);
+            buffer = lines.pop() || '';
+            for (const line of lines) {
+              const trimmed = line.trim();
+              if (!trimmed.startsWith('data:')) continue;
+              const dataLine = trimmed.slice(5).trim();
+              if (dataLine === '[DONE]') {
                 break outer2;
               }
               try {
                 const obj = JSON.parse(dataLine);
                 const delta = obj.choices?.[0]?.delta?.content;
-                if(delta){
+                if (delta) {
                   full += delta;
                   charCnt += delta.length;
                   charCounter.textContent = String(charCnt);
                 }
-              } catch(e){ /* ignore */ }
+              } catch (e) { /* ignore */ }
             }
           }
           const extracted = extractJSON(sanitize(full));
@@ -822,8 +1024,8 @@
           updateCharCount();
           render(true);
           nodeMenu.style.display = 'none';
-        } catch(err){
-          if(err.name === 'AbortError'){
+        } catch (err) {
+          if (err.name === 'AbortError') {
             console.warn('Request aborted');
           } else {
             console.error(err);
@@ -834,52 +1036,97 @@
         }
       });
       addChildBtn.addEventListener('click', () => {
-        if(!sel.size) return; const parentId=[...sel][0]; const newText=prompt('New child text:'); if(!newText||newText.trim()==='') return;
-        const newId='n'+dataObj.nodes.length;
-        dataObj.nodes.push({id:newId,text:newText,parent:parentId}); dataObj.edges.push({source:parentId,target:newId,label:'',direction:'out'});
-        cy.add({ group:'nodes', data:{ id:newId, label:wrap(newText), full:newText } }); cy.add({ group:'edges', data:{ source:parentId, target:newId, label:'parent' } }); physics(); jsonInput.value=JSON.stringify(dataObj,null,2); pushHistState();
+        if (!sel.size) return; const parentId = [...sel][0]; const newText = prompt('New child text:'); if (!newText || newText.trim() === '') return;
+        const newId = 'n' + dataObj.nodes.length;
+        dataObj.nodes.push({ id: newId, text: newText, parent: parentId }); dataObj.edges.push({ source: parentId, target: newId, label: '', direction: 'out' });
+        cy.add({ group: 'nodes', data: { id: newId, label: wrap(newText), full: newText } }); cy.add({ group: 'edges', data: { source: parentId, target: newId, label: 'parent' } }); physics(); jsonInput.value = JSON.stringify(dataObj, null, 2); pushHistState();
       });
       collapseBtn.addEventListener('click', () => {
-        sel.forEach(id => { const node=cy.getElementById(id); if(node.hasClass('collapsed')){ node.removeClass('collapsed'); subtree(id,false).forEach(sid => cy.getElementById(sid).style({ display:'element' })); } else { node.addClass('collapsed'); subtree(id,false).forEach(sid => cy.getElementById(sid).style({ display:'none' })); } }); physics(); nodeMenu.style.display='none'; pushHistState();
+        sel.forEach(id => {
+          const node = cy.getElementById(id);
+          if (node.hasClass('collapsed')) {
+            node.removeClass('collapsed'); subtree(id, false).forEach(sid => cy.getElementById(sid).style({ display: 'element' }));
+          } else {
+            node.addClass('collapsed'); subtree(id, false).forEach(sid => cy.getElementById(sid).style({ display: 'none' }));
+          }
+        }); physics(); nodeMenu.style.display = 'none'; pushHistState();
       });
-      const subtree = (id, includeRoot) => { const s=new Set(includeRoot?[id]:[]); const q=[id]; while(q.length){ const cur=q.pop(); dataObj.edges.forEach(e => { if(e.source===cur && !s.has(e.target)){ s.add(e.target); q.push(e.target); } }); dataObj.nodes.forEach(n => { if(n.parent===cur && !s.has(n.id)){ s.add(n.id); q.push(n.id); } }); } return s; };
+      const subtree = (id, includeRoot) => { const s = new Set(includeRoot ? [id] : []); const q = [id]; while (q.length) { const cur = q.pop(); dataObj.edges.forEach(e => { if (e.source === cur && !s.has(e.target)) { s.add(e.target); q.push(e.target); } }); dataObj.nodes.forEach(n => { if (n.parent === cur && !s.has(n.id)) { s.add(n.id); q.push(n.id); } }); } return s; };
       delBtn.addEventListener('click', () => {
-        if(!sel.size) return;
-        if(sel.has('n0') && sel.size===1){ if(!confirm('Delete entire graph?')) return; dataObj={}; jsonInput.value=''; cy.elements().remove(); clearSelection(false); pushHistState(); return; }
-        const doomed=new Set(); sel.forEach(id => subtree(id,true).forEach(x => doomed.add(x)));
-        doomed.forEach(id => { dataObj.nodes = dataObj.nodes.filter(n => n.id !== id); dataObj.edges = dataObj.edges.filter(e => e.source !== id && e.target !== id); const node=cy.getElementById(id); if(node.length) node.remove(); });
+        if (!sel.size) return;
+        if (sel.has('n0') && sel.size === 1) { if (!confirm('Delete entire graph?')) return; dataObj = {}; jsonInput.value = ''; cy.elements().remove(); clearSelection(false); pushHistState(); return; }
+        const doomed = new Set(); sel.forEach(id => subtree(id, true).forEach(x => doomed.add(x)));
+        doomed.forEach(id => {
+          dataObj.nodes = dataObj.nodes.filter(n => n.id !== id);
+          dataObj.edges = dataObj.edges.filter(e => e.source !== id && e.target !== id);
+          const node = cy.getElementById(id); if (node.length) node.remove();
+        });
         jsonInput.value = JSON.stringify(dataObj, null, 2); physics(); clearSelection(false); pushHistState();
       });
       childBtn.addEventListener('click', () => {
-        if(!sel.size) return;
-        const doomed=new Set(); sel.forEach(id => subtree(id,false).forEach(x => doomed.add(x)));
-        doomed.forEach(id => { dataObj.nodes = dataObj.nodes.filter(n => n.id !== id); dataObj.edges = dataObj.edges.filter(e => e.source !== id && e.target !== id); const node=cy.getElementById(id); if(node.length) node.remove(); });
+        if (!sel.size) return;
+        const doomed = new Set(); sel.forEach(id => subtree(id, false).forEach(x => doomed.add(x)));
+        doomed.forEach(id => {
+          dataObj.nodes = dataObj.nodes.filter(n => n.id !== id);
+          dataObj.edges = dataObj.edges.filter(e => e.source !== id && e.target !== id);
+          const node = cy.getElementById(id); if (node.length) node.remove();
+        });
         jsonInput.value = JSON.stringify(dataObj, null, 2); physics(); clearSelection(false); pushHistState();
       });
-      
+
       // Building elements and rendering
-      const buildElements = () => { const els=[]; const dup=new Set(dataObj.edges?.map(e=>e.source+'→'+e.target) || []); (dataObj.nodes||[]).forEach(n => { els.push({ data:{ id:n.id, label:wrap(n.text), full:n.text }, classes:n.id==='n0' ? 'root' : '' }); if(n.parent && !dup.has(n.parent+'→'+n.id)){ els.push({ data:{ source:n.parent, target:n.id, label:'parent' } }); } }); (dataObj.edges||[]).forEach(e => els.push({ data:{ source:e.source, target:e.target, label:e.label || '' } })); return els; };
-      const render = (store=true) => { const txt=extractJSON(sanitize(jsonInput.value)); if(!txt){ if(cy) cy.elements().remove(); dataObj={}; updateHistoryButtons(); return; } const obj=parseJSON(txt); if(!obj){ alert('Invalid JSON - ensure it matches schema with root, nodes, edges.'); return; } dataObj=obj; initCy(); cy.elements().remove(); cy.add(buildElements()); const root=cy.getElementById('n0'); root.position({ x: cy.width()/2, y: cy.height()/2 }).lock(); physics(); cy.zoom(1); zoomSlider.value='1'; clearSelection(false); if(store) pushHistState(); else updateHistoryButtons(); };
+      const buildElements = () => {
+        const els = [];
+        const dup = new Set(dataObj.edges?.map(e => e.source + '→' + e.target) || []);
+        (dataObj.nodes || []).forEach(n => {
+          els.push({ data: { id: n.id, label: wrap(n.text), full: n.text }, classes: n.id === 'n0' ? 'root' : '' });
+          if (n.parent && !dup.has(n.parent + '→' + n.id)) {
+            els.push({ data: { source: n.parent, target: n.id, label: 'parent' } });
+          }
+        });
+        (dataObj.edges || []).forEach(e => els.push({ data: { source: e.source, target: e.target, label: e.label || '' } }));
+        return els;
+      };
+      const render = (store = true) => {
+        const txt = extractJSON(sanitize(jsonInput.value));
+        if (!txt) {
+          if (cy) cy.elements().remove(); dataObj = {}; updateHistoryButtons(); return;
+        }
+        const obj = parseJSON(txt);
+        if (!obj) { alert('Invalid JSON - ensure it matches schema with root, nodes, edges.'); return; }
+        dataObj = obj;
+        initCy();
+        cy.elements().remove();
+        cy.add(buildElements());
+        const root = cy.getElementById('n0');
+        root.position({ x: cy.width() / 2, y: cy.height() / 2 }).lock();
+        physics();
+        cy.zoom(1);
+        zoomSlider.value = '1';
+        clearSelection(false);
+        if (store) pushHistState(); else updateHistoryButtons();
+      };
       renderBtn.addEventListener('click', () => render(true));
-      exportBtn.addEventListener('click', () => { if(!cy) return; const png=cy.png({ full:true, scale:2 }); const a=document.createElement('a'); a.href=png; a.download='mindmap.png'; a.click(); });
-      undoBtn.addEventListener('click', () => { if(idx>0){ idx--; loadState(hist[idx]); } });
-      redoBtn.addEventListener('click', () => { if(idx<hist.length-1){ idx++; loadState(hist[idx]); } });
-      document.addEventListener('keydown', e => {
-        if(e.ctrlKey && !e.shiftKey && e.key.toLowerCase()==='z'){ e.preventDefault(); undoBtn.click(); }
-        if(e.ctrlKey && (e.key.toLowerCase()==='y' || (e.key.toLowerCase()==='z' && e.shiftKey))){ e.preventDefault(); redoBtn.click(); }
+      exportBtn.addEventListener('click', () => {
+        if (!cy) return; const png = cy.png({ full: true, scale: 2 }); const a = document.createElement('a'); a.href = png; a.download = 'mindmap.png'; a.click();
       });
-      zoomSlider.addEventListener('input', () => { if(!cy) return; cy.zoom({ level:+zoomSlider.value, renderedPosition:{ x: cy.width()/2, y: cy.height()/2 } }); });
+      undoBtn.addEventListener('click', () => { if (idx > 0) { idx--; loadState(hist[idx]); } });
+      redoBtn.addEventListener('click', () => { if (idx < hist.length - 1) { idx++; loadState(hist[idx]); } });
+      document.addEventListener('keydown', e => {
+        if (e.ctrlKey && !e.shiftKey && e.key.toLowerCase() === 'z') { e.preventDefault(); undoBtn.click(); }
+        if (e.ctrlKey && (e.key.toLowerCase() === 'y' || (e.key.toLowerCase() === 'z' && e.shiftKey))) { e.preventDefault(); redoBtn.click(); }
+      });
+      zoomSlider.addEventListener('input', () => { if (!cy) return; cy.zoom({ level: +zoomSlider.value, renderedPosition: { x: cy.width() / 2, y: cy.height() / 2 } }); });
       donate.addEventListener('click', e => { e.currentTarget.classList.add('hide'); });
-      
+
       // Initial push and render persistence
-      pushHistState(); updateCharCount(); if(jsonInput.value.trim()) render(false);
+      pushHistState(); updateCharCount(); if (jsonInput.value.trim()) render(false);
 
       // API menu interactions. These handlers connect the overlay controls to
       // the underlying model select and API key storage. Selecting a model
       // updates the hidden select and persists the choice. Editing the API
-      // key prompts the user and reloads models (though models are now static
-      // but reloaded for consistency). After either action the API menu
-      // closes.
+      // key prompts the user and reloads models. After either action the API
+      // menu closes.
       const modelSelectOverlay = document.getElementById('modelSelectOverlay');
       const editApiKeyBtn = document.getElementById('editApiKeyBtn');
       modelSelectOverlay.addEventListener('change', () => {
