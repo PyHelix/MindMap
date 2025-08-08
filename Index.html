@@ -3,10 +3,10 @@
   NodeTrellis landing page (old code kept)
 
   Changes in this build:
-  • Physics now runs continuously (cola { infinite: true }) so nodes keep
-    gently resolving even after the map "finishes" loading.
-  • Live "Find" stays in the dropdown and highlights matches as you type.
-  • Character counter still supports reasoning (non-stream) models incl. GPT-5.
+  • Zoom slider moved onto the SAME LINE as Undo/Redo (far right).
+  • Physics runs continuously (cola { infinite: true }).
+  • Live "Find" highlights matches as you type (inside the Find & JSON dropdown).
+  • Character counter supports reasoning (non-stream) models incl. GPT-5 via fallback.
 -->
 <html lang="en">
 <head>
@@ -76,10 +76,6 @@
       <button id="copyPromptBtn" class="btn main" aria-label="Copy prompt">Copy Prompt</button>
       <button id="pastePromptBtn" class="btn aux" aria-label="Paste prompt">📋</button>
       <button id="helpBtn" class="btn aux" aria-label="Help">?</button>
-      <span id="zoomWrap" class="row" style="margin-left:auto">
-        <label for="zoomSlider" style="font-size:13px">Zoom</label>
-        <input type="range" id="zoomSlider" min="0.1" max="3" step="0.05" value="1" aria-label="Zoom" />
-      </span>
     </div>
 
     <!-- Renamed to reflect contents -->
@@ -106,6 +102,12 @@
       <button id="multiBtn" class="btn aux" aria-label="Toggle multi-select" title="Toggle multi-select">⇳</button>
       <button id="undoBtn" class="btn aux" disabled aria-label="Undo">⟲</button>
       <button id="redoBtn" class="btn aux" disabled aria-label="Redo">⟳</button>
+
+      <!-- Zoom slider now on the SAME LINE as undo/redo, pinned to the far right -->
+      <span id="zoomWrap" class="row" style="margin-left:auto;align-items:center">
+        <label for="zoomSlider" style="font-size:13px">Zoom</label>
+        <input type="range" id="zoomSlider" min="0.1" max="3" step="0.05" value="1" aria-label="Zoom" style="width:140px" />
+      </span>
     </div>
 
     <div id="loadingBar" class="row" style="display:none;align-items:center;gap:6px;margin-top:4px">
