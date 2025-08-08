@@ -1,8 +1,12 @@
 <!DOCTYPE html>
 <!--
   NodeTrellis landing page (old code kept)
-  Change: Fix GPT-5 400 error by auto-disabling streaming for GPT-5 models
-  and falling back to non-streaming if any model rejects the "stream" param.
+
+  Changes in this build:
+  • Physics now runs continuously (cola { infinite: true }) so nodes keep
+    gently resolving even after the map "finishes" loading.
+  • Live "Find" stays in the dropdown and highlights matches as you type.
+  • Character counter still supports reasoning (non-stream) models incl. GPT-5.
 -->
 <html lang="en">
 <head>
@@ -15,10 +19,11 @@
   <script src="https://unpkg.com/webcola@3.4.0/WebCola/cola.min.js" defer></script>
   <script src="https://unpkg.com/cytoscape-cola@2/cytoscape-cola.js" defer></script>
   <style>
-    :root {
-      --bg:#0d1117; --panel:#161b22; --border:#30363d; --txt:#e6edf3;
-      --node:#475569; --node-h:#64748b; --root:#3b82f6; --root-outline:#facc15;
-      --edge:#cbd5e1; --edge-bg:#0f172a; --btn:#238636; --btn-h:#2ea043; --btn-d:#3d434a;
+    :root{
+      --bg:#0d1117;--panel:#161b22;--border:#30363d;--txt:#e6edf3;
+      --node:#475569;--node-h:#64748b;--root:#3b82f6;--root-outline:#facc15;
+      --edge:#cbd5e1;--edge-bg:#0f172a;--btn:#238636;--btn-h:#2ea043;--btn-d:#3d434a;
+      --accent:#22d3ee;
     }
     *,*::before,*::after{box-sizing:border-box}
     html,body{margin:0;height:100%;display:flex;flex-direction:column;font-family:system-ui,sans-serif;background:var(--bg);color:var(--txt)}
@@ -41,6 +46,10 @@
     #nodeMenu button{display:block;width:100%;margin:3px 0;padding:6px 14px;font-size:13px;border:0;background:var(--node);color:#fff;border-radius:4px;white-space:nowrap;text-align:left;cursor:pointer}
     #nodeMenu button:hover{background:var(--node-h)}
     .selected{border:2px solid #f9a825!important}
+    /* live find */
+    #findInput{width:260px;max-width:60vw;padding:6px 8px;border-radius:6px;border:1px solid var(--border);background:#0f172a;color:#c9d1d9}
+    #findCount{color:#7d8590;font-size:12px}
+    /* API menu */
     #apiMenu{position:absolute;display:none;background:rgba(22,27,34,.92);border-radius:8px;padding:8px;max-width:calc(100vw - 20px);box-shadow:0 4px 10px #000a;z-index:1000}
     #apiMenu select{width:100%;margin-bottom:6px;font-size:13px;color:#111;background:var(--node-h);border-radius:6px;border:0;font-weight:600;cursor:pointer;padding:6px 8px}
     #apiMenu select:hover{background:var(--btn-h);color:#fff}
@@ -55,7 +64,7 @@
     #donate.hide{opacity:0;height:0;padding:0;border:none;overflow:hidden;transition:.25s}
     #donate code{font-family:monospace}
     #donate a{color:#58a6ff;text-decoration:none}
-    .btn:focus-visible,#topicInput:focus-visible{outline:2px dashed #58a6ff;outline-offset:2px}
+    .btn:focus-visible,#topicInput:focus-visible,#findInput:focus-visible{outline:2px dashed #58a6ff;outline-offset:2px}
     .visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
   </style>
 </head>
@@ -67,16 +76,29 @@
       <button id="copyPromptBtn" class="btn main" aria-label="Copy prompt">Copy Prompt</button>
       <button id="pastePromptBtn" class="btn aux" aria-label="Paste prompt">📋</button>
       <button id="helpBtn" class="btn aux" aria-label="Help">?</button>
+      <span id="zoomWrap" class="row" style="margin-left:auto">
+        <label for="zoomSlider" style="font-size:13px">Zoom</label>
+        <input type="range" id="zoomSlider" min="0.1" max="3" step="0.05" value="1" aria-label="Zoom" />
+      </span>
     </div>
+
+    <!-- Renamed to reflect contents -->
     <details id="jsonBox">
-      <summary>JSON (click to show / hide)</summary>
+      <summary>Find & JSON (click to show / hide)</summary>
+
+      <!-- Live Find -->
+      <div class="row" style="margin:6px 0 4px">
+        <input id="findInput" placeholder="Type to highlight nodes…  (Enter = next, Esc = clear)" aria-label="Find node" />
+        <small id="findCount">0 matches</small>
+      </div>
+
       <textarea id="jsonInput" placeholder="Paste LLM’s JSON here, then hit Render Map" aria-label="JSON input"></textarea>
       <small id="charCount" style="display:block;margin-top:4px;color:#7d8590;font-size:12px">0 characters</small>
     </details>
+
     <div class="row" id="actionRow">
       <button id="renderBtn" class="btn main" style="flex:1" aria-label="Render map">Render Map</button>
       <button id="apiRenderBtn" class="btn main" aria-label="API Render">API Render</button>
-      <!-- Hidden select to store the current model. Options populated via script -->
       <select id="modelSelect" class="btn aux" title="Select model" style="display:none"></select>
       <button id="pasteBtn" class="btn aux" aria-label="Paste JSON">📋</button>
       <button id="copyJsonBtn" class="btn aux" aria-label="Copy JSON">📄</button>
@@ -84,11 +106,8 @@
       <button id="multiBtn" class="btn aux" aria-label="Toggle multi-select" title="Toggle multi-select">⇳</button>
       <button id="undoBtn" class="btn aux" disabled aria-label="Undo">⟲</button>
       <button id="redoBtn" class="btn aux" disabled aria-label="Redo">⟳</button>
-      <span id="zoomWrap" class="row" style="margin-left:auto">
-        <label for="zoomSlider" style="font-size:13px">Zoom</label>
-        <input type="range" id="zoomSlider" min="0.1" max="3" step="0.05" value="1" aria-label="Zoom" />
-      </span>
     </div>
+
     <div id="loadingBar" class="row" style="display:none;align-items:center;gap:6px;margin-top:4px">
       <span id="charCounter" style="flex:1;text-align:left;font-size:12px;color:#e6edf3;">0</span>
       <button id="stopBtn" class="btn aux" style="min-width:60px;">Stop</button>
@@ -131,9 +150,9 @@
       <p><strong>2.</strong> Tap <em>Copy Prompt</em> – a ready-made instruction for your LLM is copied to your clipboard.</p>
       <p><strong>3.</strong> Paste that prompt into your LLM and wait for the JSON response.</p>
       <p><strong>4.</strong> Paste the JSON into the box below, then press <i>Render Map</i>.</p>
-      <p><strong>5.</strong> To open the node menu, right-click on a node with a mouse or long-press (~1 s) on touch. You can then manage children, collapse nodes, copy text, or delete.</p>
-      <p><strong>6.</strong> Use <em>API&nbsp;Render</em> to call OpenAI directly. Hold or right-click the API button to open a small menu where you can choose a model or edit your API key. Both the key and your current graph persist between sessions. During API calls a small counter appears showing the number of incoming characters; the adjacent stop button lets you cancel long requests while you continue exploring the current graph.</p>
-      <p><strong>7.</strong> In the node menu you can use <em>API&nbsp;Extend</em> to extend and refactor the selected node(s) using the same prompt as Copy Prompt.</p>
+      <p><strong>5.</strong> Right-click a node or long-press (~1 s) to manage children, collapse nodes, copy text, or delete.</p>
+      <p><strong>6.</strong> Use <em>API&nbsp;Render</em> to call OpenAI directly. Hold or right-click the API button to pick a model or edit your API key. During calls a counter shows incoming characters; the Stop button cancels the request.</p>
+      <p><strong>7.</strong> Use the <em>Find & JSON</em> dropdown to search nodes live and manage JSON.</p>
       <p style="margin-top:14px;text-align:center;font-style:italic">press anywhere to continue</p>
     </div>
   </div>
@@ -146,636 +165,329 @@
   </section>
 
   <script>
-    // Helper functions
-    const sanitize = t => t.replace(/^```[^\n]*\n?/, '').replace(/```$/, '').replace(/```/g, '').replace(/\\(?!["/bfnrtu])/g, '').replace(/\\(?=[\\[\\]{}])/g, '').trim();
-    const extractJSON = str => { const m = str.match(/({[\\s\\S]*})/m); return m ? m[1].trim() : str.trim(); };
-    const parseJSON = t => { try { return JSON.parse(t); } catch { return null; } };
-    const wrap = (txt, max=50) => txt.length > max ? txt.slice(0, max-1) + '…' : txt;
+    // ---------- helpers ----------
+    const sanitize=t=>t.replace(/^```[^\n]*\n?/,'').replace(/```$/,'').replace(/```/g,'').replace(/\\(?!["/bfnrtu])/g,'').replace(/\\(?=[\[\]{}])/g,'').trim();
+    const extractJSON=str=>{const m=str.match(/({[\s\S]*})/m);return m?m[1].trim():str.trim();};
+    const parseJSON=t=>{try{return JSON.parse(t);}catch{return null;}};
+    const wrap=(txt,max=50)=>txt.length>max?txt.slice(0,max-1)+'…':txt;
 
     document.addEventListener('DOMContentLoaded', () => {
-      // Elements
-      const topicInput = document.getElementById('topicInput');
-      const copyPromptBtn = document.getElementById('copyPromptBtn');
-      const pastePromptBtn = document.getElementById('pastePromptBtn');
-      const helpBtn = document.getElementById('helpBtn');
-      const helpOverlay = document.getElementById('helpOverlay');
-      const jsonInput = document.getElementById('jsonInput');
-      const charCount = document.getElementById('charCount');
-      const copyJsonBtn = document.getElementById('copyJsonBtn');
-      const pasteBtn = document.getElementById('pasteBtn');
-      const renderBtn = document.getElementById('renderBtn');
-      const apiRenderBtn = document.getElementById('apiRenderBtn');
-      const modelSelect = document.getElementById('modelSelect');
-      const exportBtn = document.getElementById('exportBtn');
-      const multiBtn = document.getElementById('multiBtn');
-      const undoBtn = document.getElementById('undoBtn');
-      const redoBtn = document.getElementById('redoBtn');
-      const zoomSlider = document.getElementById('zoomSlider');
-      const overlay = document.getElementById('overlay');
-      const ovCancel = document.getElementById('ovCancel');
-      const ovOk = document.getElementById('ovOk');
-      const nodeMenu = document.getElementById('nodeMenu');
-      const selectAllBtn = document.getElementById('selectAllBtn');
-      const copyTextBtn = document.getElementById('copyTextBtn');
-      const nodeCopyBtn = document.getElementById('nodeCopy');
-      const addChildBtn = document.getElementById('addChildBtn');
-      const collapseBtn = document.getElementById('collapseBtn');
-      const delBtn = document.getElementById('nodeDelete');
-      const childBtn = document.getElementById('childDelete');
-      const apiExtendBtn = document.getElementById('apiExtendBtn');
-      const donate = document.getElementById('donate');
+      // ---------- elements ----------
+      const topicInput=document.getElementById('topicInput');
+      const copyPromptBtn=document.getElementById('copyPromptBtn');
+      const pastePromptBtn=document.getElementById('pastePromptBtn');
+      const helpBtn=document.getElementById('helpBtn');
+      const helpOverlay=document.getElementById('helpOverlay');
+      const jsonBox=document.getElementById('jsonBox');
+      const jsonInput=document.getElementById('jsonInput');
+      const charCount=document.getElementById('charCount');
+      const copyJsonBtn=document.getElementById('copyJsonBtn');
+      const pasteBtn=document.getElementById('pasteBtn');
+      const renderBtn=document.getElementById('renderBtn');
+      const apiRenderBtn=document.getElementById('apiRenderBtn');
+      const modelSelect=document.getElementById('modelSelect');
+      const exportBtn=document.getElementById('exportBtn');
+      const multiBtn=document.getElementById('multiBtn');
+      const undoBtn=document.getElementById('undoBtn');
+      const redoBtn=document.getElementById('redoBtn');
+      const zoomSlider=document.getElementById('zoomSlider');
+      const overlay=document.getElementById('overlay');
+      const ovCancel=document.getElementById('ovCancel');
+      const ovOk=document.getElementById('ovOk');
+      const nodeMenu=document.getElementById('nodeMenu');
+      const selectAllBtn=document.getElementById('selectAllBtn');
+      const copyTextBtn=document.getElementById('copyTextBtn');
+      const nodeCopyBtn=document.getElementById('nodeCopy');
+      const addChildBtn=document.getElementById('addChildBtn');
+      const collapseBtn=document.getElementById('collapseBtn');
+      const delBtn=document.getElementById('nodeDelete');
+      const childBtn=document.getElementById('childDelete');
+      const apiExtendBtn=document.getElementById('apiExtendBtn');
+      const donate=document.getElementById('donate');
 
-      // Loading / abort
-      const loadingBar  = document.getElementById('loadingBar');
-      const charCounter = document.getElementById('charCounter');
-      const stopBtn     = document.getElementById('stopBtn');
-      let abortController = null;
-      const showLoading = () => {
-        charCounter.textContent = '0';
-        loadingBar.style.display = 'flex';
-        apiRenderBtn.disabled = true;
-        apiExtendBtn.disabled = true;
-      };
-      const hideLoading = () => {
-        loadingBar.style.display = 'none';
-        apiRenderBtn.disabled = false;
-        apiExtendBtn.disabled = false;
-        abortController = null;
-      };
-      stopBtn.addEventListener('click', () => {
-        if (abortController) { try { abortController.abort(); } catch {} }
-        hideLoading();
-      });
+      const findInput=document.getElementById('findInput');
+      const findCount=document.getElementById('findCount');
 
-      // Storage keys
-      const API_KEY_STORAGE = 'openai_api_key';
-      const MODEL_STORAGE   = 'openai_model';
+      const loadingBar=document.getElementById('loadingBar');
+      const charCounter=document.getElementById('charCounter');
+      const stopBtn=document.getElementById('stopBtn');
+      let abortController=null;
+      const showLoading=()=>{charCounter.textContent='0';loadingBar.style.display='flex';apiRenderBtn.disabled=true;apiExtendBtn.disabled=true;};
+      const hideLoading=()=>{loadingBar.style.display='none';apiRenderBtn.disabled=false;apiExtendBtn.disabled=false;abortController=null;};
+      stopBtn.addEventListener('click',()=>{if(abortController){try{abortController.abort();}catch{}}hideLoading();});
 
-      // Model list (GPT-5 kept under REASONING)
-      const modelCategories = {
-        'GPT-4.1': [
-          'gpt-4.1','gpt-4.1-mini','gpt-4.1-nano',
-          'gpt-4.1-nano-2025-04-14','gpt-4.1-mini-2025-04-14','gpt-4.1-2025-04-14'
-        ],
-        'REASONING': [
-          // GPT-5 family (treated as reasoning; non-stream by default)
+      const API_KEY_STORAGE='openai_api_key';
+      const MODEL_STORAGE='openai_model';
+
+      // Models incl. GPT-5 as reasoning
+      const modelCategories={
+        'GPT-4.1':['gpt-4.1','gpt-4.1-mini','gpt-4.1-nano','gpt-4.1-nano-2025-04-14','gpt-4.1-mini-2025-04-14','gpt-4.1-2025-04-14'],
+        'REASONING':[
           'gpt-5','gpt-5-chat-latest','gpt-5-mini','gpt-5-mini-2025-08-07','gpt-5-nano','gpt-5-nano-2025-08-07','gpt-5-2025-08-07',
-          // Existing reasoning models
           'o3','o4-mini','o1-pro','o1','o1-2024-12-17','o1-mini','o1-mini-2024-09-12',
           'o1-preview','o1-preview-2024-09-12','o1-pro-2025-03-19','o3-2025-04-16','o3-mini','o3-mini-2025-01-31',
           'o4-mini','o4-mini-deep-research','o4-mini-deep-research-2025-06-26'
         ],
-        'GPT-4o': [
+        'GPT-4o':[
           'gpt-4o','gpt-4o-mini','gpt-4o-audio-preview','gpt-4o-search-preview',
           'gpt-4o-search-preview-2025-03-11','gpt-4o-mini-search-preview-2025-03-11','gpt-4o-mini-search-preview',
           'gpt-4o-mini-audio-preview-2024-12-17','gpt-4o-mini-audio-preview','gpt-4o-mini-2024-07-18',
           'gpt-4o-audio-preview-2025-06-03','gpt-4o-audio-preview-2024-12-17','gpt-4o-audio-preview-2024-10-01',
           'gpt-4o-2024-11-20','gpt-4o-2024-08-06','gpt-4o-2024-05-13'
         ],
-        'GPT-4': [
-          'gpt-4-turbo-preview','gpt-4-turbo-2024-04-09','gpt-4-turbo','gpt-4-1106-preview','gpt-4-0613','gpt-4-0125-preview','gpt-4'
-        ],
-        'GPT-3.5': [
-          'gpt-3.5-turbo-16k','gpt-3.5-turbo-1106','gpt-3.5-turbo-0125','gpt-3.5-turbo'
-        ],
-        'OTHER': ['chatgpt-4o-latest']
+        'GPT-4':['gpt-4-turbo-preview','gpt-4-turbo-2024-04-09','gpt-4-turbo','gpt-4-1106-preview','gpt-4-0613','gpt-4-0125-preview','gpt-4'],
+        'GPT-3.5':['gpt-3.5-turbo-16k','gpt-3.5-turbo-1106','gpt-3.5-turbo-0125','gpt-3.5-turbo'],
+        'OTHER':['chatgpt-4o-latest']
       };
+      const reasoningModels=modelCategories['REASONING']||[];
+      const flatModels=[].concat(...Object.values(modelCategories));
+      const defaultModels=flatModels.slice();
 
-      const reasoningModels = modelCategories['REASONING'] || [];
-      const flatModels = [].concat(...Object.values(modelCategories));
-      const defaultModels = flatModels.slice();
-
-      const populateModelSelect = (models) => {
-        modelSelect.innerHTML = '';
-        models.forEach(m => {
-          const id = typeof m === 'string' ? m : m.id;
-          if (!id) return;
-          const opt = document.createElement('option');
-          opt.value = id;
-          opt.textContent = id;
-          modelSelect.appendChild(opt);
+      const populateModelSelect=(models)=>{
+        modelSelect.innerHTML='';
+        models.forEach(m=>{
+          const id=typeof m==='string'?m:m.id;if(!id)return;
+          const opt=document.createElement('option');opt.value=id;opt.textContent=id;modelSelect.appendChild(opt);
         });
-        const stored = localStorage.getItem(MODEL_STORAGE);
-        if (stored && Array.from(modelSelect.options).some(o => o.value === stored)) {
-          modelSelect.value = stored;
-        }
+        const stored=localStorage.getItem(MODEL_STORAGE);
+        if(stored && Array.from(modelSelect.options).some(o=>o.value===stored)){modelSelect.value=stored;}
+      };
+      const loadModels=()=>{populateModelSelect(flatModels);};
+      const getApiKey=()=>localStorage.getItem(API_KEY_STORAGE)||'';
+      const promptApiKey=(force=false)=>{
+        let key=localStorage.getItem(API_KEY_STORAGE)||'';
+        if(force||!key){const entered=prompt('Enter your OpenAI API key:',key||'');if(entered&&entered.trim()){key=entered.trim();localStorage.setItem(API_KEY_STORAGE,key);}}
+        loadModels();return key;
       };
 
-      const loadModels = () => { populateModelSelect(flatModels); };
-      const getApiKey = () => localStorage.getItem(API_KEY_STORAGE) || '';
+      // --- OpenAI helper with streaming fallback ---
+      const NON_STREAM_REGEX=/^gpt-5/i; // GPT-5 family: use non-stream
+      async function chatComplete(prompt,model,signal,onDelta){
+        const key=getApiKey(); const temperature=reasoningModels.includes(model)?1:0.2;
+        const url='https://api.openai.com/v1/chat/completions';
+        const headers={'Content-Type':'application/json','Authorization':'Bearer '+key};
+        const base={model,messages:[{role:'user',content:prompt}],temperature};
 
-      const promptApiKey = (forcePrompt=false) => {
-        let key = localStorage.getItem(API_KEY_STORAGE) || '';
-        if (forcePrompt || !key) {
-          const entered = prompt('Enter your OpenAI API key:', key || '');
-          if (entered && entered.trim()) {
-            key = entered.trim();
-            localStorage.setItem(API_KEY_STORAGE, key);
-          }
-        }
-        loadModels();
-        return key;
-      };
-
-      // ===== OpenAI call helper with streaming fallback =====
-      const NON_STREAM_REGEX = /^gpt-5/i; // GPT-5 models: request without stream
-      async function chatComplete(prompt, model, signal, onDelta) {
-        const key = getApiKey();
-        const temperature = reasoningModels.includes(model) ? 1 : 0.2;
-        const url = 'https://api.openai.com/v1/chat/completions';
-        const headers = { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key };
-        const base = { model, messages: [{ role: 'user', content: prompt }], temperature };
-
-        const doNonStream = async () => {
-          const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(base), signal });
-          if (!res.ok) {
-            const text = await res.text();
-            throw new Error('API error: ' + res.status + ' ' + res.statusText + '\n' + text);
-          }
-          const data = await res.json();
-          const text = data.choices?.[0]?.message?.content || '';
-          if (onDelta) onDelta(text.length);
-          return text;
+        const doNonStream=async()=>{
+          const res=await fetch(url,{method:'POST',headers,body:JSON.stringify(base),signal});
+          if(!res.ok){const text=await res.text();throw new Error('API error: '+res.status+' '+res.statusText+'\n'+text);}
+          const data=await res.json(); const text=data.choices?.[0]?.message?.content||''; if(onDelta) onDelta(text.length); return text;
+        };
+        const doStream=async()=>{
+          const res=await fetch(url,{method:'POST',headers,body:JSON.stringify({...base,stream:true}),signal});
+          if(!res.ok){const text=await res.text();const err=new Error('API error: '+res.status+' '+res.statusText+'\n'+text);err._raw=text;throw err;}
+          const reader=res.body.getReader(); const decoder=new TextDecoder('utf-8');
+          let buffer='',full='',count=0; outer:while(true){const {value,done}=await reader.read();if(done)break;
+            buffer+=decoder.decode(value,{stream:true}); const lines=buffer.split(/\r?\n/); buffer=lines.pop()||'';
+            for(const line of lines){const t=line.trim(); if(!t.startsWith('data:')) continue; const d=t.slice(5).trim(); if(d==='[DONE]') break outer;
+              try{const obj=JSON.parse(d); const delta=obj.choices?.[0]?.delta?.content; if(delta){full+=delta; count+=delta.length; if(onDelta) onDelta(count);}}catch{}}
+          } return full;
         };
 
-        const doStream = async () => {
-          const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify({ ...base, stream: true }), signal });
-          if (!res.ok) {
-            const text = await res.text();
-            const err = new Error('API error: ' + res.status + ' ' + res.statusText + '\n' + text);
-            err._raw = text;
-            throw err;
-          }
-          const reader = res.body.getReader();
-          const decoder = new TextDecoder('utf-8');
-          let buffer = '', full = '', count = 0;
-          outer: while (true) {
-            const { value, done } = await reader.read();
-            if (done) break;
-            buffer += decoder.decode(value, { stream: true });
-            const lines = buffer.split(/\r?\n/);
-            buffer = lines.pop() || '';
-            for (const line of lines) {
-              const trimmed = line.trim();
-              if (!trimmed.startsWith('data:')) continue;
-              const d = trimmed.slice(5).trim();
-              if (d === '[DONE]') break outer;
-              try {
-                const obj = JSON.parse(d);
-                const delta = obj.choices?.[0]?.delta?.content;
-                if (delta) {
-                  full += delta;
-                  count += delta.length;
-                  if (onDelta) onDelta(count);
-                }
-              } catch {}
-            }
-          }
-          return full;
-        };
-
-        // Try streaming unless model is known to reject it; if it fails,
-        // automatically retry without streaming.
-        const preferStream = !NON_STREAM_REGEX.test(model);
-        if (preferStream) {
-          try { return await doStream(); }
-          catch (err) {
-            const raw = String(err._raw || err.message || '');
-            if (/"param"\s*:\s*"stream"/i.test(raw) || /unsupported_value/i.test(raw) || /must be verified to stream/i.test(raw)) {
-              return await doNonStream();
-            }
-            throw err;
-          }
-        } else {
-          return await doNonStream();
-        }
+        const preferStream=!(reasoningModels.includes(model)||NON_STREAM_REGEX.test(model));
+        if(preferStream){
+          try{ return await doStream(); }
+          catch(err){ const raw=String(err._raw||err.message||''); if(/"param"\s*:\s*"stream"/i.test(raw)||/unsupported_value/i.test(raw)||/must be verified to stream/i.test(raw)){ return await doNonStream(); } throw err; }
+        } else { return await doNonStream(); }
       }
-      // ===== end helper =====
+      // --- end helper ---
 
-      // API Render button + press/hold for menu
-      let apiHoldTimer = null;
-      let apiMenuOpen = false;
-
-      const populateApiMenu = () => {
-        const overlaySelect = document.getElementById('modelSelectOverlay');
-        overlaySelect.innerHTML = '';
-        for (const [cat, models] of Object.entries(modelCategories)) {
-          const optgroup = document.createElement('optgroup');
-          optgroup.label = cat;
-          models.forEach(m => {
-            const opt = document.createElement('option');
-            opt.value = m;
-            opt.textContent = m;
-            optgroup.appendChild(opt);
-          });
-          overlaySelect.appendChild(optgroup);
+      // API quick menu
+      let apiHoldTimer=null, apiMenuOpen=false;
+      const populateApiMenu=()=>{
+        const overlaySelect=document.getElementById('modelSelectOverlay');
+        overlaySelect.innerHTML='';
+        for(const [cat,models] of Object.entries(modelCategories)){
+          const og=document.createElement('optgroup'); og.label=cat;
+          models.forEach(m=>{const opt=document.createElement('option'); opt.value=m; opt.textContent=m; og.appendChild(opt);});
+          overlaySelect.appendChild(og);
         }
-        overlaySelect.value = modelSelect.value || flatModels[0];
+        overlaySelect.value=modelSelect.value||flatModels[0];
       };
+      const openApiMenu=(evt)=>{evt?.preventDefault(); populateApiMenu(); const menu=document.getElementById('apiMenu');
+        const rect=apiRenderBtn.getBoundingClientRect(); menu.style.display='block';
+        const mw=menu.offsetWidth,mh=menu.offsetHeight; let x=rect.left, y=rect.bottom+4;
+        x=Math.max(10,Math.min(window.innerWidth-mw-10,x)); y=Math.max(10,Math.min(window.innerHeight-mh-10,y));
+        menu.style.left=x+'px'; menu.style.top=y+'px'; apiMenuOpen=true;};
+      const closeApiMenu=()=>{const m=document.getElementById('apiMenu'); if(apiMenuOpen){m.style.display='none'; apiMenuOpen=false;}};
+      apiRenderBtn.addEventListener('pointerdown',e=>{if((e.button===0||e.pointerType==='touch')&&!apiHoldTimer){apiHoldTimer=setTimeout(()=>openApiMenu(e),600);}});
+      const clearApiHold=()=>{if(apiHoldTimer){clearTimeout(apiHoldTimer); apiHoldTimer=null;}}; apiRenderBtn.addEventListener('pointerup',clearApiHold); apiRenderBtn.addEventListener('pointerleave',clearApiHold);
+      apiRenderBtn.addEventListener('contextmenu',e=>{e.preventDefault(); openApiMenu(e);});
+      document.addEventListener('pointerdown',(e)=>{if(apiMenuOpen){const menuEl=document.getElementById('apiMenu'); if(!menuEl.contains(e.target)&&e.target!==apiRenderBtn) closeApiMenu();}});
 
-      const openApiMenu = (evt) => {
-        evt?.preventDefault();
-        populateApiMenu();
-        const menu = document.getElementById('apiMenu');
-        const rect = apiRenderBtn.getBoundingClientRect();
-        menu.style.display = 'block';
-        const mw = menu.offsetWidth;
-        const mh = menu.offsetHeight;
-        let x = rect.left;
-        let y = rect.bottom + 4;
-        x = Math.max(10, Math.min(window.innerWidth - mw - 10, x));
-        y = Math.max(10, Math.min(window.innerHeight - mh - 10, y));
-        menu.style.left = x + 'px';
-        menu.style.top = y + 'px';
-        apiMenuOpen = true;
-      };
-      const closeApiMenu = () => {
-        const menu = document.getElementById('apiMenu');
-        if (apiMenuOpen) { menu.style.display = 'none'; apiMenuOpen = false; }
-      };
+      function setWaitingIfNonStream(model){ if(reasoningModels.includes(model)) charCounter.textContent='waiting…'; }
 
-      apiRenderBtn.addEventListener('pointerdown', e => {
-        if ((e.button === 0 || e.pointerType === 'touch') && !apiHoldTimer) {
-          apiHoldTimer = setTimeout(() => { openApiMenu(e); }, 600);
-        }
-      });
-      const clearApiHoldTimeout = () => { if (apiHoldTimer) { clearTimeout(apiHoldTimer); apiHoldTimer = null; } };
-      apiRenderBtn.addEventListener('pointerup', clearApiHoldTimeout);
-      apiRenderBtn.addEventListener('pointerleave', clearApiHoldTimeout);
-      apiRenderBtn.addEventListener('contextmenu', e => { e.preventDefault(); openApiMenu(e); });
-
-      document.addEventListener('pointerdown', (e) => {
-        if (apiMenuOpen) {
-          const menuEl = document.getElementById('apiMenu');
-          if (!menuEl.contains(e.target) && e.target !== apiRenderBtn) closeApiMenu();
-        }
-      });
-
+      // API Render
       apiRenderBtn.addEventListener('click', async () => {
-        if (apiMenuOpen) { closeApiMenu(); return; }
-        const topic = topicInput.value.trim();
-        if (!topic) { alert('Enter a topic or URL first'); return; }
-        let key = getApiKey();
-        if (!key) { key = promptApiKey(true); if (!key) return; }
-        const prompt = makePrompt(topic);
-        const model = modelSelect.value || flatModels[0];
-        abortController = new AbortController();
-        const signal = abortController.signal;
-        showLoading();
-        try {
-          const full = await chatComplete(prompt, model, signal, (n) => { charCounter.textContent = String(n); });
-          const extracted = extractJSON(sanitize(full));
-          jsonInput.value = extracted;
-          updateCharCount();
-          render(true);
-        } catch (err) {
-          if (err.name !== 'AbortError') {
-            console.error(err);
-            alert('Failed to fetch from OpenAI:\n' + err.message);
-          }
-        } finally { hideLoading(); }
+        if(apiMenuOpen){ closeApiMenu(); return; }
+        const topic=topicInput.value.trim(); if(!topic){alert('Enter a topic or URL first'); return;}
+        let key=getApiKey(); if(!key){key=promptApiKey(true); if(!key) return;}
+        const prompt=makePrompt(topic); const model=modelSelect.value||flatModels[0];
+        abortController=new AbortController(); const signal=abortController.signal; showLoading(); setWaitingIfNonStream(model);
+        try{
+          const full=await chatComplete(prompt,model,signal,(n)=>{charCounter.textContent=String(n);});
+          const extracted=extractJSON(sanitize(full)); jsonInput.value=extracted; updateCharCount(); render(true);
+        }catch(err){ if(err.name!=='AbortError'){ console.error(err); alert('Failed to fetch from OpenAI:\n'+err.message); } }
+        finally{ hideLoading(); }
       });
 
-      const updateCharCount = () => {
-        const len = jsonInput.value.length;
-        charCount.textContent = `${len} character${len === 1 ? '' : 's'}`;
-      };
-      jsonInput.addEventListener('input', updateCharCount);
+      // JSON char count
+      const updateCharCount=()=>{const len=jsonInput.value.length; charCount.textContent=`${len} character${len===1?'':'s'}`;};
+      jsonInput.addEventListener('input',updateCharCount);
 
-      modelSelect.addEventListener('change', () => {
-        try { localStorage.setItem(MODEL_STORAGE, modelSelect.value); } catch {}
-      });
+      // Persist model
+      modelSelect.addEventListener('change',()=>{try{localStorage.setItem(MODEL_STORAGE,modelSelect.value);}catch{}});
 
-      const STORAGE_KEY = 'nodetrellis-json';
-      try {
-        const stored = localStorage.getItem(STORAGE_KEY);
-        if (stored) { jsonInput.value = stored; updateCharCount(); }
-      } catch {}
-      jsonInput.addEventListener('input', () => {
-        try { localStorage.setItem(STORAGE_KEY, jsonInput.value); } catch {}
-      });
+      // Persist JSON
+      const STORAGE_KEY='nodetrellis-json';
+      try{const stored=localStorage.getItem(STORAGE_KEY); if(stored){jsonInput.value=stored; updateCharCount();}}catch{}
+      jsonInput.addEventListener('input',()=>{try{localStorage.setItem(STORAGE_KEY,jsonInput.value);}catch{}});
 
       loadModels();
 
-      const isURL = s => {
-        const str = s.trim();
-        return /:\/\//.test(str) || /^[^\s]+\.[^\s]{2,}(?:[\/\?#].*)?$/.test(str);
-      };
-      const makePrompt = txt => {
-        const limit = '• Each node “text” ≤ 50 chars (links unrestricted).';
-        if (isURL(txt)) {
+      // URL helper + prompt
+      const isURL=s=>{const str=s.trim(); return /:\/\//.test(str)||/^[^\s]+\.[^\s]{2,}(?:[\/\?#].*)?$/.test(str);};
+      const makePrompt=txt=>{
+        const limit='• Each node “text” ≤ 50 chars (links unrestricted).';
+        if(isURL(txt)){
           return `Analyse the page ${txt} and output ONLY raw JSON.\n\n• Add "link":"${txt}" at top level (do NOT add it as a node).\n• IDs start n0, n1, n2 …\n${limit}\n\nSchema:\n{ "link":"${txt}", "root":"n0",\n  "nodes":[{ "id":"n0","text":"<root>","parent":"" }],\n  "edges":[{ "source":"…","target":"…","label":"…","direction":"out" }] }\n\nReturn ONLY the JSON object.`;
         }
         return `Create a mind-map for "${txt}" and output ONLY raw JSON.\n\n• IDs start n0, n1, n2 …\n${limit}\n\nSchema:\n{ "root":"n0",\n  "nodes":[{ "id":"n0","text":"<root>","parent":"" }],\n  "edges":[{ "source":"…","target":"…","label":"…","direction":"out" }] }\n\nReturn ONLY the JSON object.`;
       };
-      copyPromptBtn.addEventListener('click', () => {
-        const val = topicInput.value.trim(); if (!val) { alert('Enter topic or URL'); return; }
-        navigator.clipboard.writeText(makePrompt(val));
-      });
-      pastePromptBtn.addEventListener('click', async () => {
-        try { topicInput.value = (await navigator.clipboard.readText()).trim(); } catch {}
-      });
+      copyPromptBtn.addEventListener('click',()=>{const val=topicInput.value.trim(); if(!val){alert('Enter topic or URL'); return;} navigator.clipboard.writeText(makePrompt(val));});
+      pastePromptBtn.addEventListener('click',async()=>{try{topicInput.value=(await navigator.clipboard.readText()).trim();}catch{}});
 
-      helpBtn.addEventListener('click', () => { helpOverlay.style.display = 'flex'; });
-      helpOverlay.addEventListener('click', () => { helpOverlay.style.display = 'none'; });
+      // Help + overlay
+      helpBtn.addEventListener('click',()=>{helpOverlay.style.display='flex';});
+      helpOverlay.addEventListener('click',()=>{helpOverlay.style.display='none';});
+      copyJsonBtn.addEventListener('click',()=>{navigator.clipboard.writeText(jsonInput.value||'');});
+      pasteBtn.addEventListener('click',async()=>{try{jsonInput.value=extractJSON(sanitize(await navigator.clipboard.readText())); updateCharCount();}catch{overlay.style.display='flex';}});
+      ovCancel.addEventListener('click',()=>{overlay.style.display='none';});
+      ovOk.addEventListener('click',()=>{const ta=overlay.querySelector('textarea'); jsonInput.value=extractJSON(sanitize(ta.value)); overlay.style.display='none'; updateCharCount();});
+      jsonInput.addEventListener('paste',e=>{e.preventDefault(); const text=e.clipboardData.getData('text/plain'); jsonInput.value=extractJSON(sanitize(text)); updateCharCount();});
 
-      copyJsonBtn.addEventListener('click', () => { navigator.clipboard.writeText(jsonInput.value || ''); });
-      pasteBtn.addEventListener('click', async () => {
-        try {
-          jsonInput.value = extractJSON(sanitize(await navigator.clipboard.readText()));
-          updateCharCount();
-        } catch {
-          overlay.style.display = 'flex';
-        }
-      });
-      ovCancel.addEventListener('click', () => { overlay.style.display = 'none'; });
-      ovOk.addEventListener('click', () => {
-        const ta = overlay.querySelector('textarea');
-        jsonInput.value = extractJSON(sanitize(ta.value));
-        overlay.style.display = 'none';
-        updateCharCount();
-      });
-      jsonInput.addEventListener('paste', e => {
-        e.preventDefault();
-        const text = e.clipboardData.getData('text/plain');
-        jsonInput.value = extractJSON(sanitize(text));
-        updateCharCount();
-      });
+      // ---------- history / selection ----------
+      let dataObj={}; let hist=[]; let idx=-1;
+      const updateHistoryButtons=()=>{undoBtn.disabled=idx<=0; redoBtn.disabled=idx>=hist.length-1;};
+      const pushHist=state=>{const last=hist[hist.length-1]; if(last && last.json===state.json && JSON.stringify(last.selection)===JSON.stringify(state.selection)) return; hist.splice(idx+1); hist.push(state); idx=hist.length-1; updateHistoryButtons();};
+      const pushHistState=()=>{pushHist({json:jsonInput.value,selection:[...sel]});};
+      const loadState=state=>{if(state.json!==jsonInput.value){jsonInput.value=state.json; render(false);} applySelection(state.selection,false); updateHistoryButtons();};
 
-      // History + selection
-      let dataObj = {};
-      let hist = [];
-      let idx = -1;
-      const updateHistoryButtons = () => { undoBtn.disabled = idx <= 0; redoBtn.disabled = idx >= hist.length - 1; };
-      const pushHist = state => {
-        const last = hist[hist.length - 1];
-        if (last && last.json === state.json && JSON.stringify(last.selection) === JSON.stringify(state.selection)) return;
-        hist.splice(idx + 1);
-        hist.push(state);
-        idx = hist.length - 1;
-        updateHistoryButtons();
-      };
-      const pushHistState = () => { pushHist({ json: jsonInput.value, selection: [...sel] }); };
-      const loadState = state => {
-        if (state.json !== jsonInput.value) { jsonInput.value = state.json; render(false); }
-        applySelection(state.selection, false);
-        updateHistoryButtons();
-      };
-
-      // Cytoscape (Cola only)
-      let cy, layout;
-      let tapholdActive = false;
-      cytoscape.use(cytoscapeCola);
-      let menuOpened = false;
-      const initCy = () => {
-        if (cy) return;
-        cy = cytoscape({
-          container: document.getElementById('cy'),
-          wheelSensitivity: 0.6,
-          style: [
-            { selector: 'node', style: { label: 'data(label)', 'text-wrap': 'wrap', 'text-max-width': '220px', 'text-valign': 'center', 'text-halign': 'center', 'background-color': 'var(--node)', shape: 'round-rectangle', padding: '6px', width: 'label', height: 'label', 'font-size': '13px', color: '#fff', 'text-outline-color': '#000', 'text-outline-width': 1 } },
-            { selector: 'node.root', style: { 'background-color': 'var(--root)', 'border-width': 4, 'border-color': 'var(--root-outline)', 'text-outline-color': '#000', 'text-outline-width': 3, 'font-size': '15px', 'font-weight': '700' } },
-            { selector: 'node.selected', style: { 'border-color': '#f9a825', 'border-width': 2 } },
-            { selector: 'node.collapsed', style: { 'border-color': '#ef4444', 'border-width': 2 } },
-            { selector: 'edge', style: { width: 2, 'line-color': 'var(--edge)', 'target-arrow-color': 'var(--edge)', 'target-arrow-shape': 'triangle', 'curve-style': 'bezier', label: 'data(label)', 'font-size': '11px', color: '#e6edf3', 'text-rotation': 'autorotate', 'text-background-opacity': .9, 'text-background-color': 'var(--edge-bg)', 'text-background-padding': '2px' } },
-            { selector: 'edge[label=""]', style: { label: '', 'text-background-opacity': 0 } }
+      // ---------- Cytoscape / continuous physics ----------
+      let cy,layout; let tapholdActive=false; cytoscape.use(cytoscapeCola); let menuOpened=false;
+      const initCy=()=>{ if(cy) return;
+        cy=cytoscape({
+          container:document.getElementById('cy'), wheelSensitivity:0.6,
+          style:[
+            {selector:'node',style:{label:'data(label)','text-wrap':'wrap','text-max-width':'220px','text-valign':'center','text-halign':'center','background-color':'var(--node)',shape:'round-rectangle',padding:'6px',width:'label',height:'label','font-size':'13px',color:'#fff','text-outline-color':'#000','text-outline-width':1}},
+            {selector:'node.root',style:{'background-color':'var(--root)','border-width':4,'border-color':'var(--root-outline)','text-outline-color':'#000','text-outline-width':3,'font-size':'15px','font-weight':'700'}},
+            {selector:'node.selected',style:{'border-color':'#f9a825','border-width':2}},
+            {selector:'node.findhit',style:{'border-color':'var(--accent)','border-width':3,'background-color':'#55677c'}},
+            {selector:'node.collapsed',style:{'border-color':'#ef4444','border-width':2}},
+            {selector:'edge',style:{width:2,'line-color':'var(--edge)','target-arrow-color':'var(--edge)','target-arrow-shape':'triangle','curve-style':'bezier',label:'data(label)','font-size':'11px',color:'#e6edf3','text-rotation':'autorotate','text-background-opacity':.9,'text-background-color':'var(--edge-bg)','text-background-padding':'2px'}},
+            {selector:'edge[label=""]',style:{label:'','text-background-opacity':0}}
           ]
         });
-        cy.on('zoom', () => { zoomSlider.value = cy.zoom().toFixed(2); });
-        cy.on('tap', e => {
-          if (tapholdActive) return;
-          if (menuOpened) { menuOpened = false; return; }
-          if (e.target === cy) clearSelection(true);
-        });
-        cy.on('dbltap', 'node', editNode);
-        cy.on('tap', 'node', e => { if (tapholdActive) return; tapNode(e); });
-        cy.on('cxttap', 'node', e => {
-          if (!sel.has(e.target.id())) { clearSelection(false); sel.add(e.target.id()); e.target.addClass('selected'); }
-          openMenu(e.renderedPosition); menuOpened = true;
-        });
-        cy.on('taphold', 'node', e => {
-          const id = e.target.id();
-          if (!sel.has(id)) { sel.add(id); e.target.addClass('selected'); }
-          openMenu(e.renderedPosition); menuOpened = true;
-          tapholdActive = true; setTimeout(() => { tapholdActive = false; }, 300);
-        });
+        cy.on('zoom',()=>{zoomSlider.value=cy.zoom().toFixed(2);});
+        cy.on('tap',e=>{if(tapholdActive) return; if(menuOpened){menuOpened=false; return;} if(e.target===cy) clearSelection(true);});
+        cy.on('dbltap','node',editNode);
+        cy.on('tap','node',e=>{if(tapholdActive) return; tapNode(e);});
+        cy.on('cxttap','node',e=>{if(!sel.has(e.target.id())){clearSelection(false); sel.add(e.target.id()); e.target.addClass('selected');} openMenu(e.renderedPosition); menuOpened=true;});
+        cy.on('taphold','node',e=>{const id=e.target.id(); if(!sel.has(id)){sel.add(id); e.target.addClass('selected');} openMenu(e.renderedPosition); menuOpened=true; tapholdActive=true; setTimeout(()=>{tapholdActive=false;},300);});
         enableKineticPan();
-      };
-      const editNode = e => {
-        const node = e.target; const current = node.data('full'); const newText = prompt('Edit text:', current);
-        if (newText !== null && newText.trim() !== '') {
-          node.data('label', wrap(newText)); node.data('full', newText);
-          const objNode = dataObj.nodes.find(n => n.id === node.id()); if (objNode) objNode.text = newText;
-          jsonInput.value = JSON.stringify(dataObj, null, 2); pushHistState(); physics();
-        }
-      };
-      const physics = () => {
-        layout?.stop();
-        layout = cy.layout({ name: 'cola', infinite: true, animate: true, refresh: 1, nodeSpacing: 25, edgeLength: 200, padding: 40, fit: false, avoidOverlap: true });
-        layout.run();
-      };
-      const enableKineticPan = () => {
-        const container = cy.container(); let tracking = false, lastT = 0, lastX = 0, lastY = 0, vx = 0, vy = 0, raf; let touchCount = 0, pinching = false, pinchPan = { x: 0, y: 0 }; const damp = 0.97, stop = 0.00025;
-        const cancelMomentum = () => { cancelAnimationFrame(raf); vx = vy = 0; };
-        container.addEventListener('pointerdown', e => {
-          if (e.pointerType === 'touch') { touchCount++; if (touchCount === 2) { pinching = true; pinchPan = cy.pan(); tracking = false; cancelMomentum(); } }
-          if (pinching) return;
-          if (e.pointerType === 'mouse' && e.button !== 0) return;
-          tracking = true; lastT = e.timeStamp; lastX = e.clientX; lastY = e.clientY; vx = vy = 0; cancelMomentum();
-        });
-        container.addEventListener('pointermove', e => {
-          if (pinching) { cy.pan(pinchPan); return; }
-          if (!tracking) return;
-          const dt = e.timeStamp - lastT; if (!dt) return;
-          const dx = e.clientX - lastX, dy = e.clientY - lastY; vx = 0.8 * vx + 0.2 * (dx / dt); vy = 0.8 * vy + 0.2 * (dy / dt); lastT = e.timeStamp; lastX = e.clientX; lastY = e.clientY;
-        });
-        const pointerUp = e => {
-          if (e.pointerType === 'touch') { touchCount = Math.max(0, touchCount - 1); if (touchCount < 2 && pinching) pinching = false; }
-          if (pinching || !tracking) { tracking = false; return; }
-          tracking = false; let prev = performance.now();
-          const frame = now => {
-            const dt = now - prev; prev = now; vx *= damp; vy *= damp; if (Math.hypot(vx, vy) < stop) return; cy.panBy({ x: vx * dt, y: vy * dt }); raf = requestAnimationFrame(frame);
-          };
-          if (Math.hypot(vx, vy) >= stop) raf = requestAnimationFrame(frame);
-        };
-        window.addEventListener('pointerup', pointerUp);
-        window.addEventListener('pointercancel', pointerUp);
+
+        // If container resizes, restart layout to keep physics lively
+        window.addEventListener('resize',()=>physics());
       };
 
-      // Selection
-      const sel = new Set();
-      let multi = false;
-      multiBtn.addEventListener('click', () => { multi = !multi; multiBtn.classList.toggle('active', multi); if (!multi) clearSelection(true); });
-      const clearSelection = (record = true) => { sel.forEach(id => cy.getElementById(id).removeClass('selected')); sel.clear(); nodeMenu.style.display = 'none'; if (record) pushHistState(); };
-      const applySelection = (list, record = false) => { clearSelection(false); list.forEach(id => { const node = cy.getElementById(id); if (node.length) { sel.add(id); node.addClass('selected'); } }); if (record) pushHistState(); };
-      const selectionNames = () => [...sel].map(id => cy.getElementById(id).data('full')).join(', ');
-      const clampPos = (x, y) => { const mw = nodeMenu.offsetWidth, mh = nodeMenu.offsetHeight; return [ Math.max(10, Math.min(window.innerWidth - mw - 10, x)), Math.max(10, Math.min(window.innerHeight - mh - 10, y)) ]; };
-      const openMenu = pos => {
-        if (!sel.size) return;
-        copyTextBtn.textContent = sel.size > 1 ? 'Copy texts' : 'Copy text';
-        nodeCopyBtn.textContent = sel.size > 1 ? 'Copy Prompt for selected' : 'Copy Prompt for this node';
-        copyTextBtn.dataset.names = nodeCopyBtn.dataset.names = selectionNames();
-        delBtn.textContent = sel.has('n0') && sel.size === 1 ? 'Delete entire graph' : 'Delete node & subtree';
-        nodeMenu.style.display = 'block';
-        const rect = cy.container().getBoundingClientRect();
-        const [x, y] = clampPos(pos.x + 20 + rect.left, pos.y + 20 + rect.top);
-        nodeMenu.style.left = x + 'px';
-        nodeMenu.style.top = y + 'px';
-        nodeMenu.setAttribute('aria-hidden', 'false');
+      const editNode=e=>{
+        const node=e.target; const current=node.data('full'); const newText=prompt('Edit text:',current);
+        if(newText!==null && newText.trim()!==''){ node.data('label',wrap(newText)); node.data('full',newText); const objNode=dataObj.nodes.find(n=>n.id===node.id()); if(objNode) objNode.text=newText; jsonInput.value=JSON.stringify(dataObj,null,2); pushHistState(); physics(); updateFindHighlights(findInput.value); }
       };
-      const tapNode = e => {
-        const id = e.target.id();
-        if (!multi) { clearSelection(false); sel.add(id); e.target.addClass('selected'); }
-        else { if (sel.has(id)) { sel.delete(id); e.target.removeClass('selected'); } else { sel.add(id); e.target.addClass('selected'); } }
-        if (!sel.size) nodeMenu.style.display = 'none'; pushHistState();
+
+      // Continuous cola simulation (never stops until replaced)
+      const physics=()=>{ if(!cy) return; layout?.stop(); layout=cy.layout({
+          name:'cola',
+          infinite:true,          // <— keeps running forever
+          animate:true,
+          refresh:2,              // render frequently; lower = smoother, heavier
+          nodeSpacing:22,
+          edgeLength:160,
+          padding:30,
+          fit:false,
+          randomize:false,
+          avoidOverlap:true
+        }); layout.run(); };
+
+      const enableKineticPan=()=>{const container=cy.container(); let tracking=false,lastT=0,lastX=0,lastY=0,vx=0,vy=0,raf; let touchCount=0,pinching=false,pinchPan={x:0,y:0}; const damp=0.97,stop=0.00025; const cancel=()=>{cancelAnimationFrame(raf); vx=vy=0;};
+        container.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'){touchCount++; if(touchCount===2){pinching=true; pinchPan=cy.pan(); tracking=false; cancel();}} if(pinching) return; if(e.pointerType==='mouse'&&e.button!==0) return; tracking=true; lastT=e.timeStamp; lastX=e.clientX; lastY=e.clientY; vx=vy=0; cancel();});
+        container.addEventListener('pointermove',e=>{if(pinching){cy.pan(pinchPan); return;} if(!tracking) return; const dt=e.timeStamp-lastT; if(!dt) return; const dx=e.clientX-lastX, dy=e.clientY-lastY; vx=0.8*vx+0.2*(dx/dt); vy=0.8*vy+0.2*(dy/dt); lastT=e.timeStamp; lastX=e.clientX; lastY=e.clientY;});
+        const up=e=>{if(e.pointerType==='touch'){touchCount=Math.max(0,touchCount-1); if(touchCount<2&&pinching) pinching=false;} if(pinching||!tracking){tracking=false; return;} tracking=false; let prev=performance.now(); const frame=now=>{const dt=now-prev; prev=now; vx*=damp; vy*=damp; if(Math.hypot(vx,vy)<stop) return; cy.panBy({x:vx*dt,y:vy*dt}); raf=requestAnimationFrame(frame);}; if(Math.hypot(vx,vy)>=stop) raf=requestAnimationFrame(frame);};
+        window.addEventListener('pointerup',up); window.addEventListener('pointercancel',up);
       };
-      selectAllBtn.addEventListener('click', () => {
-        sel.clear(); cy.nodes().forEach(n => { sel.add(n.id()); n.addClass('selected'); });
-        multi = true; multiBtn.classList.add('active'); pushHistState();
+
+      // selection
+      const sel=new Set(); let multi=false;
+      multiBtn.addEventListener('click',()=>{multi=!multi; multiBtn.classList.toggle('active',multi); if(!multi) clearSelection(true);});
+      const clearSelection=(record=true)=>{sel.forEach(id=>cy.getElementById(id).removeClass('selected')); sel.clear(); nodeMenu.style.display='none'; if(record) pushHistState();};
+      const applySelection=(list,record=false)=>{clearSelection(false); list.forEach(id=>{const n=cy.getElementById(id); if(n.length){sel.add(id); n.addClass('selected');}}); if(record) pushHistState();};
+      const selectionNames=()=>[...sel].map(id=>cy.getElementById(id).data('full')).join(', ');
+      const clampPos=(x,y)=>{const mw=nodeMenu.offsetWidth,mh=nodeMenu.offsetHeight; return [Math.max(10,Math.min(window.innerWidth-mw-10,x)),Math.max(10,Math.min(window.innerHeight-mh-10,y))];};
+      const openMenu=pos=>{if(!sel.size) return; copyTextBtn.textContent=sel.size>1?'Copy texts':'Copy text'; nodeCopyBtn.textContent=sel.size>1?'Copy Prompt for selected':'Copy Prompt for this node'; copyTextBtn.dataset.names=nodeCopyBtn.dataset.names=selectionNames(); delBtn.textContent=sel.has('n0')&&sel.size===1?'Delete entire graph':'Delete node & subtree'; nodeMenu.style.display='block'; const rect=cy.container().getBoundingClientRect(); const [x,y]=clampPos(pos.x+20+rect.left,pos.y+20+rect.top); nodeMenu.style.left=x+'px'; nodeMenu.style.top=y+'px'; nodeMenu.setAttribute('aria-hidden','false');};
+      const tapNode=e=>{const id=e.target.id(); if(!multi){clearSelection(false); sel.add(id); e.target.addClass('selected');} else {if(sel.has(id)){sel.delete(id); e.target.removeClass('selected');} else {sel.add(id); e.target.addClass('selected');}} if(!sel.size) nodeMenu.style.display='none'; pushHistState();};
+      selectAllBtn.addEventListener('click',()=>{sel.clear(); cy.nodes().forEach(n=>{sel.add(n.id()); n.addClass('selected');}); multi=true; multiBtn.classList.add('active'); pushHistState();});
+
+      // node menu actions
+      copyTextBtn.addEventListener('click',()=>{navigator.clipboard.writeText(copyTextBtn.dataset.names||''); nodeMenu.style.display='none';});
+      nodeCopyBtn.addEventListener('click',()=>{const names=nodeCopyBtn.dataset.names||''; if(!names) return; const linkEntry=dataObj.link?` "link":"${dataObj.link}",\n`:''; const prompt=`Extend and refactor node "${names}"\n\nKeep "link" key if present. IDs stay n0, n1, …\nEach node text ≤ 50 chars.\n\nSchema:\n{\n${linkEntry}"root":"n0",\n  "nodes":[{ "id":"n0","text":"<root>","parent":"" }, … ],\n  "edges":[{ "source":"…","target":"…","label":"…","direction":"out" }]\n}\n\nReturn ONLY the JSON object.\n\nCurrent JSON:\n${jsonInput.value}`; navigator.clipboard.writeText(prompt); nodeMenu.style.display='none';});
+      apiExtendBtn.addEventListener('click',async()=>{const names=nodeCopyBtn.dataset.names||''; if(!names) return; let key=getApiKey(); if(!key){key=promptApiKey(true); if(!key) return;} const linkEntry=dataObj.link?` "link":"${dataObj.link}",\n`:''; const prompt=`Extend and refactor node "${names}"\n\nKeep "link" key if present. IDs stay n0, n1, …\nEach node text ≤ 50 chars.\n\nSchema:\n{\n${linkEntry}"root":"n0",\n  "nodes":[{ "id":"n0","text":"<root>","parent":"" }, … ],\n  "edges":[{ "source":"…","target":"…","label":"…","direction":"out" }]\n}\n\nReturn ONLY the JSON object.\n\nCurrent JSON:\n${jsonInput.value}`; const model=modelSelect.value||defaultModels[0]; abortController=new AbortController(); const signal=abortController.signal; showLoading(); setWaitingIfNonStream(model); try{const full=await chatComplete(prompt,model,signal,(n)=>{charCounter.textContent=String(n);}); const extracted=extractJSON(sanitize(full)); jsonInput.value=extracted; updateCharCount(); render(true); nodeMenu.style.display='none';}catch(err){if(err.name!=='AbortError'){console.error(err); alert('Failed to fetch from OpenAI:\n'+err.message);}} finally{hideLoading();}});
+      const subtree=(id,includeRoot)=>{const s=new Set(includeRoot?[id]:[]); const q=[id]; while(q.length){const cur=q.pop(); dataObj.edges.forEach(e=>{if(e.source===cur&&!s.has(e.target)){s.add(e.target); q.push(e.target);}}); dataObj.nodes.forEach(n=>{if(n.parent===cur&&!s.has(n.id)){s.add(n.id); q.push(n.id);}});} return s;};
+      delBtn.addEventListener('click',()=>{if(!sel.size) return; if(sel.has('n0')&&sel.size===1){if(!confirm('Delete entire graph?')) return; dataObj={}; jsonInput.value=''; cy.elements().remove(); clearSelection(false); pushHistState(); return;} const doomed=new Set(); sel.forEach(id=>subtree(id,true).forEach(x=>doomed.add(x))); doomed.forEach(id=>{dataObj.nodes=dataObj.nodes.filter(n=>n.id!==id); dataObj.edges=dataObj.edges.filter(e=>e.source!==id&&e.target!==id); const node=cy.getElementById(id); if(node.length) node.remove();}); jsonInput.value=JSON.stringify(dataObj,null,2); physics(); clearSelection(false); pushHistState();});
+      childBtn.addEventListener('click',()=>{if(!sel.size) return; const doomed=new Set(); sel.forEach(id=>subtree(id,false).forEach(x=>doomed.add(x))); doomed.forEach(id=>{dataObj.nodes=dataObj.nodes.filter(n=>n.id!==id); dataObj.edges=dataObj.edges.filter(e=>e.source!==id&&e.target!==id); const node=cy.getElementById(id); if(node.length) node.remove();}); jsonInput.value=JSON.stringify(dataObj,null,2); physics(); clearSelection(false); pushHistState();});
+
+      // build/render
+      const buildElements=()=>{const els=[]; const dup=new Set(dataObj.edges?.map(e=>e.source+'→'+e.target)||[]); (dataObj.nodes||[]).forEach(n=>{els.push({data:{id:n.id,label:wrap(n.text),full:n.text},classes:n.id==='n0'?'root':''}); if(n.parent && !dup.has(n.parent+'→'+n.id)){els.push({data:{source:n.parent,target:n.id,label:'parent'}});} }); (dataObj.edges||[]).forEach(e=>els.push({data:{source:e.source,target:e.target,label:e.label||''}})); return els;};
+      const render=(store=true)=>{const txt=extractJSON(sanitize(jsonInput.value)); if(!txt){if(cy) cy.elements().remove(); dataObj={}; updateHistoryButtons(); return;} const obj=parseJSON(txt); if(!obj){alert('Invalid JSON - ensure it matches schema with root, nodes, edges.'); return;} dataObj=obj; initCy(); cy.elements().remove(); cy.add(buildElements()); const root=cy.getElementById('n0'); root.position({x:cy.width()/2,y:cy.height()/2}).lock(); physics(); cy.zoom(1); zoomSlider.value='1'; clearSelection(false); if(store) pushHistState(); else updateHistoryButtons(); updateFindHighlights(findInput.value);};
+
+      renderBtn.addEventListener('click',()=>render(true));
+      exportBtn.addEventListener('click',()=>{if(!cy) return; const png=cy.png({full:true,scale:2}); const a=document.createElement('a'); a.href=png; a.download='mindmap.png'; a.click();});
+      undoBtn.addEventListener('click',()=>{if(idx>0){idx--; loadState(hist[idx]);}});
+      redoBtn.addEventListener('click',()=>{if(idx<hist.length-1){idx++; loadState(hist[idx]);}});
+      document.addEventListener('keydown',e=>{
+        if(e.ctrlKey && !e.shiftKey && e.key.toLowerCase()==='z'){e.preventDefault(); undoBtn.click();}
+        if(e.ctrlKey && (e.key.toLowerCase()==='y'||(e.key.toLowerCase()==='z'&&e.shiftKey))){e.preventDefault(); redoBtn.click();}
+        if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='f'){e.preventDefault(); jsonBox.open=true; findInput.focus(); findInput.select();}
+      });
+      zoomSlider.addEventListener('input',()=>{if(!cy) return; cy.zoom({level:+zoomSlider.value,renderedPosition:{x:cy.width()/2,y:cy.height()/2}});});
+      donate.addEventListener('click',e=>{e.currentTarget.classList.add('hide');});
+
+      // ---------- LIVE FIND ----------
+      let findMatches=null; let findIndex=-1;
+      function clearFindHighlights(){ if(!cy) return; if(findMatches) findMatches.removeClass('findhit'); findMatches=cy.collection(); findIndex=-1; findCount.textContent='0 matches'; }
+      function focusOn(ele){ if(!ele||ele.empty()) return; clearSelection(false); sel.add(ele.id()); ele.addClass('selected'); cy.animate({center:{eles:ele},zoom:Math.max(1.1,Math.min(2,cy.zoom()))},{duration:250}); }
+      function updateFindHighlights(q){
+        if(!cy) return;
+        q=(q||'').trim().toLowerCase();
+        cy.nodes().removeClass('findhit');
+        if(!q){ clearFindHighlights(); return; }
+        findMatches=cy.nodes().filter(n=>((n.data('full')||n.data('label')||'')+'').toLowerCase().includes(q));
+        findMatches.addClass('findhit');
+        findCount.textContent=`${findMatches.length} match${findMatches.length===1?'':'es'}`;
+      }
+      findInput.addEventListener('input',()=>updateFindHighlights(findInput.value));
+      findInput.addEventListener('keydown',e=>{
+        if(e.key==='Enter'){ e.preventDefault(); if(!findMatches||!findMatches.length) return; findIndex=(findIndex+1)%findMatches.length; focusOn(findMatches[findIndex]); }
+        if(e.key==='Escape'){ findInput.value=''; updateFindHighlights(''); }
       });
 
-      // Node menu actions
-      copyTextBtn.addEventListener('click', () => { navigator.clipboard.writeText(copyTextBtn.dataset.names || ''); nodeMenu.style.display = 'none'; });
-      nodeCopyBtn.addEventListener('click', () => {
-        const names = nodeCopyBtn.dataset.names || '';
-        if (!names) return;
-        const linkEntry = dataObj.link ? ` "link":"${dataObj.link}",\n` : '';
-        const prompt = `Extend and refactor node "${names}"\n\nKeep "link" key if present. IDs stay n0, n1, …\nEach node text ≤ 50 chars.\n\nSchema:\n{\n${linkEntry}"root":"n0",\n  "nodes":[{ "id":"n0","text":"<root>","parent":"" }, … ],\n  "edges":[{ "source":"…","target":"…","label":"…","direction":"out" }]\n}\n\nReturn ONLY the JSON object.\n\nCurrent JSON:\n${jsonInput.value}`;
-        navigator.clipboard.writeText(prompt);
-        nodeMenu.style.display = 'none';
-      });
-
-      apiExtendBtn.addEventListener('click', async () => {
-        const names = nodeCopyBtn.dataset.names || '';
-        if (!names) return;
-        let key = getApiKey();
-        if (!key) { key = promptApiKey(true); if (!key) return; }
-        const linkEntry = dataObj.link ? ` "link":"${dataObj.link}",\n` : '';
-        const prompt = `Extend and refactor node "${names}"\n\nKeep "link" key if present. IDs stay n0, n1, …\nEach node text ≤ 50 chars.\n\nSchema:\n{\n${linkEntry}"root":"n0",\n  "nodes":[{ "id":"n0","text":"<root>","parent":"" }, … ],\n  "edges":[{ "source":"…","target":"…","label":"…","direction":"out" }]\n}\n\nReturn ONLY the JSON object.\n\nCurrent JSON:\n${jsonInput.value}`;
-        const model = modelSelect.value || defaultModels[0];
-        abortController = new AbortController();
-        const signal = abortController.signal;
-        showLoading();
-        try {
-          const full = await chatComplete(prompt, model, signal, (n) => { charCounter.textContent = String(n); });
-          const extracted = extractJSON(sanitize(full));
-          jsonInput.value = extracted;
-          updateCharCount();
-          render(true);
-          nodeMenu.style.display = 'none';
-        } catch (err) {
-          if (err.name !== 'AbortError') {
-            console.error(err);
-            alert('Failed to fetch from OpenAI:\n' + err.message);
-          }
-        } finally { hideLoading(); }
-      });
-
-      const subtree = (id, includeRoot) => {
-        const s = new Set(includeRoot ? [id] : []); const q = [id];
-        while (q.length) {
-          const cur = q.pop();
-          dataObj.edges.forEach(e => { if (e.source === cur && !s.has(e.target)) { s.add(e.target); q.push(e.target); } });
-          dataObj.nodes.forEach(n => { if (n.parent === cur && !s.has(n.id)) { s.add(n.id); q.push(n.id); } });
-        }
-        return s;
-      };
-
-      delBtn.addEventListener('click', () => {
-        if (!sel.size) return;
-        if (sel.has('n0') && sel.size === 1) {
-          if (!confirm('Delete entire graph?')) return;
-          dataObj = {}; jsonInput.value = ''; cy.elements().remove(); clearSelection(false); pushHistState(); return;
-        }
-        const doomed = new Set(); sel.forEach(id => subtree(id, true).forEach(x => doomed.add(x)));
-        doomed.forEach(id => {
-          dataObj.nodes = dataObj.nodes.filter(n => n.id !== id);
-          dataObj.edges = dataObj.edges.filter(e => e.source !== id && e.target !== id);
-          const node = cy.getElementById(id); if (node.length) node.remove();
-        });
-        jsonInput.value = JSON.stringify(dataObj, null, 2); physics(); clearSelection(false); pushHistState();
-      });
-
-      childBtn.addEventListener('click', () => {
-        if (!sel.size) return;
-        const doomed = new Set(); sel.forEach(id => subtree(id, false).forEach(x => doomed.add(x)));
-        doomed.forEach(id => {
-          dataObj.nodes = dataObj.nodes.filter(n => n.id !== id);
-          dataObj.edges = dataObj.edges.filter(e => e.source !== id && e.target !== id);
-          const node = cy.getElementById(id); if (node.length) node.remove();
-        });
-        jsonInput.value = JSON.stringify(dataObj, null, 2); physics(); clearSelection(false); pushHistState();
-      });
-
-      // Build / Render
-      const buildElements = () => {
-        const els = [];
-        const dup = new Set(dataObj.edges?.map(e => e.source + '→' + e.target) || []);
-        (dataObj.nodes || []).forEach(n => {
-          els.push({ data: { id: n.id, label: wrap(n.text), full: n.text }, classes: n.id === 'n0' ? 'root' : '' });
-          if (n.parent && !dup.has(n.parent + '→' + n.id)) {
-            els.push({ data: { source: n.parent, target: n.id, label: 'parent' } });
-          }
-        });
-        (dataObj.edges || []).forEach(e => els.push({ data: { source: e.source, target: e.target, label: e.label || '' } }));
-        return els;
-      };
-
-      const render = (store = true) => {
-        const txt = extractJSON(sanitize(jsonInput.value));
-        if (!txt) {
-          if (cy) cy.elements().remove(); dataObj = {}; updateHistoryButtons(); return;
-        }
-        const obj = parseJSON(txt);
-        if (!obj) { alert('Invalid JSON - ensure it matches schema with root, nodes, edges.'); return; }
-        dataObj = obj;
-        initCy();
-        cy.elements().remove();
-        cy.add(buildElements());
-        const root = cy.getElementById('n0');
-        root.position({ x: cy.width() / 2, y: cy.height() / 2 }).lock();
-        physics();
-        cy.zoom(1);
-        zoomSlider.value = '1';
-        clearSelection(false);
-        if (store) pushHistState(); else updateHistoryButtons();
-      };
-
-      renderBtn.addEventListener('click', () => render(true));
-      exportBtn.addEventListener('click', () => {
-        if (!cy) return;
-        const png = cy.png({ full: true, scale: 2 });
-        const a = document.createElement('a'); a.href = png; a.download = 'mindmap.png'; a.click();
-      });
-      undoBtn.addEventListener('click', () => { if (idx > 0) { idx--; loadState(hist[idx]); } });
-      redoBtn.addEventListener('click', () => { if (idx < hist.length - 1) { idx++; loadState(hist[idx]); } });
-      document.addEventListener('keydown', e => {
-        if (e.ctrlKey && !e.shiftKey && e.key.toLowerCase() === 'z') { e.preventDefault(); undoBtn.click(); }
-        if (e.ctrlKey && (e.key.toLowerCase() === 'y' || (e.key.toLowerCase() === 'z' && e.shiftKey))) { e.preventDefault(); redoBtn.click(); }
-      });
-      zoomSlider.addEventListener('input', () => {
-        if (!cy) return;
-        cy.zoom({ level: +zoomSlider.value, renderedPosition: { x: cy.width() / 2, y: cy.height() / 2 } });
-      });
-      donate.addEventListener('click', e => { e.currentTarget.classList.add('hide'); });
-
-      // Initial load
-      pushHistState(); updateCharCount(); if (jsonInput.value.trim()) render(false);
+      // initial
+      pushHistState(); updateCharCount(); if(jsonInput.value.trim()) render(false);
 
       // API menu wiring
-      const modelSelectOverlay = document.getElementById('modelSelectOverlay');
-      const editApiKeyBtn = document.getElementById('editApiKeyBtn');
-      modelSelectOverlay.addEventListener('change', () => {
-        const value = modelSelectOverlay.value;
-        modelSelect.value = value;
-        try { localStorage.setItem(MODEL_STORAGE, value); } catch {}
-        closeApiMenu();
-      });
-      editApiKeyBtn.addEventListener('click', () => {
-        promptApiKey(true);
-        loadModels();
-        closeApiMenu();
-      });
+      const modelSelectOverlay=document.getElementById('modelSelectOverlay');
+      const editApiKeyBtn=document.getElementById('editApiKeyBtn');
+      modelSelectOverlay.addEventListener('change',()=>{const value=modelSelectOverlay.value; modelSelect.value=value; try{localStorage.setItem(MODEL_STORAGE,value);}catch{} closeApiMenu();});
+      editApiKeyBtn.addEventListener('click',()=>{promptApiKey(true); loadModels(); closeApiMenu();});
     });
   </script>
 </body>
