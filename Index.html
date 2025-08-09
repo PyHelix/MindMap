@@ -2,13 +2,13 @@
 <!--
   NodeTrellis landing page (old code kept)
 
-  Fix in this build:
-  • Clicking in the Find field no longer "reloads" the graph.
-    (Replaced window resize -> physics() with a ResizeObserver on #cy that
-     only calls cy.resize(), so opening/using Find & JSON won’t restart layout.)
-  • Previous improvements kept: continuous cola physics + anti-tangle reheat,
-    live Find highlight-as-you-type, JSON editor nested & collapsed, zoom on
-    same line as Undo/Redo, GPT-5 reasoning models with non-stream fallback
+  New in this build:
+  • "<" (previous) and ">" (next) buttons beside the Find field.
+  • Live highlight-as-you-type Find remains; Enter = next, Shift+Enter = previous, Esc = clear.
+  • Buttons auto-enable/disable based on match count.
+  • Prior fixes kept: Find field no longer reloads graph (ResizeObserver -> cy.resize()),
+    continuous Cola physics + anti-tangle "reheat", JSON editor nested & collapsed,
+    zoom on same line as Undo/Redo, GPT-5 reasoning models with non-stream fallback
     and character counter support.
 -->
 <html lang="en">
@@ -52,6 +52,7 @@
     /* live find */
     #findInput{width:260px;max-width:60vw;padding:6px 8px;border-radius:6px;border:1px solid var(--border);background:#0f172a;color:#c9d1d9}
     #findCount{color:#7d8590;font-size:12px}
+    .findNavBtn{padding:6px 10px}
     /* API menu */
     #apiMenu{position:absolute;display:none;background:rgba(22,27,34,.92);border-radius:8px;padding:8px;max-width:calc(100vw - 20px);box-shadow:0 4px 10px #000a;z-index:1000}
     #apiMenu select{width:100%;margin-bottom:6px;font-size:13px;color:#111;background:var(--node-h);border-radius:6px;border:0;font-weight:600;cursor:pointer;padding:6px 8px}
@@ -88,13 +89,15 @@
     <details id="jsonBox">
       <summary>Find & JSON (click to show / hide)</summary>
 
-      <!-- Live Find -->
+      <!-- Live Find + prev/next buttons -->
       <div class="row" style="margin:6px 0 4px">
-        <input id="findInput" placeholder="Type to highlight nodes…  (Enter = next, Esc = clear)" aria-label="Find node" />
+        <input id="findInput" placeholder="Type to highlight nodes…  (Enter = next, Shift+Enter = prev, Esc = clear)" aria-label="Find node" />
+        <button id="findPrevBtn" class="btn aux findNavBtn" aria-label="Previous match" title="Previous match">&lt;</button>
+        <button id="findNextBtn" class="btn aux findNavBtn" aria-label="Next match" title="Next match">&gt;</button>
         <small id="findCount">0 matches</small>
       </div>
 
-      <!-- JSON editor is a nested, collapsed section -->
+      <!-- JSON editor is nested and collapsed by default -->
       <details id="jsonEditor">
         <summary>JSON editor (click to expand)</summary>
         <textarea id="jsonInput" placeholder="Paste LLM’s JSON here, then hit Render Map" aria-label="JSON input"></textarea>
@@ -219,6 +222,8 @@
       const donate=document.getElementById('donate');
 
       const findInput=document.getElementById('findInput');
+      const findPrevBtn=document.getElementById('findPrevBtn');
+      const findNextBtn=document.getElementById('findNextBtn');
       const findCount=document.getElementById('findCount');
 
       const loadingBar=document.getElementById('loadingBar');
@@ -503,7 +508,7 @@
         if(newText!==null && newText.trim()!==''){
           node.data('label',wrap(newText)); node.data('full',newText);
           const objNode=dataObj.nodes.find(n=>n.id===node.id()); if(objNode) objNode.text=newText;
-          jsonInput.value=JSON.stringify(dataObj,null,2); pushHistState(); physics(); updateFindHighlights(findInput.value);
+          jsonInput.value=JSON.stringify(dataObj, null, 2); pushHistState(); physics(); updateFindHighlights(findInput.value);
         }
       };
 
@@ -549,9 +554,10 @@
       zoomSlider.addEventListener('input',()=>{if(!cy) return; cy.zoom({level:+zoomSlider.value,renderedPosition:{x:cy.width()/2,y:cy.height()/2}});});
       donate.addEventListener('click',e=>{e.currentTarget.classList.add('hide');});
 
-      // ---------- LIVE FIND ----------
+      // ---------- LIVE FIND + buttons ----------
       let findMatches=null; let findIndex=-1;
-      function clearFindHighlights(){ if(!cy) return; cy.nodes().removeClass('findhit'); findMatches=cy.collection(); findIndex=-1; findCount.textContent='0 matches'; }
+      function clearFindHighlights(){ if(!cy) return; cy.nodes().removeClass('findhit'); findMatches=cy.collection(); findIndex=-1; findCount.textContent='0 matches'; setFindButtons(false); }
+      function setFindButtons(enabled){ findPrevBtn.disabled=!enabled; findNextBtn.disabled=!enabled; }
       function focusOn(ele){ if(!ele||ele.empty()) return; clearSelection(false); sel.add(ele.id()); ele.addClass('selected'); cy.animate({center:{eles:ele},zoom:Math.max(1.1,Math.min(2,cy.zoom()))},{duration:250}); }
       function updateFindHighlights(q){
         if(!cy) return;
@@ -560,13 +566,23 @@
         if(!q){ clearFindHighlights(); return; }
         findMatches=cy.nodes().filter(n=>((n.data('full')||n.data('label')||'')+'').toLowerCase().includes(q));
         findMatches.addClass('findhit');
+        findIndex=-1;
         findCount.textContent=`${findMatches.length} match${findMatches.length===1?'':'es'}`;
+        setFindButtons(findMatches.length>0);
+      }
+      function stepFind(delta){
+        if(!findMatches || !findMatches.length) return;
+        findIndex = (findIndex + delta + findMatches.length) % findMatches.length;
+        focusOn(findMatches[findIndex]);
       }
       findInput.addEventListener('input',()=>updateFindHighlights(findInput.value));
       findInput.addEventListener('keydown',e=>{
-        if(e.key==='Enter'){ e.preventDefault(); if(!findMatches||!findMatches.length) return; findIndex=(findIndex+1)%findMatches.length; focusOn(findMatches[findIndex]); }
+        if(e.key==='Enter'){ e.preventDefault(); stepFind(e.shiftKey?-1:+1); }
         if(e.key==='Escape'){ findInput.value=''; updateFindHighlights(''); }
       });
+      findPrevBtn.addEventListener('click',()=>stepFind(-1));
+      findNextBtn.addEventListener('click',()=>stepFind(+1));
+      setFindButtons(false);
 
       // initial
       pushHistState(); updateCharCount(); if(jsonInput.value.trim()) render(false);
