@@ -2,11 +2,12 @@
 <!--
   NodeTrellis landing page (old code kept)
 
-  Change in this build:
-  • The JSON editor is now collapsed inside the "Find & JSON" dropdown (nested <details>).
+  Changes in this build:
+  • Anti-tangle physics: continuous cola + automatic "reheat" if nodes pile up.
+  • Cola tuned with avoidOverlap, handleDisconnected, flow layering, dynamic edgeLength.
+  • Live "Find" still highlights matches as you type.
+  • JSON editor stays collapsed inside the "Find & JSON" dropdown.
   • Zoom slider stays on the same line as Undo/Redo.
-  • Continuous physics (cola { infinite: true }).
-  • Live "Find" highlights matches as you type.
   • Character counter works for reasoning (non-stream) models incl. GPT-5 via fallback.
 -->
 <html lang="en">
@@ -70,6 +71,8 @@
     /* nested details spacing */
     #jsonBox details{margin-top:6px}
     #jsonBox summary{cursor:pointer}
+    /* highlight for find matches */
+    .cy-findhit{outline:3px solid var(--accent)!important;outline-offset:2px;border-color:var(--accent)!important}
   </style>
 </head>
 <body>
@@ -92,7 +95,7 @@
         <small id="findCount">0 matches</small>
       </div>
 
-      <!-- JSON editor is now a nested, collapsed section -->
+      <!-- JSON editor is a nested, collapsed section -->
       <details id="jsonEditor">
         <summary>JSON editor (click to expand)</summary>
         <textarea id="jsonInput" placeholder="Paste LLM’s JSON here, then hit Render Map" aria-label="JSON input"></textarea>
@@ -176,7 +179,8 @@
 
   <script>
     // ---------- helpers ----------
-    const sanitize=t=>t.replace(/^```[^\n]*\n?/,'').replace(/```$/,'').replace(/```/g,'').replace(/\\(?!["/bfnrtu])/g,'').replace(/\\(?=[\\[\\]{}])/g,'').trim();
+    const sanitize=t=>t.replace(/^```[^\n]*\n?/,'').replace(/```$/,'').replace(/```/g,'')
+      .replace(/\\(?!["/bfnrtu])/g,'').replace(/\\(?=[\\[\\]{}])/g,'').trim();
     const extractJSON=str=>{const m=str.match(/({[\\s\\S]*})/m);return m?m[1].trim():str.trim();};
     const parseJSON=t=>{try{return JSON.parse(t);}catch{return null;}};
     const wrap=(txt,max=50)=>txt.length>max?txt.slice(0,max-1)+'…':txt;
@@ -383,8 +387,10 @@
       const pushHistState=()=>{pushHist({json:jsonInput.value,selection:[...sel]});};
       const loadState=state=>{if(state.json!==jsonInput.value){jsonInput.value=state.json; render(false);} applySelection(state.selection,false); updateHistoryButtons();};
 
-      // ---------- Cytoscape / continuous physics ----------
+      // ---------- Cytoscape / anti-tangle continuous physics ----------
       let cy,layout; let tapholdActive=false; cytoscape.use(cytoscapeCola); let menuOpened=false;
+      let untangleTimer=null, stuckHits=0;
+
       const initCy=()=>{ if(cy) return;
         cy=cytoscape({
           container:document.getElementById('cy'), wheelSensitivity:0.6,
@@ -393,9 +399,8 @@
             {selector:'node.root',style:{'background-color':'var(--root)','border-width':4,'border-color':'var(--root-outline)','text-outline-color':'#000','text-outline-width':3,'font-size':'15px','font-weight':'700'}},
             {selector:'node.selected',style:{'border-color':'#f9a825','border-width':2}},
             {selector:'node.findhit',style:{'border-color':'var(--accent)','border-width':3,'background-color':'#55677c'}},
-            {selector:'node.collapsed',style:{'border-color':'#ef4444','border-width':2}},
             {selector:'edge',style:{width:2,'line-color':'var(--edge)','target-arrow-color':'var(--edge)','target-arrow-shape':'triangle','curve-style':'bezier',label:'data(label)','font-size':'11px',color:'#e6edf3','text-rotation':'autorotate','text-background-opacity':.9,'text-background-color':'var(--edge-bg)','text-background-padding':'2px'}},
-            {selector:'edge[label=""]',style:{label:'','text-background-opacity':0}}
+            {selector:'edge[label=\"\"]',style:{label:'','text-background-opacity':0}}
           ]
         });
         cy.on('zoom',()=>{zoomSlider.value=cy.zoom().toFixed(2);});
@@ -407,26 +412,103 @@
         enableKineticPan();
 
         window.addEventListener('resize',()=>physics());
+
+        // start periodic untangle monitor
+        untangleTimer=setInterval(untangleIfStuck, 1400);
       };
+
+      const BASE = {
+        nodeSpacing: 28,
+        padding: 40
+      };
+
+      // Dynamic edge length to spread dense regions & root
+      const edgeLengthFn = (e) => {
+        const s = e.source(), t = e.target();
+        const deg = s.connectedEdges().length + t.connectedEdges().length;
+        let len = 180 + Math.min(80, deg * 8);
+        if (s.id()==='n0' || t.id()==='n0') len += 60;
+        return len;
+      };
+
+      const physics=(opts={})=>{
+        if(!cy) return;
+        const config = {
+          name:'cola',
+          infinite:true,          // keep running forever
+          animate:true,
+          refresh:2,
+          nodeSpacing: BASE.nodeSpacing,
+          edgeLength: edgeLengthFn,
+          padding: BASE.padding,
+          fit:false,
+          randomize:false,
+          avoidOverlap:true,
+          handleDisconnected:true,
+          flow:{ axis:'y', minSeparation:50 }, // layer to reduce edge crossings
+          convergenceThreshold: 0.01,
+          ...opts
+        };
+        layout?.stop();
+        layout = cy.layout(config);
+        layout.run();
+      };
+
+      // auto "reheat" if nodes overlap or get too close for too long
+      function untangleIfStuck(){
+        if(!cy) return;
+        const nodes = cy.nodes().filter(':visible');
+        if(nodes.length < 2) return;
+
+        let overlaps=0, close=0;
+        // quick O(n^2) check; fine for typical sizes
+        for(let i=0;i<nodes.length;i++){
+          const bi = nodes[i].boundingBox({includeLabels:true});
+          for(let j=i+1;j<nodes.length;j++){
+            const bj = nodes[j].boundingBox({includeLabels:true});
+            if (bboxIntersects(bi,bj,4)) overlaps++;
+            else if (bboxClose(bi,bj,12)) close++;
+          }
+        }
+        if (overlaps>0 || close>nodes.length){
+          stuckHits++;
+        } else {
+          stuckHits = Math.max(0, stuckHits-1);
+        }
+
+        // soft nudge, then hard reheat if still tangled
+        if (stuckHits===1){
+          reheat(false);
+        } else if (stuckHits>=2){
+          reheat(true);
+          stuckHits=0;
+        }
+      }
+      function bboxIntersects(a,b,pad=0){
+        return !(a.x2+pad < b.x1 || a.x1-pad > b.x2 || a.y2+pad < b.y1 || a.y1-pad > b.y2);
+      }
+      function bboxClose(a,b,thr=10){
+        const dx = Math.max(0, Math.max(a.x1 - b.x2, b.x1 - a.x2));
+        const dy = Math.max(0, Math.max(a.y1 - b.y2, b.y1 - a.y2));
+        return dx < thr && dy < thr;
+      }
+      function reheat(hard){
+        physics({
+          nodeSpacing: hard ? BASE.nodeSpacing+14 : BASE.nodeSpacing+8,
+          padding:    hard ? BASE.padding+20 : BASE.padding+10,
+          randomize:  hard,
+          edgeLength: (e)=> edgeLengthFn(e) + (hard? 60: 30)
+        });
+      }
 
       const editNode=e=>{
         const node=e.target; const current=node.data('full'); const newText=prompt('Edit text:',current);
-        if(newText!==null && newText.trim()!==''){ node.data('label',wrap(newText)); node.data('full',newText); const objNode=dataObj.nodes.find(n=>n.id===node.id()); if(objNode) objNode.text=newText; jsonInput.value=JSON.stringify(dataObj,null,2); pushHistState(); physics(); updateFindHighlights(findInput.value); }
+        if(newText!==null && newText.trim()!==''){
+          node.data('label',wrap(newText)); node.data('full',newText);
+          const objNode=dataObj.nodes.find(n=>n.id===node.id()); if(objNode) objNode.text=newText;
+          jsonInput.value=JSON.stringify(dataObj,null,2); pushHistState(); physics(); updateFindHighlights(findInput.value);
+        }
       };
-
-      // Continuous cola simulation
-      const physics=()=>{ if(!cy) return; layout?.stop(); layout=cy.layout({
-          name:'cola',
-          infinite:true,          // <— keeps running
-          animate:true,
-          refresh:2,
-          nodeSpacing:22,
-          edgeLength:160,
-          padding:30,
-          fit:false,
-          randomize:false,
-          avoidOverlap:true
-        }); layout.run(); };
 
       const enableKineticPan=()=>{const container=cy.container(); let tracking=false,lastT=0,lastX=0,lastY=0,vx=0,vy=0,raf; let touchCount=0,pinching=false,pinchPan={x:0,y:0}; const damp=0.97,stop=0.00025; const cancel=()=>{cancelAnimationFrame(raf); vx=vy=0;};
         container.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'){touchCount++; if(touchCount===2){pinching=true; pinchPan=cy.pan(); tracking=false; cancel();}} if(pinching) return; if(e.pointerType==='mouse'&&e.button!==0) return; tracking=true; lastT=e.timeStamp; lastX=e.clientX; lastY=e.clientY; vx=vy=0; cancel();});
@@ -472,7 +554,7 @@
 
       // ---------- LIVE FIND ----------
       let findMatches=null; let findIndex=-1;
-      function clearFindHighlights(){ if(!cy) return; if(findMatches) findMatches.removeClass('findhit'); findMatches=cy.collection(); findIndex=-1; findCount.textContent='0 matches'; }
+      function clearFindHighlights(){ if(!cy) return; cy.nodes().removeClass('findhit'); findMatches=cy.collection(); findIndex=-1; findCount.textContent='0 matches'; }
       function focusOn(ele){ if(!ele||ele.empty()) return; clearSelection(false); sel.add(ele.id()); ele.addClass('selected'); cy.animate({center:{eles:ele},zoom:Math.max(1.1,Math.min(2,cy.zoom()))},{duration:250}); }
       function updateFindHighlights(q){
         if(!cy) return;
