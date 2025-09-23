@@ -3,10 +3,10 @@
   NodeTrellis landing page (old code kept)
 
   New in this build:
-  • "<" (previous) and ">" (next) buttons beside the Find field.
-  • Live highlight-as-you-type Find remains; Enter = next, Shift+Enter = previous, Esc = clear.
-  • Buttons auto-enable/disable based on match count.
-  • Prior fixes kept: Find field no longer reloads graph (ResizeObserver -> cy.resize()),
+  - "<" (previous) and ">" (next) buttons beside the Find field.
+  - Live highlight-as-you-type Find remains; Enter = next, Shift+Enter = previous, Esc = clear.
+  - Buttons auto-enable/disable based on match count.
+  - Prior fixes kept: Find field no longer reloads graph (ResizeObserver -> cy.resize()),
     continuous Cola physics + anti-tangle "reheat", JSON editor nested & collapsed,
     zoom on same line as Undo/Redo, GPT-5 reasoning models with non-stream fallback
     and character counter support.
@@ -15,7 +15,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>NodeTrellis – interactive mind-mapping tool</title>
+  <title>NodeTrellis - interactive mind-mapping tool</title>
   <meta name="description" content="NodeTrellis is an interactive mind-mapping tool that helps you organise and visualise ideas. Analyse any topic or URL to generate dynamic mind maps from JSON, edit and manage nodes with multi-select and collapse features, extend your map via integrated AI, and export high-resolution images." />
   <meta name="theme-color" content="#0d1117" />
   <script src="https://unpkg.com/cytoscape@3/dist/cytoscape.min.js" defer></script>
@@ -76,12 +76,12 @@
   </style>
 </head>
 <body>
-  <h1 class="visually-hidden">NodeTrellis – interactive mind-mapping tool</h1>
+  <h1 class="visually-hidden">NodeTrellis - interactive mind-mapping tool</h1>
   <div id="controls">
     <div class="row" id="builderRow">
       <input id="topicInput" placeholder="Topic or URL" aria-label="Topic or URL" />
       <button id="copyPromptBtn" class="btn main" aria-label="Copy prompt">Copy Prompt</button>
-      <button id="pastePromptBtn" class="btn aux" aria-label="Paste prompt">📋</button>
+      <button id="pastePromptBtn" class="btn aux" aria-label="Paste prompt">&#x1f4cb;</button>
       <button id="helpBtn" class="btn aux" aria-label="Help">?</button>
     </div>
 
@@ -91,7 +91,7 @@
 
       <!-- Live Find + prev/next buttons -->
       <div class="row" style="margin:6px 0 4px">
-        <input id="findInput" placeholder="Type to highlight nodes…  (Enter = next, Shift+Enter = prev, Esc = clear)" aria-label="Find node" />
+        <input id="findInput" placeholder="Type to highlight nodes...  (Enter = next, Shift+Enter = prev, Esc = clear)" aria-label="Find node" />
         <button id="findPrevBtn" class="btn aux findNavBtn" aria-label="Previous match" title="Previous match">&lt;</button>
         <button id="findNextBtn" class="btn aux findNavBtn" aria-label="Next match" title="Next match">&gt;</button>
         <small id="findCount">0 matches</small>
@@ -100,7 +100,7 @@
       <!-- JSON editor is nested and collapsed by default -->
       <details id="jsonEditor">
         <summary>JSON editor (click to expand)</summary>
-        <textarea id="jsonInput" placeholder="Paste LLM’s JSON here, then hit Render Map" aria-label="JSON input"></textarea>
+        <textarea id="jsonInput" placeholder="Paste LLM's JSON here, then hit Render Map" aria-label="JSON input"></textarea>
         <small id="charCount" style="display:block;margin-top:4px;color:#7d8590;font-size:12px">0 characters</small>
       </details>
     </details>
@@ -109,12 +109,12 @@
       <button id="renderBtn" class="btn main" style="flex:1" aria-label="Render map">Render Map</button>
       <button id="apiRenderBtn" class="btn main" aria-label="API Render">API Render</button>
       <select id="modelSelect" class="btn aux" title="Select model" style="display:none"></select>
-      <button id="pasteBtn" class="btn aux" aria-label="Paste JSON">📋</button>
-      <button id="copyJsonBtn" class="btn aux" aria-label="Copy JSON">📄</button>
-      <button id="exportBtn" class="btn aux" aria-label="Export PNG">📥</button>
-      <button id="multiBtn" class="btn aux" aria-label="Toggle multi-select" title="Toggle multi-select">⇳</button>
-      <button id="undoBtn" class="btn aux" disabled aria-label="Undo">⟲</button>
-      <button id="redoBtn" class="btn aux" disabled aria-label="Redo">⟳</button>
+      <button id="pasteBtn" class="btn aux" aria-label="Paste JSON">&#x1f4cb;</button>
+      <button id="copyJsonBtn" class="btn aux" aria-label="Copy JSON">&#x1f4c4;</button>
+      <button id="exportBtn" class="btn aux" aria-label="Export PNG">&#x1f4e5;</button>
+      <button id="multiBtn" class="btn aux" aria-label="Toggle multi-select" title="Toggle multi-select">&#x21f3;</button>
+      <button id="undoBtn" class="btn aux" disabled aria-label="Undo">&#x27f2;</button>
+      <button id="redoBtn" class="btn aux" disabled aria-label="Redo">&#x27f3;</button>
 
       <!-- Zoom slider stays on this SAME LINE, right aligned -->
       <span id="zoomWrap" class="row" style="margin-left:auto;align-items:center">
@@ -162,7 +162,7 @@
     <div>
       <h3 style="margin-top:0">Guide</h3>
       <p><strong>1.</strong> Type a topic or any URL in the field at the top.</p>
-      <p><strong>2.</strong> Tap <em>Copy Prompt</em> – a ready-made instruction for your LLM is copied to your clipboard.</p>
+      <p><strong>2.</strong> Tap <em>Copy Prompt</em> - a ready-made instruction for your LLM is copied to your clipboard.</p>
       <p><strong>3.</strong> Paste that prompt into your LLM and wait for the JSON response.</p>
       <p><strong>4.</strong> Paste the JSON into the box below, then press <i>Render Map</i>.</p>
       <p><strong>5.</strong> Right-click a node or long-press (~1 s) to manage children, collapse nodes, copy text, or delete.</p>
@@ -174,9 +174,9 @@
 
   <section id="donate" title="Tap to hide">
     <h3 style="margin:0 0 4px;font-size:14px">Support citizen-science projects <span style="font-size:11px;opacity:.6">(tap to hide)</span></h3>
-    <p><strong>Gridcoin</strong> — rewards BOINC distributed-computing research.<br>Address: <code>SG5RCw9cf2RhbopCuXLzYYpXciARaZNCF8</code></p>
-    <p><strong>Curecoin</strong> — rewards Folding@home protein-folding research.<br>Address: <code>BRaK31UtcWKM6wqbFFU8bXDSc1b8NkvP7h</code></p>
-    <p>Feedback → <a href="mailto:Foxes.owo@gmail.com">Foxes.owo@gmail.com</a></p>
+    <p><strong>Gridcoin</strong> - rewards BOINC distributed-computing research.<br>Address: <code>SG5RCw9cf2RhbopCuXLzYYpXciARaZNCF8</code></p>
+    <p><strong>Curecoin</strong> - rewards Folding@home protein-folding research.<br>Address: <code>BRaK31UtcWKM6wqbFFU8bXDSc1b8NkvP7h</code></p>
+    <p>Feedback -> <a href="mailto:Foxes.owo@gmail.com">Foxes.owo@gmail.com</a></p>
   </section>
 
   <script>
@@ -185,7 +185,7 @@
       .replace(/\\(?!["/bfnrtu])/g,'').replace(/\\(?=[\\[\\]{}])/g,'').trim();
     const extractJSON=str=>{const m=str.match(/({[\s\S]*})/m);return m?m[1].trim():str.trim();};
     const parseJSON=t=>{try{return JSON.parse(t);}catch{return null;}};
-    const wrap=(txt,max=50)=>txt.length>max?txt.slice(0,max-1)+'…':txt;
+    const wrap=(txt,max=50)=>txt.length>max?txt.slice(0,max-1)+'...':txt;
 
     document.addEventListener('DOMContentLoaded', () => {
       // ---------- elements ----------
@@ -333,7 +333,7 @@
       apiRenderBtn.addEventListener('contextmenu',e=>{e.preventDefault(); openApiMenu(e);});
       document.addEventListener('pointerdown',(e)=>{if(apiMenuOpen){const menuEl=document.getElementById('apiMenu'); if(!menuEl.contains(e.target)&&e.target!==apiRenderBtn) closeApiMenu();}});
 
-      function setWaitingIfNonStream(model){ if(reasoningModels.includes(model)) charCounter.textContent='waiting…'; }
+      function setWaitingIfNonStream(model){ if(reasoningModels.includes(model)) charCounter.textContent='waiting...'; }
 
       // API Render
       apiRenderBtn.addEventListener('click', async () => {
@@ -366,11 +366,11 @@
       // URL helper + prompt
       const isURL=s=>{const str=s.trim(); return /:\/\//.test(str)||/^[^\s]+\.[^\s]{2,}(?:[\/\?#].*)?$/.test(str);};
       const makePrompt=txt=>{
-        const limit='• Each node “text” ≤ 50 chars (links unrestricted).';
+        const limit='- Each node "text" <= 50 chars (links unrestricted).';
         if(isURL(txt)){
-          return `Analyse the page ${txt} and output ONLY raw JSON.\n\n• Add "link":"${txt}" at top level (do NOT add it as a node).\n• IDs start n0, n1, n2 …\n${limit}\n\nSchema:\n{ "link":"${txt}", "root":"n0",\n  "nodes":[{ "id":"n0","text":"<root>","parent":"" }],\n  "edges":[{ "source":"…","target":"…","label":"…","direction":"out" }] }\n\nReturn ONLY the JSON object.`;
+          return `Analyse the page ${txt} and output ONLY raw JSON.\n\n- Add "link":"${txt}" at top level (do NOT add it as a node).\n- IDs start n0, n1, n2 ...\n${limit}\n\nSchema:\n{ "link":"${txt}", "root":"n0",\n  "nodes":[{ "id":"n0","text":"<root>","parent":"" }],\n  "edges":[{ "source":"...","target":"...","label":"...","direction":"out" }] }\n\nReturn ONLY the JSON object.`;
         }
-        return `Create a mind-map for "${txt}" and output ONLY raw JSON.\n\n• IDs start n0, n1, n2 …\n${limit}\n\nSchema:\n{ "root":"n0",\n  "nodes":[{ "id":"n0","text":"<root>","parent":"" }],\n  "edges":[{ "source":"…","target":"…","label":"…","direction":"out" }] }\n\nReturn ONLY the JSON object.`;
+        return `Create a mind-map for "${txt}" and output ONLY raw JSON.\n\n- IDs start n0, n1, n2 ...\n${limit}\n\nSchema:\n{ "root":"n0",\n  "nodes":[{ "id":"n0","text":"<root>","parent":"" }],\n  "edges":[{ "source":"...","target":"...","label":"...","direction":"out" }] }\n\nReturn ONLY the JSON object.`;
       };
       copyPromptBtn.addEventListener('click',()=>{const val=topicInput.value.trim(); if(!val){alert('Enter topic or URL'); return;} navigator.clipboard.writeText(makePrompt(val));});
       pastePromptBtn.addEventListener('click',async()=>{try{topicInput.value=(await navigator.clipboard.readText()).trim();}catch{}});
@@ -446,10 +446,9 @@
           edgeLength: edgeLengthFn,
           padding: BASE.padding,
           fit:false,
-          randomize:false,
+          randomize:true,
           avoidOverlap:true,
           handleDisconnected:true,
-          flow:{ axis:'y', minSeparation:50 }, // layer to reduce edge crossings
           convergenceThreshold: 0.01,
           ...opts
         };
@@ -532,14 +531,14 @@
 
       // node menu actions
       copyTextBtn.addEventListener('click',()=>{navigator.clipboard.writeText(copyTextBtn.dataset.names||''); nodeMenu.style.display='none';});
-      nodeCopyBtn.addEventListener('click',()=>{const names=nodeCopyBtn.dataset.names||''; if(!names) return; const linkEntry=dataObj.link?` "link":"${dataObj.link}",\n`:''; const prompt=`Extend and refactor node "${names}"\n\nKeep "link" key if present. IDs stay n0, n1, …\nEach node text ≤ 50 chars.\n\nSchema:\n{\n${linkEntry}"root":"n0",\n  "nodes":[{ "id":"n0","text":"<root>","parent":"" }, … ],\n  "edges":[{ "source":"…","target":"…","label":"…","direction":"out" }]\n}\n\nReturn ONLY the JSON object.\n\nCurrent JSON:\n${jsonInput.value}`; navigator.clipboard.writeText(prompt); nodeMenu.style.display='none';});
-      apiExtendBtn.addEventListener('click',async()=>{const names=nodeCopyBtn.dataset.names||''; if(!names) return; let key=getApiKey(); if(!key){key=promptApiKey(true); if(!key) return;} const linkEntry=dataObj.link?` "link":"${dataObj.link}",\n`:''; const prompt=`Extend and refactor node "${names}"\n\nKeep "link" key if present. IDs stay n0, n1, …\nEach node text ≤ 50 chars.\n\nSchema:\n{\n${linkEntry}"root":"n0",\n  "nodes":[{ "id":"n0","text":"<root>","parent":"" }, … ],\n  "edges":[{ "source":"…","target":"…","label":"…","direction":"out" }]\n}\n\nReturn ONLY the JSON object.\n\nCurrent JSON:\n${jsonInput.value}`; const model=modelSelect.value||defaultModels[0]; abortController=new AbortController(); const signal=abortController.signal; showLoading(); setWaitingIfNonStream(model); try{const full=await chatComplete(prompt,model,signal,(n)=>{charCounter.textContent=String(n);}); const extracted=extractJSON(sanitize(full)); jsonInput.value=extracted; updateCharCount(); render(true); nodeMenu.style.display='none';}catch(err){if(err.name!=='AbortError'){console.error(err); alert('Failed to fetch from OpenAI:\n'+err.message);}} finally{hideLoading();}});
+      nodeCopyBtn.addEventListener('click',()=>{const names=nodeCopyBtn.dataset.names||''; if(!names) return; const linkEntry=dataObj.link?` "link":"${dataObj.link}",\n`:''; const prompt=`Extend and refactor node "${names}"\n\nKeep "link" key if present. IDs stay n0, n1, ...\nEach node text <= 50 chars.\n\nSchema:\n{\n${linkEntry}"root":"n0",\n  "nodes":[{ "id":"n0","text":"<root>","parent":"" }, ... ],\n  "edges":[{ "source":"...","target":"...","label":"...","direction":"out" }]\n}\n\nReturn ONLY the JSON object.\n\nCurrent JSON:\n${jsonInput.value}`; navigator.clipboard.writeText(prompt); nodeMenu.style.display='none';});
+      apiExtendBtn.addEventListener('click',async()=>{const names=nodeCopyBtn.dataset.names||''; if(!names) return; let key=getApiKey(); if(!key){key=promptApiKey(true); if(!key) return;} const linkEntry=dataObj.link?` "link":"${dataObj.link}",\n`:''; const prompt=`Extend and refactor node "${names}"\n\nKeep "link" key if present. IDs stay n0, n1, ...\nEach node text <= 50 chars.\n\nSchema:\n{\n${linkEntry}"root":"n0",\n  "nodes":[{ "id":"n0","text":"<root>","parent":"" }, ... ],\n  "edges":[{ "source":"...","target":"...","label":"...","direction":"out" }]\n}\n\nReturn ONLY the JSON object.\n\nCurrent JSON:\n${jsonInput.value}`; const model=modelSelect.value||defaultModels[0]; abortController=new AbortController(); const signal=abortController.signal; showLoading(); setWaitingIfNonStream(model); try{const full=await chatComplete(prompt,model,signal,(n)=>{charCounter.textContent=String(n);}); const extracted=extractJSON(sanitize(full)); jsonInput.value=extracted; updateCharCount(); render(true); nodeMenu.style.display='none';}catch(err){if(err.name!=='AbortError'){console.error(err); alert('Failed to fetch from OpenAI:\n'+err.message);}} finally{hideLoading();}});
       const subtree=(id,includeRoot)=>{const s=new Set(includeRoot?[id]:[]); const q=[id]; while(q.length){const cur=q.pop(); dataObj.edges.forEach(e=>{if(e.source===cur&&!s.has(e.target)){s.add(e.target); q.push(e.target);}}); dataObj.nodes.forEach(n=>{if(n.parent===cur&&!s.has(n.id)){s.add(n.id); q.push(n.id);}});} return s;};
       delBtn.addEventListener('click',()=>{if(!sel.size) return; if(sel.has('n0')&&sel.size===1){if(!confirm('Delete entire graph?')) return; dataObj={}; jsonInput.value=''; cy.elements().remove(); clearSelection(false); pushHistState(); return;} const doomed=new Set(); sel.forEach(id=>subtree(id,true).forEach(x=>doomed.add(x))); doomed.forEach(id=>{dataObj.nodes=dataObj.nodes.filter(n=>n.id!==id); dataObj.edges=dataObj.edges.filter(e=>e.source!==id&&e.target!==id); const node=cy.getElementById(id); if(node.length) node.remove();}); jsonInput.value=JSON.stringify(dataObj,null,2); physics(); clearSelection(false); pushHistState();});
       childBtn.addEventListener('click',()=>{if(!sel.size) return; const doomed=new Set(); sel.forEach(id=>subtree(id,false).forEach(x=>doomed.add(x))); doomed.forEach(id=>{dataObj.nodes=dataObj.nodes.filter(n=>n.id!==id); dataObj.edges=dataObj.edges.filter(e=>e.source!==id&&e.target!==id); const node=cy.getElementById(id); if(node.length) node.remove();}); jsonInput.value=JSON.stringify(dataObj,null,2); physics(); clearSelection(false); pushHistState();});
 
       // build/render
-      const buildElements=()=>{const els=[]; const dup=new Set(dataObj.edges?.map(e=>e.source+'→'+e.target)||[]); (dataObj.nodes||[]).forEach(n=>{els.push({data:{id:n.id,label:wrap(n.text),full:n.text},classes:n.id==='n0'?'root':''}); if(n.parent && !dup.has(n.parent+'→'+n.id)){els.push({data:{source:n.parent,target:n.id,label:'parent'}});} }); (dataObj.edges||[]).forEach(e=>els.push({data:{source:e.source,target:e.target,label:e.label||''}})); return els;};
+      const buildElements=()=>{const els=[]; const dup=new Set(dataObj.edges?.map(e=>e.source+'->'+e.target)||[]); (dataObj.nodes||[]).forEach(n=>{els.push({data:{id:n.id,label:wrap(n.text),full:n.text},classes:n.id==='n0'?'root':''}); if(n.parent && !dup.has(n.parent+'->'+n.id)){els.push({data:{source:n.parent,target:n.id,label:'parent'}});} }); (dataObj.edges||[]).forEach(e=>els.push({data:{source:e.source,target:e.target,label:e.label||''}})); return els;};
       const render=(store=true)=>{const txt=extractJSON(sanitize(jsonInput.value)); if(!txt){if(cy) cy.elements().remove(); dataObj={}; updateHistoryButtons(); return;} const obj=parseJSON(txt); if(!obj){alert('Invalid JSON - ensure it matches schema with root, nodes, edges.'); return;} dataObj=obj; initCy(); cy.elements().remove(); cy.add(buildElements()); const root=cy.getElementById('n0'); root.position({x:cy.width()/2,y:cy.height()/2}).lock(); physics(); cy.zoom(1); zoomSlider.value='1'; clearSelection(false); if(store) pushHistState(); else updateHistoryButtons(); updateFindHighlights(findInput.value);};
 
       renderBtn.addEventListener('click',()=>render(true));
@@ -596,3 +595,4 @@
   </script>
 </body>
 </html>
+
