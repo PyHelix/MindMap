@@ -80,9 +80,9 @@
   <div id="controls">
     <div class="row" id="builderRow">
       <input id="topicInput" placeholder="Topic or URL" aria-label="Topic or URL" />
-      <button id="copyPromptBtn" class="btn main" aria-label="Copy prompt">Copy Prompt</button>
-      <button id="pastePromptBtn" class="btn aux" aria-label="Paste prompt">&#x1f4cb;</button>
-      <button id="helpBtn" class="btn aux" aria-label="Help">?</button>
+      <button id="copyPromptBtn" class="btn main" aria-label="Copy prompt" title="Copy prompt">Copy Prompt</button>
+      <button id="pastePromptBtn" class="btn aux" aria-label="Paste prompt" title="Paste prompt">&#x1f4cb;</button>
+      <button id="helpBtn" class="btn aux" aria-label="Help" title="Help">?</button>
     </div>
 
     <!-- Renamed to reflect contents -->
@@ -109,14 +109,14 @@
       <button id="renderBtn" class="btn main" style="flex:1" aria-label="Render map">Render Map</button>
       <button id="apiRenderBtn" class="btn main" aria-label="API Render">API Render</button>
       <select id="modelSelect" class="btn aux" title="Select model" style="display:none"></select>
-      <button id="pasteBtn" class="btn aux" aria-label="Paste JSON">&#x1f4cb;</button>
-      <button id="copyJsonBtn" class="btn aux" aria-label="Copy JSON">&#x1f4c4;</button>
-      <button id="exportBtn" class="btn aux" aria-label="Export PNG">&#x1f4e5;</button>
-      <button id="saveBtn" class="btn aux" aria-label="Save JSON">Save</button>
-      <button id="importBtn" class="btn aux" aria-label="Import JSON">Import</button>
+      <button id="pasteBtn" class="btn aux" aria-label="Paste JSON" title="Paste JSON">&#x1f4cb;</button>
+      <button id="copyJsonBtn" class="btn aux" aria-label="Copy JSON" title="Copy JSON">&#x1f4c4;</button>
+      <button id="exportBtn" class="btn aux" aria-label="Export PNG" title="Export PNG">&#x1f4e5;</button>
+      <button id="saveBtn" class="btn aux" aria-label="Save JSON" title="Save JSON">&#x1f4be;</button>
+      <button id="importBtn" class="btn aux" aria-label="Import JSON" title="Import JSON">&#x1f4c2;</button>
       <button id="multiBtn" class="btn aux" aria-label="Toggle multi-select" title="Toggle multi-select">&#x21f3;</button>
-      <button id="undoBtn" class="btn aux" disabled aria-label="Undo">&#x27f2;</button>
-      <button id="redoBtn" class="btn aux" disabled aria-label="Redo">&#x27f3;</button>
+      <button id="undoBtn" class="btn aux" disabled aria-label="Undo" title="Undo">&#x27f2;</button>
+      <button id="redoBtn" class="btn aux" disabled aria-label="Redo" title="Redo">&#x27f3;</button>
 
       <!-- Zoom slider stays on this SAME LINE, right aligned -->
       <span id="zoomWrap" class="row" style="margin-left:auto;align-items:center">
