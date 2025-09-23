@@ -17,58 +17,58 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>NodeTrellis - interactive mind-mapping tool</title>
   <meta name="description" content="NodeTrellis is an interactive mind-mapping tool that helps you organise and visualise ideas. Analyse any topic or URL to generate dynamic mind maps from JSON, edit and manage nodes with multi-select and collapse features, extend your map via integrated AI, and export high-resolution images." />
-  <meta name="theme-color" content="#0d1117" />
+  <meta name="theme-color" content="#061225" />
   <script src="https://unpkg.com/cytoscape@3/dist/cytoscape.min.js" defer></script>
   <script src="https://unpkg.com/webcola@3.4.0/WebCola/cola.min.js" defer></script>
   <script src="https://unpkg.com/cytoscape-cola@2/cytoscape-cola.js" defer></script>
   <style>
     :root{
-      --bg:#0d1117;--panel:#161b22;--border:#30363d;--txt:#e6edf3;
-      --node:#475569;--node-h:#64748b;--root:#3b82f6;--root-outline:#facc15;
-      --edge:#cbd5e1;--edge-bg:#0f172a;--btn:#238636;--btn-h:#2ea043;--btn-d:#3d434a;
-      --accent:#22d3ee;
+      --bg:#061225;--panel:#0f2035;--surface:#102b46;--border:#1f3b5c;--txt:#e9f4ff;
+      --muted:#9dbbda;--node:#1f5f99;--node-h:#2978bf;--node-selected:#ffd166;
+      --root:#f97316;--root-outline:#ffe082;--edge:#8fc2ff;--edge-bg:#0f3150;
+      --btn:#1fa37a;--btn-h:#28ba8d;--btn-d:#355c6a;--accent:#5eead4;--menu:#0b2136;
     }
     *,*::before,*::after{box-sizing:border-box}
     html,body{margin:0;height:100%;display:flex;flex-direction:column;font-family:system-ui,sans-serif;background:var(--bg);color:var(--txt)}
     #controls{padding:8px;background:var(--panel);border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:8px}
     .row{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
-    #topicInput{flex:1;min-width:0;padding:6px 8px;border-radius:6px;border:1px solid var(--border);background:#0f172a;color:#c9d1d9}
+    #topicInput{flex:1;min-width:0;padding:6px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--txt)}
     .btn{padding:6px 14px;border:0;border-radius:6px;font-weight:600;cursor:pointer;white-space:nowrap;flex:0 0 auto;transition:background .15s;-webkit-user-select:none;user-select:none}
     button{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
     .btn.main{background:var(--btn);color:#fff}.btn.main:hover{background:var(--btn-h)}
-    .btn.aux{background:var(--node-h);color:#111;padding:6px 10px}
+    .btn.aux{background:var(--node-h);color:var(--txt);padding:6px 10px}
     .btn.aux.active{background:var(--btn);color:#fff}
-    .btn:disabled{background:var(--btn-d);color:#666;cursor:not-allowed}
-    select.btn{appearance:none;-webkit-appearance:none;-moz-appearance:none;padding:6px 10px;border-radius:6px;border:0;font-weight:600;cursor:pointer;background:var(--node-h);color:#111}
-    select.btn:hover{background:var(--btn-h);color:#fff}
-    select.btn:disabled{background:var(--btn-d);color:#666;cursor:not-allowed}
-    #jsonBox textarea{width:100%;height:150px;font-family:monospace;background:#0f172a;color:#c9d1d9;border:1px solid var(--border);border-radius:6px;padding:8px;resize:vertical}
+    .btn:disabled{background:var(--btn-d);color:var(--muted);cursor:not-allowed}
+    select.btn{appearance:none;-webkit-appearance:none;-moz-appearance:none;padding:6px 10px;border-radius:6px;border:0;font-weight:600;cursor:pointer;background:var(--node-h);color:var(--txt)}
+    select.btn:hover{background:var(--btn-h);color:var(--txt)}
+    select.btn:disabled{background:var(--btn-d);color:var(--muted);cursor:not-allowed}
+    #jsonBox textarea{width:100%;height:150px;font-family:monospace;background:var(--surface);color:var(--txt);border:1px solid var(--border);border-radius:6px;padding:8px;resize:vertical}
     #cy{flex:1;touch-action:none;outline:none}
-    #nodeMenu{position:absolute;display:none;background:rgba(22,27,34,.92);border-radius:8px;padding:8px;max-width:calc(100vw - 20px);box-shadow:0 4px 10px #000a;z-index:1000}
+    #nodeMenu{position:absolute;display:none;background:var(--menu);color:var(--txt);border-radius:10px;padding:10px;max-width:calc(100vw - 20px);box-shadow:0 14px 32px #020914b3;z-index:1000}
     #nodeMenu.dragging{opacity:.85}
-    #nodeMenu button{display:block;width:100%;margin:3px 0;padding:6px 14px;font-size:13px;border:0;background:var(--node);color:#fff;border-radius:4px;white-space:nowrap;text-align:left;cursor:pointer}
-    #nodeMenu button:hover{background:var(--node-h)}
-    .selected{border:2px solid #f9a825!important}
+    #nodeMenu button{display:block;width:100%;margin:3px 0;padding:6px 14px;font-size:13px;border:0;background:var(--node);color:var(--txt);border-radius:5px;white-space:nowrap;text-align:left;cursor:pointer}
+    #nodeMenu button:hover{background:var(--node-h);color:var(--txt)}
+    .selected{border:2px solid var(--node-selected)!important}
     /* live find */
-    #findInput{width:260px;max-width:60vw;padding:6px 8px;border-radius:6px;border:1px solid var(--border);background:#0f172a;color:#c9d1d9}
-    #findCount{color:#7d8590;font-size:12px}
+    #findInput{width:260px;max-width:60vw;padding:6px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--txt)}
+    #findCount{color:var(--muted);font-size:12px}
     .findNavBtn{padding:6px 10px}
     /* API menu */
-    #apiMenu{position:absolute;display:none;background:rgba(22,27,34,.92);border-radius:8px;padding:8px;max-width:calc(100vw - 20px);box-shadow:0 4px 10px #000a;z-index:1000}
-    #apiMenu select{width:100%;margin-bottom:6px;font-size:13px;color:#111;background:var(--node-h);border-radius:6px;border:0;font-weight:600;cursor:pointer;padding:6px 8px}
-    #apiMenu select:hover{background:var(--btn-h);color:#fff}
-    #apiMenu button{display:block;width:100%;margin:3px 0;padding:6px 14px;font-size:13px;border:0;background:var(--node);color:#fff;border-radius:4px;white-space:nowrap;text-align:left;cursor:pointer}
-    #apiMenu button:hover{background:var(--node-h)}
+    #apiMenu{position:absolute;display:none;background:var(--menu);color:var(--txt);border-radius:10px;padding:10px;max-width:calc(100vw - 20px);box-shadow:0 14px 32px #020914b3;z-index:1000}
+    #apiMenu select{width:100%;margin-bottom:6px;font-size:13px;color:var(--txt);background:var(--node-h);border-radius:6px;border:0;font-weight:600;cursor:pointer;padding:6px 8px}
+    #apiMenu select:hover{background:var(--btn-h);color:var(--txt)}
+    #apiMenu button{display:block;width:100%;margin:3px 0;padding:6px 14px;font-size:13px;border:0;background:var(--node);color:var(--txt);border-radius:5px;white-space:nowrap;text-align:left;cursor:pointer}
+    #apiMenu button:hover{background:var(--node-h);color:var(--txt)}
     #helpOverlay,#overlay{position:fixed;inset:0;background:#000a;backdrop-filter:blur(2px);display:none;align-items:center;justify-content:center;z-index:3000}
     #helpOverlay>div,#overlayInner{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:18px;max-width:480px;margin:0 5%;font-size:15px;line-height:1.4}
     #overlayInner{width:90%;max-width:600px;display:flex;flex-direction:column;gap:8px}
-    #overlayInner textarea{flex:1;min-height:200px;background:#0f172a;color:#c9d1d9;border:1px solid var(--border);border-radius:6px;font-family:monospace;padding:8px}
+    #overlayInner textarea{flex:1;min-height:200px;background:var(--surface);color:var(--txt);border:1px solid var(--border);border-radius:6px;font-family:monospace;padding:8px}
     #overlayInner div{display:flex;gap:8px;justify-content:flex-end}
     #donate{padding:10px;background:var(--panel);border-top:1px solid var(--border);font-size:13px;cursor:pointer}
     #donate.hide{opacity:0;height:0;padding:0;border:none;overflow:hidden;transition:.25s}
     #donate code{font-family:monospace}
-    #donate a{color:#58a6ff;text-decoration:none}
-    .btn:focus-visible,#topicInput:focus-visible,#findInput:focus-visible{outline:2px dashed #58a6ff;outline-offset:2px}
+    #donate a{color:var(--edge);text-decoration:none}
+    .btn:focus-visible,#topicInput:focus-visible,#findInput:focus-visible{outline:2px dashed var(--accent);outline-offset:2px}
     .visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
     #jsonBox details{margin-top:6px}
     #jsonBox summary{cursor:pointer}
@@ -101,7 +101,7 @@
       <details id="jsonEditor">
         <summary>JSON editor (click to expand)</summary>
         <textarea id="jsonInput" placeholder="Paste LLM's JSON here, then hit Render Map" aria-label="JSON input"></textarea>
-        <small id="charCount" style="display:block;margin-top:4px;color:#7d8590;font-size:12px">0 characters</small>
+        <small id="charCount" style="display:block;margin-top:4px;color:var(--muted);font-size:12px">0 characters</small>
       </details>
     </details>
 
@@ -124,7 +124,7 @@
     </div>
 
     <div id="loadingBar" class="row" style="display:none;align-items:center;gap:6px;margin-top:4px">
-      <span id="charCounter" style="flex:1;text-align:left;font-size:12px;color:#e6edf3;">0</span>
+      <span id="charCounter" style="flex:1;text-align:left;font-size:12px;color:var(--muted);">0</span>
       <button id="stopBtn" class="btn aux" style="min-width:60px;">Stop</button>
     </div>
   </div>
@@ -344,7 +344,7 @@
         abortController=new AbortController(); const signal=abortController.signal; showLoading(); setWaitingIfNonStream(model);
         try{
           const full=await chatComplete(prompt,model,signal,(n)=>{charCounter.textContent=String(n);});
-          const extracted=extractJSON(sanitize(full)); jsonInput.value=extracted; updateCharCount(); render(true);
+          const extracted=extractJSON(sanitize(full)); jsonInput.value=extracted; updateCharCount(); render(true,{randomize:true,resetView:true});
         }catch(err){ if(err.name!=='AbortError'){ console.error(err); alert('Failed to fetch from OpenAI:\n'+err.message); } }
         finally{ hideLoading(); }
       });
@@ -400,11 +400,11 @@
         cy=cytoscape({
           container:cyContainer, wheelSensitivity:0.6,
           style:[
-            {selector:'node',style:{label:'data(label)','text-wrap':'wrap','text-max-width':'220px','text-valign':'center','text-halign':'center','background-color':'var(--node)',shape:'round-rectangle',padding:'6px',width:'label',height:'label','font-size':'13px',color:'#fff','text-outline-color':'#000','text-outline-width':1}},
-            {selector:'node.root',style:{'background-color':'var(--root)','border-width':4,'border-color':'var(--root-outline)','text-outline-color':'#000','text-outline-width':3,'font-size':'15px','font-weight':'700'}},
-            {selector:'node.selected',style:{'border-color':'#f9a825','border-width':2}},
-            {selector:'node.findhit',style:{'border-color':'var(--accent)','border-width':3,'background-color':'#55677c'}},
-            {selector:'edge',style:{width:2,'line-color':'var(--edge)','target-arrow-color':'var(--edge)','target-arrow-shape':'triangle','curve-style':'bezier',label:'data(label)','font-size':'11px',color:'#e6edf3','text-rotation':'autorotate','text-background-opacity':.9,'text-background-color':'var(--edge-bg)','text-background-padding':'2px'}},
+            {selector:'node',style:{label:'data(label)','text-wrap':'wrap','text-max-width':'220px','text-valign':'center','text-halign':'center','background-color':'var(--node)',shape:'round-rectangle',padding:'6px',width:'label',height:'label','font-size':'13px',color:'#eef6ff','text-outline-color':'#051020','text-outline-width':1}},
+            {selector:'node.root',style:{'background-color':'var(--root)','border-width':4,'border-color':'var(--root-outline)','text-outline-color':'#051020','text-outline-width':3,'font-size':'15px','font-weight':'700'}},
+            {selector:'node.selected',style:{'border-color':'#ffd166','border-width':2}},
+            {selector:'node.findhit',style:{'border-color':'var(--accent)','border-width':3,'background-color':'#1f4f87'}},
+            {selector:'edge',style:{width:2,'line-color':'var(--edge)','target-arrow-color':'var(--edge)','target-arrow-shape':'triangle','curve-style':'bezier',label:'data(label)','font-size':'11px',color:'#dcecff','text-rotation':'autorotate','text-background-opacity':.9,'text-background-color':'var(--edge-bg)','text-background-padding':'2px'}},
             {selector:'edge[label=\"\"]',style:{label:'','text-background-opacity':0}}
           ]
         });
@@ -446,7 +446,7 @@
           edgeLength: edgeLengthFn,
           padding: BASE.padding,
           fit:false,
-          randomize:true,
+          randomize:false,
           avoidOverlap:true,
           handleDisconnected:true,
           convergenceThreshold: 0.01,
@@ -507,7 +507,7 @@
         if(newText!==null && newText.trim()!==''){
           node.data('label',wrap(newText)); node.data('full',newText);
           const objNode=dataObj.nodes.find(n=>n.id===node.id()); if(objNode) objNode.text=newText;
-          jsonInput.value=JSON.stringify(dataObj, null, 2); pushHistState(); physics(); updateFindHighlights(findInput.value);
+          jsonInput.value=JSON.stringify(dataObj, null, 2); pushHistState(); physics({randomize:false}); updateFindHighlights(findInput.value);
         }
       };
 
@@ -532,16 +532,130 @@
       // node menu actions
       copyTextBtn.addEventListener('click',()=>{navigator.clipboard.writeText(copyTextBtn.dataset.names||''); nodeMenu.style.display='none';});
       nodeCopyBtn.addEventListener('click',()=>{const names=nodeCopyBtn.dataset.names||''; if(!names) return; const linkEntry=dataObj.link?` "link":"${dataObj.link}",\n`:''; const prompt=`Extend and refactor node "${names}"\n\nKeep "link" key if present. IDs stay n0, n1, ...\nEach node text <= 50 chars.\n\nSchema:\n{\n${linkEntry}"root":"n0",\n  "nodes":[{ "id":"n0","text":"<root>","parent":"" }, ... ],\n  "edges":[{ "source":"...","target":"...","label":"...","direction":"out" }]\n}\n\nReturn ONLY the JSON object.\n\nCurrent JSON:\n${jsonInput.value}`; navigator.clipboard.writeText(prompt); nodeMenu.style.display='none';});
-      apiExtendBtn.addEventListener('click',async()=>{const names=nodeCopyBtn.dataset.names||''; if(!names) return; let key=getApiKey(); if(!key){key=promptApiKey(true); if(!key) return;} const linkEntry=dataObj.link?` "link":"${dataObj.link}",\n`:''; const prompt=`Extend and refactor node "${names}"\n\nKeep "link" key if present. IDs stay n0, n1, ...\nEach node text <= 50 chars.\n\nSchema:\n{\n${linkEntry}"root":"n0",\n  "nodes":[{ "id":"n0","text":"<root>","parent":"" }, ... ],\n  "edges":[{ "source":"...","target":"...","label":"...","direction":"out" }]\n}\n\nReturn ONLY the JSON object.\n\nCurrent JSON:\n${jsonInput.value}`; const model=modelSelect.value||defaultModels[0]; abortController=new AbortController(); const signal=abortController.signal; showLoading(); setWaitingIfNonStream(model); try{const full=await chatComplete(prompt,model,signal,(n)=>{charCounter.textContent=String(n);}); const extracted=extractJSON(sanitize(full)); jsonInput.value=extracted; updateCharCount(); render(true); nodeMenu.style.display='none';}catch(err){if(err.name!=='AbortError'){console.error(err); alert('Failed to fetch from OpenAI:\n'+err.message);}} finally{hideLoading();}});
+      apiExtendBtn.addEventListener('click',async()=>{const names=nodeCopyBtn.dataset.names||''; if(!names) return; let key=getApiKey(); if(!key){key=promptApiKey(true); if(!key) return;} const linkEntry=dataObj.link?` "link":"${dataObj.link}",\n`:''; const prompt=`Extend and refactor node "${names}"\n\nKeep "link" key if present. IDs stay n0, n1, ...\nEach node text <= 50 chars.\n\nSchema:\n{\n${linkEntry}"root":"n0",\n  "nodes":[{ "id":"n0","text":"<root>","parent":"" }, ... ],\n  "edges":[{ "source":"...","target":"...","label":"...","direction":"out" }]\n}\n\nReturn ONLY the JSON object.\n\nCurrent JSON:\n${jsonInput.value}`; const model=modelSelect.value||defaultModels[0]; abortController=new AbortController(); const signal=abortController.signal; showLoading(); setWaitingIfNonStream(model); try{const full=await chatComplete(prompt,model,signal,(n)=>{charCounter.textContent=String(n);}); const extracted=extractJSON(sanitize(full)); jsonInput.value=extracted; updateCharCount(); render(true,{randomize:true,resetView:true}); nodeMenu.style.display='none';}catch(err){if(err.name!=='AbortError'){console.error(err); alert('Failed to fetch from OpenAI:\n'+err.message);}} finally{hideLoading();}});
       const subtree=(id,includeRoot)=>{const s=new Set(includeRoot?[id]:[]); const q=[id]; while(q.length){const cur=q.pop(); dataObj.edges.forEach(e=>{if(e.source===cur&&!s.has(e.target)){s.add(e.target); q.push(e.target);}}); dataObj.nodes.forEach(n=>{if(n.parent===cur&&!s.has(n.id)){s.add(n.id); q.push(n.id);}});} return s;};
-      delBtn.addEventListener('click',()=>{if(!sel.size) return; if(sel.has('n0')&&sel.size===1){if(!confirm('Delete entire graph?')) return; dataObj={}; jsonInput.value=''; cy.elements().remove(); clearSelection(false); pushHistState(); return;} const doomed=new Set(); sel.forEach(id=>subtree(id,true).forEach(x=>doomed.add(x))); doomed.forEach(id=>{dataObj.nodes=dataObj.nodes.filter(n=>n.id!==id); dataObj.edges=dataObj.edges.filter(e=>e.source!==id&&e.target!==id); const node=cy.getElementById(id); if(node.length) node.remove();}); jsonInput.value=JSON.stringify(dataObj,null,2); physics(); clearSelection(false); pushHistState();});
-      childBtn.addEventListener('click',()=>{if(!sel.size) return; const doomed=new Set(); sel.forEach(id=>subtree(id,false).forEach(x=>doomed.add(x))); doomed.forEach(id=>{dataObj.nodes=dataObj.nodes.filter(n=>n.id!==id); dataObj.edges=dataObj.edges.filter(e=>e.source!==id&&e.target!==id); const node=cy.getElementById(id); if(node.length) node.remove();}); jsonInput.value=JSON.stringify(dataObj,null,2); physics(); clearSelection(false); pushHistState();});
+      delBtn.addEventListener('click',()=>{if(!sel.size) return; if(sel.has('n0')&&sel.size===1){if(!confirm('Delete entire graph?')) return; dataObj={}; jsonInput.value=''; cy.elements().remove(); clearSelection(false); pushHistState(); return;} const doomed=new Set(); sel.forEach(id=>subtree(id,true).forEach(x=>doomed.add(x))); doomed.forEach(id=>{dataObj.nodes=dataObj.nodes.filter(n=>n.id!==id); dataObj.edges=dataObj.edges.filter(e=>e.source!==id&&e.target!==id); const node=cy.getElementById(id); if(node.length) node.remove();}); jsonInput.value=JSON.stringify(dataObj,null,2); physics({randomize:false}); clearSelection(false); pushHistState();});
+      childBtn.addEventListener('click',()=>{if(!sel.size) return; const doomed=new Set(); sel.forEach(id=>subtree(id,false).forEach(x=>doomed.add(x))); doomed.forEach(id=>{dataObj.nodes=dataObj.nodes.filter(n=>n.id!==id); dataObj.edges=dataObj.edges.filter(e=>e.source!==id&&e.target!==id); const node=cy.getElementById(id); if(node.length) node.remove();}); jsonInput.value=JSON.stringify(dataObj,null,2); physics({randomize:false}); clearSelection(false); pushHistState();});
 
       // build/render
-      const buildElements=()=>{const els=[]; const dup=new Set(dataObj.edges?.map(e=>e.source+'->'+e.target)||[]); (dataObj.nodes||[]).forEach(n=>{els.push({data:{id:n.id,label:wrap(n.text),full:n.text},classes:n.id==='n0'?'root':''}); if(n.parent && !dup.has(n.parent+'->'+n.id)){els.push({data:{source:n.parent,target:n.id,label:'parent'}});} }); (dataObj.edges||[]).forEach(e=>els.push({data:{source:e.source,target:e.target,label:e.label||''}})); return els;};
-      const render=(store=true)=>{const txt=extractJSON(sanitize(jsonInput.value)); if(!txt){if(cy) cy.elements().remove(); dataObj={}; updateHistoryButtons(); return;} const obj=parseJSON(txt); if(!obj){alert('Invalid JSON - ensure it matches schema with root, nodes, edges.'); return;} dataObj=obj; initCy(); cy.elements().remove(); cy.add(buildElements()); const root=cy.getElementById('n0'); root.position({x:cy.width()/2,y:cy.height()/2}).lock(); physics(); cy.zoom(1); zoomSlider.value='1'; clearSelection(false); if(store) pushHistState(); else updateHistoryButtons(); updateFindHighlights(findInput.value);};
 
-      renderBtn.addEventListener('click',()=>render(true));
+      const graphSnapshot=()=>{
+        const nodes=[];
+        const edges=[];
+        const seenParents=new Set();
+        const explicitEdges=[];
+        const existingLinks=new Set();
+
+        (dataObj.edges||[]).forEach((e,idx)=>{
+          if(!e||!e.source||!e.target) return;
+          const key=`${e.source}->${e.target}`;
+          existingLinks.add(key);
+          const edgeId=e.id||`edge:${idx}:${key}`;
+          const data={id:edgeId,source:e.source,target:e.target,label:e.label||''};
+          if(Object.prototype.hasOwnProperty.call(e,'direction')) data.direction=e.direction;
+          explicitEdges.push({group:'edges',data});
+        });
+
+        (dataObj.nodes||[]).forEach(n=>{
+          if(!n||!n.id) return;
+          nodes.push({group:'nodes',data:{id:n.id,label:wrap(n.text),full:n.text},classes:n.id==='n0'?'root':''});
+          if(n.parent){
+            const key=`${n.parent}->${n.id}`;
+            if(!seenParents.has(key) && !existingLinks.has(key)){
+              seenParents.add(key);
+              edges.push({group:'edges',data:{id:`parent:${key}`,source:n.parent,target:n.id,label:'parent'}});
+            }
+          }
+        });
+
+        edges.push(...explicitEdges);
+        return {nodes,edges};
+      };
+
+      const syncGraph=()=>{
+        if(!cy) return;
+        const {nodes,edges}=graphSnapshot();
+        const nodeIds=new Set(nodes.map(n=>n.data.id));
+        cy.nodes().forEach(ele=>{
+          if(!nodeIds.has(ele.id())){
+            sel.delete(ele.id());
+            ele.remove();
+          }
+        });
+        nodes.forEach(node=>{
+          const existing=cy.getElementById(node.data.id);
+          if(existing && existing.length){
+            existing.data('label',node.data.label);
+            existing.data('full',node.data.full);
+            if(node.classes && node.classes.includes('root')) existing.addClass('root');
+            else existing.removeClass('root');
+          } else {
+            cy.add(node);
+          }
+        });
+        sel.forEach(id=>{ if(!nodeIds.has(id)) sel.delete(id); });
+
+        const edgeIds=new Set(edges.map(e=>e.data.id));
+        cy.edges().forEach(ele=>{
+          if(!edgeIds.has(ele.id())) ele.remove();
+        });
+        edges.forEach(edge=>{
+          const existing=cy.getElementById(edge.data.id);
+          if(existing && existing.length){
+            existing.data('label',edge.data.label);
+            if(Object.prototype.hasOwnProperty.call(edge.data,'direction')){
+              existing.data('direction', edge.data.direction);
+            } else {
+              existing.removeData('direction');
+            }
+          } else {
+            cy.add(edge);
+          }
+        });
+      };
+
+      const render=(store=true, opts={})=>{
+        const txt=extractJSON(sanitize(jsonInput.value));
+        if(!txt){
+          if(cy){
+            cy.elements().remove();
+            sel.clear();
+            updateFindHighlights('');
+          }
+          dataObj={};
+          updateHistoryButtons();
+          return;
+        }
+        const obj=parseJSON(txt);
+        if(!obj){
+          alert('Invalid JSON - ensure it matches schema with root, nodes, edges.');
+          return;
+        }
+        dataObj=obj;
+        initCy();
+        const hadElements = cy.nodes().length>0 || cy.edges().length>0;
+        const hadRoot = cy.getElementById('n0').length>0;
+        syncGraph();
+        const root=cy.getElementById('n0');
+        if(root && root.length){
+          if(!hadRoot){
+            root.position({x:cy.width()/2,y:cy.height()/2});
+          }
+          root.lock();
+        }
+        const randomizeLayout = Object.prototype.hasOwnProperty.call(opts,'randomize') ? opts.randomize : !hadElements;
+        physics({randomize:randomizeLayout});
+        if((opts.resetView ?? randomizeLayout) && cy){
+          cy.zoom(1);
+          zoomSlider.value='1';
+        }
+        clearSelection(false);
+        if(store) pushHistState(); else updateHistoryButtons();
+        updateFindHighlights(findInput.value);
+      };
+
+
+      renderBtn.addEventListener('click',()=>render(true,{randomize:true,resetView:true}));
       exportBtn.addEventListener('click',()=>{if(!cy) return; const png=cy.png({full:true,scale:2}); const a=document.createElement('a'); a.href=png; a.download='mindmap.png'; a.click();});
       undoBtn.addEventListener('click',()=>{if(idx>0){idx--; loadState(hist[idx]);}});
       redoBtn.addEventListener('click',()=>{if(idx<hist.length-1){idx++; loadState(hist[idx]);}});
