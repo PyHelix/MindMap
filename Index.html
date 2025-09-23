@@ -112,6 +112,8 @@
       <button id="pasteBtn" class="btn aux" aria-label="Paste JSON">&#x1f4cb;</button>
       <button id="copyJsonBtn" class="btn aux" aria-label="Copy JSON">&#x1f4c4;</button>
       <button id="exportBtn" class="btn aux" aria-label="Export PNG">&#x1f4e5;</button>
+      <button id="saveBtn" class="btn aux" aria-label="Save JSON">Save JSON</button>
+      <button id="importBtn" class="btn aux" aria-label="Import JSON">Import JSON</button>
       <button id="multiBtn" class="btn aux" aria-label="Toggle multi-select" title="Toggle multi-select">&#x21f3;</button>
       <button id="undoBtn" class="btn aux" disabled aria-label="Undo">&#x27f2;</button>
       <button id="redoBtn" class="btn aux" disabled aria-label="Redo">&#x27f3;</button>
@@ -122,6 +124,7 @@
         <input type="range" id="zoomSlider" min="0.1" max="3" step="0.05" value="1" aria-label="Zoom" style="width:140px" />
       </span>
     </div>
+    <input type="file" id="importFile" accept="application/json" hidden />
 
     <div id="loadingBar" class="row" style="display:none;align-items:center;gap:6px;margin-top:4px">
       <span id="charCounter" style="flex:1;text-align:left;font-size:12px;color:var(--muted);">0</span>
@@ -143,9 +146,9 @@
   </div>
 
   <div id="apiMenu" role="menu" aria-hidden="true">
-    <label for="modelSelectOverlay" style="display:block;font-size:13px;margin:4px 0;color:#e6edf3;">Choose model</label>
-    <select id="modelSelectOverlay" style="width:100%;margin-bottom:6px;appearance:none;-webkit-appearance:none;-moz-appearance:none;padding:6px 8px;border-radius:6px;border:0;font-weight:600;cursor:pointer;background:var(--node-h);color:#111;"></select>
-    <button id="editApiKeyBtn" style="width:100%;margin:3px 0;padding:6px 14px;font-size:13px;border:0;background:var(--node);color:#fff;border-radius:4px;white-space:nowrap;">Edit API Key</button>
+    <label for="modelSelectOverlay" style="display:block;font-size:13px;margin:4px 0;color:var(--txt);">Choose model</label>
+    <select id="modelSelectOverlay" style="width:100%;margin-bottom:6px;appearance:none;-webkit-appearance:none;-moz-appearance:none;padding:6px 8px;border-radius:6px;border:0;font-weight:600;cursor:pointer;background:var(--node-h);color:var(--txt);"></select>
+    <button id="editApiKeyBtn" style="width:100%;margin:3px 0;padding:6px 14px;font-size:13px;border:0;background:var(--node);color:var(--txt);border-radius:5px;white-space:nowrap;">Edit API Key</button>
   </div>
 
   <div id="overlay" aria-hidden="true">
@@ -180,7 +183,131 @@
   </section>
 
   <script>
-    // ---------- helpers ----------
+    // Sample map shown on first load
+    const SAMPLE_MAP={
+      root:'n0',
+      nodes:[
+        {id:'n0',text:'Pikachu',parent:''},
+        {id:'n1',text:'Species & type',parent:'n0'},
+        {id:'n2',text:'Appearance',parent:'n0'},
+        {id:'n3',text:'Abilities',parent:'n0'},
+        {id:'n4',text:'Moves',parent:'n0'},
+        {id:'n5',text:'Evolution line',parent:'n0'},
+        {id:'n6',text:'Forms & variants',parent:'n0'},
+        {id:'n7',text:'Stats & battle role',parent:'n0'},
+        {id:'n8',text:'Weakness & resistances',parent:'n0'},
+        {id:'n9',text:'Habitat & region',parent:'n0'},
+        {id:'n10',text:'Behavior & traits',parent:'n0'},
+        {id:'n11',text:'Media & mascot status',parent:'n0'},
+        {id:'n12',text:'Game data',parent:'n0'},
+        {id:'n13',text:'Breeding',parent:'n0'},
+        {id:'n14',text:'Signature elements',parent:'n0'},
+        {id:'n15',text:'Notable items',parent:'n0'},
+        {id:'n16',text:'Mouse Pokemon',parent:'n1'},
+        {id:'n17',text:'Electric type',parent:'n1'},
+        {id:'n18',text:'National Dex #025',parent:'n1'},
+        {id:'n19',text:'Yellow fur, red cheeks',parent:'n2'},
+        {id:'n20',text:'Lightning-bolt tail',parent:'n2'},
+        {id:'n21',text:'Gender tail difference',parent:'n2'},
+        {id:'n22',text:'Static (ability)',parent:'n3'},
+        {id:'n23',text:'Lightning Rod (Hidden Ability)',parent:'n3'},
+        {id:'n24',text:'Thunderbolt',parent:'n4'},
+        {id:'n25',text:'Quick Attack',parent:'n4'},
+        {id:'n26',text:'Volt Tackle',parent:'n4'},
+        {id:'n27',text:'Iron Tail',parent:'n4'},
+        {id:'n28',text:'Pichu -> Pikachu (friendship)',parent:'n5'},
+        {id:'n29',text:'Pikachu -> Raichu (Thunder Stone)',parent:'n5'},
+        {id:'n30',text:'Raichu (Alolan form)',parent:'n5'},
+        {id:'n31',text:'Gigantamax Pikachu',parent:'n6'},
+        {id:'n32',text:'Cosplay Pikachu',parent:'n6'},
+        {id:'n33',text:'Partner Pikachu (LGPE)',parent:'n6'},
+        {id:'n34',text:'Ash\'s Pikachu',parent:'n6'},
+        {id:'n35',text:'Fast special attacker',parent:'n7'},
+        {id:'n36',text:'Fragile defenses',parent:'n7'},
+        {id:'n37',text:'Light Ball doubles offenses',parent:'n7'},
+        {id:'n38',text:'Weak to Ground',parent:'n8'},
+        {id:'n39',text:'Resists Flying, Steel, Electric',parent:'n8'},
+        {id:'n40',text:'Kanto origin',parent:'n9'},
+        {id:'n41',text:'Forests and grasslands',parent:'n9'},
+        {id:'n42',text:'Stores power in cheek sacs',parent:'n10'},
+        {id:'n43',text:'Social, forms groups',parent:'n10'},
+        {id:'n44',text:'Pokemon franchise mascot',parent:'n11'},
+        {id:'n45',text:'Ash\'s companion in anime',parent:'n11'},
+        {id:'n46',text:'Iconic cry: Pika-Pika!',parent:'n11'},
+        {id:'n47',text:'First appearance: Gen I',parent:'n12'},
+        {id:'n48',text:'Version exclusives vary',parent:'n12'},
+        {id:'n49',text:'Field & Fairy Egg Groups',parent:'n13'},
+        {id:'n50',text:'Egg hatches into Pichu',parent:'n13'},
+        {id:'n51',text:'Can breed with Ditto',parent:'n13'},
+        {id:'n52',text:'Z-Move: Catastropika',parent:'n14'},
+        {id:'n53',text:'Signature move: Volt Tackle',parent:'n14'},
+        {id:'n54',text:'Light Ball',parent:'n15'},
+        {id:'n55',text:'Thunder Stone',parent:'n15'},
+        {id:'n56',text:'Pikanium Z',parent:'n15'},
+        {id:'n57',text:'Pikashunium Z',parent:'n15'}
+      ],
+      edges:[
+        {source:'n0',target:'n1',label:'topic',direction:'out'},
+        {source:'n0',target:'n2',label:'topic',direction:'out'},
+        {source:'n0',target:'n3',label:'topic',direction:'out'},
+        {source:'n0',target:'n4',label:'topic',direction:'out'},
+        {source:'n0',target:'n5',label:'topic',direction:'out'},
+        {source:'n0',target:'n6',label:'topic',direction:'out'},
+        {source:'n0',target:'n7',label:'topic',direction:'out'},
+        {source:'n0',target:'n8',label:'topic',direction:'out'},
+        {source:'n0',target:'n9',label:'topic',direction:'out'},
+        {source:'n0',target:'n10',label:'topic',direction:'out'},
+        {source:'n0',target:'n11',label:'topic',direction:'out'},
+        {source:'n0',target:'n12',label:'topic',direction:'out'},
+        {source:'n0',target:'n13',label:'topic',direction:'out'},
+        {source:'n0',target:'n14',label:'topic',direction:'out'},
+        {source:'n0',target:'n15',label:'topic',direction:'out'},
+        {source:'n1',target:'n16',label:'classification',direction:'out'},
+        {source:'n1',target:'n17',label:'type',direction:'out'},
+        {source:'n1',target:'n18',label:'dex number',direction:'out'},
+        {source:'n2',target:'n19',label:'feature',direction:'out'},
+        {source:'n2',target:'n20',label:'feature',direction:'out'},
+        {source:'n2',target:'n21',label:'feature',direction:'out'},
+        {source:'n3',target:'n22',label:'ability',direction:'out'},
+        {source:'n3',target:'n23',label:'hidden ability',direction:'out'},
+        {source:'n4',target:'n24',label:'move',direction:'out'},
+        {source:'n4',target:'n25',label:'move',direction:'out'},
+        {source:'n4',target:'n26',label:'move',direction:'out'},
+        {source:'n4',target:'n27',label:'move',direction:'out'},
+        {source:'n5',target:'n28',label:'evolution',direction:'out'},
+        {source:'n5',target:'n29',label:'evolution',direction:'out'},
+        {source:'n5',target:'n30',label:'regional variant',direction:'out'},
+        {source:'n6',target:'n31',label:'form',direction:'out'},
+        {source:'n6',target:'n32',label:'variant',direction:'out'},
+        {source:'n6',target:'n33',label:'form',direction:'out'},
+        {source:'n6',target:'n34',label:'special',direction:'out'},
+        {source:'n7',target:'n35',label:'role',direction:'out'},
+        {source:'n7',target:'n36',label:'trait',direction:'out'},
+        {source:'n7',target:'n37',label:'item synergy',direction:'out'},
+        {source:'n8',target:'n38',label:'weakness',direction:'out'},
+        {source:'n8',target:'n39',label:'resistance',direction:'out'},
+        {source:'n9',target:'n40',label:'region',direction:'out'},
+        {source:'n9',target:'n41',label:'habitat',direction:'out'},
+        {source:'n10',target:'n42',label:'trait',direction:'out'},
+        {source:'n10',target:'n43',label:'behavior',direction:'out'},
+        {source:'n11',target:'n44',label:'status',direction:'out'},
+        {source:'n11',target:'n45',label:'anime',direction:'out'},
+        {source:'n11',target:'n46',label:'audio',direction:'out'},
+        {source:'n12',target:'n47',label:'origin',direction:'out'},
+        {source:'n12',target:'n48',label:'notes',direction:'out'},
+        {source:'n13',target:'n49',label:'egg group',direction:'out'},
+        {source:'n13',target:'n50',label:'offspring',direction:'out'},
+        {source:'n13',target:'n51',label:'compatibility',direction:'out'},
+        {source:'n14',target:'n52',label:'z-move',direction:'out'},
+        {source:'n14',target:'n53',label:'signature',direction:'out'},
+        {source:'n15',target:'n54',label:'item',direction:'out'},
+        {source:'n15',target:'n55',label:'item',direction:'out'},
+        {source:'n15',target:'n56',label:'item',direction:'out'},
+        {source:'n15',target:'n57',label:'item',direction:'out'}
+      ]
+    };
+    const SAMPLE_JSON=JSON.stringify(SAMPLE_MAP,null,2);
+
     const sanitize=t=>t.replace(/^```[^\n]*\n?/,'').replace(/```$/,'').replace(/```/g,'')
       .replace(/\\(?!["/bfnrtu])/g,'').replace(/\\(?=[\\[\\]{}])/g,'').trim();
     const extractJSON=str=>{const m=str.match(/({[\s\S]*})/m);return m?m[1].trim():str.trim();};
@@ -199,6 +326,9 @@
       const charCount=document.getElementById('charCount');
       const copyJsonBtn=document.getElementById('copyJsonBtn');
       const pasteBtn=document.getElementById('pasteBtn');
+      const saveBtn=document.getElementById('saveBtn');
+      const importBtn=document.getElementById('importBtn');
+      const importFile=document.getElementById('importFile');
       const renderBtn=document.getElementById('renderBtn');
       const apiRenderBtn=document.getElementById('apiRenderBtn');
       const modelSelect=document.getElementById('modelSelect');
@@ -358,7 +488,10 @@
 
       // Persist JSON
       const STORAGE_KEY='nodetrellis-json';
-      try{const stored=localStorage.getItem(STORAGE_KEY); if(stored){jsonInput.value=stored; updateCharCount();}}catch{}
+      let bootstrapped=false;
+      try{const stored=localStorage.getItem(STORAGE_KEY); if(stored && stored.trim()){jsonInput.value=stored; bootstrapped=true;}}catch{}
+      if(!bootstrapped){jsonInput.value=SAMPLE_JSON;}
+      updateCharCount();
       jsonInput.addEventListener('input',()=>{try{localStorage.setItem(STORAGE_KEY,jsonInput.value);}catch{}});
 
       loadModels();
@@ -380,6 +513,38 @@
       helpOverlay.addEventListener('click',()=>{helpOverlay.style.display='none';});
       copyJsonBtn.addEventListener('click',()=>{navigator.clipboard.writeText(jsonInput.value||'');});
       pasteBtn.addEventListener('click',async()=>{try{jsonInput.value=extractJSON(sanitize(await navigator.clipboard.readText())); updateCharCount();}catch{overlay.style.display='flex';}});
+      saveBtn.addEventListener('click',()=>{
+        const payload=(jsonInput.value&&jsonInput.value.trim())?jsonInput.value:JSON.stringify(dataObj||{},null,2);
+        const blob=new Blob([payload],{type:'application/json'});
+        const url=URL.createObjectURL(blob);
+        const a=document.createElement('a');
+        a.href=url;
+        a.download='mindmap.json';
+        a.click();
+        setTimeout(()=>URL.revokeObjectURL(url),2000);
+      });
+      importBtn.addEventListener('click',()=>{importFile.click();});
+      importFile.addEventListener('change',async e=>{
+        const file=e.target.files&&e.target.files[0];
+        if(!file){return;}
+        try{
+          const textContent=await file.text();
+          const extracted=extractJSON(sanitize(textContent));
+          if(!extracted){
+            alert('Could not find a valid JSON object in that file.');
+            return;
+          }
+          jsonInput.value=extracted;
+          updateCharCount();
+          render(true,{randomize:true,resetView:true});
+          jsonInput.dispatchEvent(new Event('input'));
+        }catch(err){
+          alert('Failed to import file:\n'+err.message);
+        } finally{
+          importFile.value='';
+        }
+      });
+
       ovCancel.addEventListener('click',()=>{overlay.style.display='none';});
       ovOk.addEventListener('click',()=>{const ta=overlay.querySelector('textarea'); jsonInput.value=extractJSON(sanitize(ta.value)); overlay.style.display='none'; updateCharCount();});
       jsonInput.addEventListener('paste',e=>{e.preventDefault(); const text=e.clipboardData.getData('text/plain'); jsonInput.value=extractJSON(sanitize(text)); updateCharCount();});
