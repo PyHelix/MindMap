@@ -45,6 +45,9 @@
     .navRow{justify-content:flex-end;margin-bottom:6px;}
     .navLink{color:var(--accent);text-decoration:none;font-weight:600;}
     .navLink:hover{color:var(--btn-h);}
+    .navIcon{display:inline-flex;align-items:center;justify-content:center;}
+    .navIcon img{display:block;width:38px;height:38px;border-radius:10px;transition:transform .15s ease,box-shadow .15s ease;}
+    .navIcon:hover img{transform:translateY(-1px);box-shadow:0 6px 16px #02091466;}
     #jsonBox textarea{width:100%;height:150px;font-family:monospace;background:var(--surface);color:var(--txt);border:1px solid var(--border);border-radius:6px;padding:8px;resize:vertical}
     #cy{flex:1;touch-action:none;outline:none}
     #nodeMenu{position:absolute;display:none;background:var(--menu);color:var(--txt);border-radius:10px;padding:10px;max-width:calc(100vw - 20px);box-shadow:0 14px 32px #020914b3;z-index:1000}
@@ -86,7 +89,9 @@
       <button id="copyPromptBtn" class="btn main" aria-label="Copy prompt" title="Copy prompt">Copy Prompt</button>
       <button id="pastePromptBtn" class="btn aux" aria-label="Paste prompt" title="Paste prompt">&#x1f4cb;</button>
       <button id="helpBtn" class="btn aux" aria-label="Help" title="Help">?</button>
-      <a class="navLink" href="Venn.html" title="Open the Combination Explorer venn tool">Combination Explorer</a>
+      <a class="navLink navIcon" href="Venn.html" title="Combination Explorer" aria-label="Combination Explorer" role="button">
+        <img src="assets/combination-explorer.png" alt="Combination Explorer button" width="38" height="38" />
+      </a>
     </div>
 
     <!-- Renamed to reflect contents -->
