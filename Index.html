@@ -42,6 +42,9 @@
     select.btn{appearance:none;-webkit-appearance:none;-moz-appearance:none;padding:6px 10px;border-radius:6px;border:0;font-weight:600;cursor:pointer;background:var(--node-h);color:var(--txt)}
     select.btn:hover{background:var(--btn-h);color:var(--txt)}
     select.btn:disabled{background:var(--btn-d);color:var(--muted);cursor:not-allowed}
+    .navRow{justify-content:flex-end;margin-bottom:6px;}
+    .navLink{color:var(--accent);text-decoration:none;font-weight:600;}
+    .navLink:hover{color:var(--btn-h);}
     #jsonBox textarea{width:100%;height:150px;font-family:monospace;background:var(--surface);color:var(--txt);border:1px solid var(--border);border-radius:6px;padding:8px;resize:vertical}
     #cy{flex:1;touch-action:none;outline:none}
     #nodeMenu{position:absolute;display:none;background:var(--menu);color:var(--txt);border-radius:10px;padding:10px;max-width:calc(100vw - 20px);box-shadow:0 14px 32px #020914b3;z-index:1000}
@@ -83,6 +86,7 @@
       <button id="copyPromptBtn" class="btn main" aria-label="Copy prompt" title="Copy prompt">Copy Prompt</button>
       <button id="pastePromptBtn" class="btn aux" aria-label="Paste prompt" title="Paste prompt">&#x1f4cb;</button>
       <button id="helpBtn" class="btn aux" aria-label="Help" title="Help">?</button>
+      <a class="navLink" href="Venn.html" title="Open the Combination Explorer venn tool">Combination Explorer</a>
     </div>
 
     <!-- Renamed to reflect contents -->
@@ -501,7 +505,7 @@
       const makePrompt=txt=>{
         const limit='- Each node "text" <= 50 chars (links unrestricted).';
         if(isURL(txt)){
-          return `Analyse the page ${txt} and output ONLY raw JSON.\n\n- Add "link":"${txt}" at top level (do NOT add it as a node).\n- IDs start n0, n1, n2 ...\n${limit}\n\nSchema:\n{ "link":"${txt}", "root":"n0",\n  "nodes":[{ "id":"n0","text":"<root>","parent":"" }],\n  "edges":[{ "source":"...","target":"...","label":"...","direction":"out" }] }\n\nReturn ONLY the JSON object.`;
+          return `Analyse the page ${txt} and output ONLY raw JSON.\n\n- Focus on visible page content; ignore metadata tags.\n- Describe observable visuals if the URL serves media content.\n- Add "link":"${txt}" at top level (do NOT add it as a node).\n- IDs start n0, n1, n2 ...\n${limit}\n\nSchema:\n{ "link":"${txt}", "root":"n0",\n  "nodes":[{ "id":"n0","text":"<root>","parent":"" }],\n  "edges":[{ "source":"...","target":"...","label":"...","direction":"out" }] }\n\nReturn ONLY the JSON object.`;
         }
         return `Create a mind-map for "${txt}" and output ONLY raw JSON.\n\n- IDs start n0, n1, n2 ...\n${limit}\n\nSchema:\n{ "root":"n0",\n  "nodes":[{ "id":"n0","text":"<root>","parent":"" }],\n  "edges":[{ "source":"...","target":"...","label":"...","direction":"out" }] }\n\nReturn ONLY the JSON object.`;
       };
