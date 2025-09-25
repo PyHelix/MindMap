@@ -1,0 +1,5026 @@
+﻿<!DOCTYPE html>
+
+
+
+<html lang="en">
+
+
+
+<head>
+
+
+
+<meta charset="utf-8" />
+
+
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Combination Explorer</title>
+
+
+
+<style>
+
+
+
+  :root {
+
+
+
+    --bg:#061225;
+
+
+
+    --panel:#0f2035;
+
+
+
+    --surface:#102b46;
+
+
+
+    --fill:#102b46;
+
+
+
+    --ring:#1f3b5c;
+
+
+
+    --txt:#e9f4ff;
+
+
+
+    --muted:#9dbbda;
+
+
+
+    --accent:#5eead4;
+
+
+
+    --btn:#1fa37a;
+
+
+
+    --btn-h:#28ba8d;
+
+
+
+    --btn-d:#355c6a;
+
+
+
+    --node:#1f5f99;
+
+
+
+    --node-h:#2978bf;
+
+
+
+    --success:#28ba8d;
+
+
+
+    --error:#f87171;
+
+
+
+    --menu:#0b2136;
+
+
+
+  }
+
+
+
+  *, *::before, *::after { box-sizing:border-box; }
+
+
+
+  html, body { height:100%; }
+
+
+
+  body {
+
+
+
+    margin:0;
+
+
+
+    background:var(--bg);
+
+
+
+    color:var(--txt);
+
+
+
+    font-family:"Segoe UI", system-ui, -apple-system, sans-serif;
+
+
+
+  }
+
+
+
+  header {
+
+
+
+    padding:16px 20px;
+
+
+
+    background:var(--panel);
+
+
+
+    border-bottom:1px solid var(--ring);
+
+
+
+    display:flex;
+
+
+
+    gap:12px;
+
+
+
+    align-items:center;
+
+
+
+    flex-wrap:wrap;
+
+
+
+  }
+
+
+
+  header h1 {
+
+
+
+    margin:0;
+
+
+
+    font-size:18px;
+
+
+
+    text-transform:uppercase;
+
+
+
+    letter-spacing:0.08em;
+
+
+
+    color:var(--accent);
+
+
+
+  }
+
+
+
+  .headerInfo{display:flex;flex-direction:column;gap:4px;}
+
+
+
+  header span.tagline {
+
+
+
+    font-size:13px;
+
+
+
+    color:var(--muted);
+
+
+
+  }
+
+
+
+  .navLinks{margin-left:auto;display:flex;gap:12px;align-items:center;}
+
+
+
+  .navLink{color:var(--accent);text-decoration:none;font-weight:600;}
+
+
+
+  .navLink:hover{color:var(--btn-h);}
+
+
+
+  main {
+
+
+
+    max-width:1180px;
+
+
+
+    margin:0 auto;
+
+
+
+    padding:20px;
+
+
+
+    display:grid;
+
+
+
+    gap:20px;
+
+
+
+  }
+
+
+
+  section.panel {
+
+
+
+    background:var(--panel);
+
+
+
+    border:1px solid var(--ring);
+
+
+
+    border-radius:14px;
+
+
+
+    padding:16px;
+
+
+
+    display:flex;
+
+
+
+    flex-direction:column;
+
+
+
+    gap:14px;
+
+
+
+  }
+
+
+
+  section.panel h2 {
+
+
+
+    margin:0;
+
+
+
+    font-size:15px;
+
+
+
+    text-transform:uppercase;
+
+
+
+    letter-spacing:0.08em;
+
+
+
+    color:var(--accent);
+
+
+
+  }
+
+
+
+  textarea {
+
+
+
+    width:100%;
+
+
+
+    min-height:220px;
+
+
+
+    resize:vertical;
+
+
+
+    border-radius:10px;
+
+
+
+    border:1px solid var(--ring);
+
+
+
+    background:var(--fill);
+
+
+
+    color:var(--txt);
+
+
+
+    padding:12px;
+
+
+
+    font-family:"Cascadia Code","Fira Code",monospace;
+
+
+
+    font-size:13px;
+
+
+
+    line-height:1.5;
+
+
+
+  }
+
+
+
+  button, select {
+
+
+
+    border-radius:10px;
+
+
+
+    border:1px solid var(--ring);
+
+
+
+    background:var(--node);
+
+
+
+    color:var(--txt);
+
+
+
+    padding:8px 12px;
+
+
+
+    cursor:pointer;
+
+
+
+    font-weight:600;
+
+
+
+    letter-spacing:0.02em;
+
+
+
+    transition:background .15s ease, border-color .15s ease, color .15s ease;
+
+
+
+  }
+
+
+
+  button.primary {
+
+
+
+    background:var(--btn);
+
+
+
+    border:0;
+
+
+
+    color:#fff;
+
+
+
+  }
+
+
+
+  button.primary:hover { background:var(--btn-h); }
+
+
+
+  button.secondary {
+
+
+
+    background:var(--node-h);
+
+
+
+    border-color:var(--ring);
+
+
+
+    color:var(--txt);
+
+
+
+  }
+
+
+
+  button.secondary:hover { background:var(--node); }
+
+
+
+  button:disabled { background:var(--btn-d); color:var(--muted); cursor:not-allowed; }
+
+
+
+  select { background:var(--node-h); }
+
+
+
+  .actions { display:flex; gap:10px; flex-wrap:wrap; }
+
+
+
+  .panelHeader{display:flex;align-items:center;gap:12px;}
+
+
+
+  .panelHeader .secondary{margin-left:auto;}
+
+
+
+  #jsonPanelHeader{cursor:pointer;}
+
+
+
+  #jsonPanelHeader button{cursor:pointer;}
+
+
+
+  .panelBody{display:flex;flex-direction:column;gap:14px;}
+
+
+
+  #jsonContent.collapsed{display:none;}
+
+
+
+  .iconBtn{border-radius:10px;border:1px solid var(--ring);background:var(--node-h);color:var(--txt);padding:6px 10px;cursor:pointer;font-weight:600;letter-spacing:0.02em;transition:background .15s ease,border-color .15s ease,color .15s ease;}
+
+
+
+  .iconBtn:hover{background:var(--node);}
+
+
+
+  .promptRow{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:6px;}
+
+
+
+  #setControls{margin-top:10px;display:flex;flex-direction:column;gap:6px;}
+
+
+
+  #apiStatus{flex:1;font-size:12px;color:var(--muted);}
+
+
+
+  #setControls .setControlsRow{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+
+
+
+  #setControls .statusRow{display:flex;align-items:center;gap:12px;min-height:18px;}
+
+
+
+  #apiLoading{display:none;align-items:center;gap:8px;}
+
+
+
+  #apiLoading.active{display:flex;}
+
+
+
+  #apiCounter{font-size:12px;color:var(--muted);}
+
+
+
+  #apiStopBtn{padding:6px 12px;font-size:12px;}
+
+
+
+  .chipInput{flex:1;min-width:220px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:6px 8px;border-radius:10px;border:1px solid var(--ring);background:var(--surface);}
+  .chipList{display:flex;flex-wrap:wrap;gap:6px;flex:1 1 auto;}
+  .chip{display:flex;align-items:center;gap:6px;padding:4px 8px;border-radius:8px;background:var(--node);color:var(--txt);font-size:13px;}
+  .chipRemove{border:none;background:transparent;color:var(--muted);cursor:pointer;font-weight:600;font-size:12px;padding:0;line-height:1;}
+  .chipRemove:hover{color:var(--accent);}
+  .chipInput input{border:none;background:transparent;color:var(--txt);outline:none;flex:1 1 120px;min-width:120px;padding:4px;}
+  .chipInput input::placeholder{color:var(--muted);}
+
+
+
+  #setNamesInput::placeholder{color:var(--muted);}
+
+
+
+  .visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;}
+
+
+
+  #helpOverlay{position:fixed;inset:0;background:#000a;backdrop-filter:blur(2px);display:none;align-items:center;justify-content:center;z-index:1200;}
+
+
+
+  #helpOverlay.active{display:flex;}
+
+
+
+  .helpDialog{background:var(--panel);border:1px solid var(--ring);border-radius:12px;padding:20px;max-width:520px;width:90%;display:flex;flex-direction:column;gap:12px;box-shadow:0 12px 32px #020914b3;}
+
+
+
+  .helpDialog h2{margin:0;font-size:18px;color:var(--accent);}
+
+
+
+  .helpDialog p{margin:0;color:var(--txt);line-height:1.45;}
+
+
+
+  .helpDialog ul{margin:0;padding-left:20px;color:var(--txt);line-height:1.45;}
+
+
+
+  .overlayHint{margin:0;color:var(--muted);font-size:13px;text-align:center;}
+
+
+
+  .helpDialog button{align-self:flex-end;}
+
+
+
+
+
+
+
+  .iconBtn:disabled{background:var(--btn-d);color:var(--muted);cursor:not-allowed;}
+
+
+
+  #status { font-size:13px; color:var(--muted); min-height:18px; }
+
+
+
+  #apiMenu{position:absolute;display:none;background:var(--menu);color:var(--txt);border-radius:10px;padding:10px;box-shadow:0 14px 32px #020914b3;z-index:1100;width:220px;}
+
+
+
+  #apiMenu label{display:block;font-size:13px;margin-bottom:4px;color:var(--txt);}
+
+
+
+  #apiMenu select{width:100%;margin-bottom:6px;font-size:13px;color:var(--txt);background:var(--node-h);border-radius:6px;border:0;font-weight:600;cursor:pointer;padding:6px 8px;}
+
+
+
+  #apiMenu select:hover{background:var(--btn-h);}
+
+
+
+  #apiMenu .menuHint{margin-top:8px;font-size:12px;color:var(--muted);line-height:1.4;}
+
+
+
+  .comboPanel { display:flex; flex-direction:column; gap:18px; }
+
+
+
+  .comboControls { display:flex; flex-direction:column; gap:16px; }
+
+
+
+  .sliderRow { display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+
+
+
+  .sliderRow input[type="range"] { flex:1; min-width:200px; }
+
+
+
+  .sliderLabel { font-weight:600; color:var(--muted); min-width:160px; }
+
+
+
+  .sliderValue { font-weight:700; color:var(--accent); }
+
+
+
+  .setList { display:flex; flex-direction:column; gap:8px; }
+
+
+
+  .setRow { display:flex; align-items:center; gap:12px; padding:8px 12px; border:1px solid var(--ring); border-radius:10px; background:var(--fill); transition:opacity .12s ease; }
+
+
+
+  .setRow.off { opacity:.55; }
+
+
+
+  .setRow input { width:18px; height:18px; }
+
+
+
+  .setName { font-weight:600; }
+
+
+
+  .setId { font-size:12px; color:var(--muted); }
+
+
+
+  .setToken { margin-left:auto; font-size:12px; color:var(--muted); }
+
+
+
+  .summaryBox { display:flex; flex-direction:column; gap:6px; padding:12px; border:1px solid var(--ring); border-radius:12px; background:var(--fill); }
+
+
+
+  .summaryTitle { font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--accent); }
+
+
+
+  .summaryRow { font-size:15px; color:var(--txt); line-height:1.4; }
+  .summaryTitle, .summaryRow.summaryValue { display:flex; align-items:center; gap:8px; }
+  .summaryTitle::before, .summaryRow.summaryValue::before { content:'▌'; color:var(--accent); font-weight:700; }
+  .summaryRow.summaryValue { font-size:20px; color:var(--txt); line-height:1.6; }
+  .summaryRow.summaryValue.empty { color:var(--muted); }
+
+
+
+  .comboListWrap { display:flex; flex-direction:column; gap:10px; }
+
+
+
+  .comboListWrap h3 { margin:0; font-size:14px; text-transform:uppercase; letter-spacing:0.06em; color:var(--muted); }
+
+
+
+  .comboList { display:flex; flex-direction:column; gap:6px; max-height:300px; overflow:auto; }
+
+
+
+  .comboRow { display:grid; grid-template-columns:140px 1fr 150px; gap:10px; padding:8px 12px; border:1px solid var(--ring); border-radius:10px; background:var(--surface); cursor:pointer; transition:border .12s ease; }
+
+
+
+  .comboRow:hover { border-color:var(--accent); }
+
+
+
+  .comboRow.active { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); }
+
+
+
+  .comboKey { font-weight:700; color:var(--muted); }
+
+
+
+  .comboNames { color:var(--txt); }
+
+
+
+  .comboToken { font-weight:700; color:var(--accent); }
+
+
+
+  .comboNote { font-size:12px; color:var(--muted); }
+
+
+
+  .emptyState { color:var(--muted); font-size:13px; text-align:center; padding:60px 12px; }
+
+
+
+  footer { text-align:center; font-size:12px; padding:18px 0 32px; color:var(--muted); }
+
+
+
+  @media (max-width:720px){
+
+
+
+    header { flex-direction:column; align-items:flex-start; }
+
+
+
+    header span.tagline { margin-left:0; }
+
+
+
+    .comboRow { grid-template-columns:1fr; }
+
+
+
+    .sliderLabel { min-width:auto; }
+
+
+
+  }
+
+
+
+</style>
+
+
+
+</head>
+
+
+
+<body>
+
+
+
+  <header>
+
+
+
+    <div class="headerInfo">
+
+
+
+      <h1>Combination Explorer</h1>
+
+
+
+      <span class="tagline">Slider-driven overlap inspector</span>
+
+
+
+    </div>
+
+
+
+    <nav class="navLinks">
+
+
+
+      <a href="Index.html" class="navLink" title="Open NodeTrellis mind map builder">NodeTrellis</a>
+
+
+
+      <button id="helpBtn" type="button" class="secondary" title="Learn about Combination Explorer">?</button>
+
+
+
+    </nav>
+
+
+
+  </header>
+
+
+
+  <main>
+
+
+
+    <section class="panel" id="jsonPanel">
+
+
+
+      <div class="panelHeader" id="jsonPanelHeader">
+
+
+
+        <h2>1 - Data Model</h2>
+
+
+
+        <button id="toggleJsonBtn" type="button" class="secondary" title="Expand or collapse the data model editor">Expand</button>
+
+
+
+      </div>
+
+
+
+      <div id="setControls">
+
+
+
+        <div class="promptRow setControlsRow">
+
+
+
+          <div id="setNamesChipWrapper" class="chipInput" role="group" aria-label="Set names for prompts">
+            <div id="setChipList" class="chipList"></div>
+            <input id="setNamesInput" type="text" placeholder="Type a set name and press Enter" title="Manual set name entry" aria-label="Manual set name entry" autocomplete="off" />
+          </div>
+          <button id="promptBtn" type="button" class="secondary" title="Copy an AI prompt for generating overlaps">Copy Prompt</button>
+          <button id="renderBtn" type="button" class="primary" title="Render combinations from the current JSON">Render</button>
+          <button id="setNamesClearBtn" type="button" class="iconBtn" title="Clear manual set names">Clear</button>
+
+
+
+          <button id="apiBtn" type="button" class="primary" title="Call the OpenAI API to populate regions">API Render</button>
+
+
+
+          <button id="pasteBtn" type="button" class="iconBtn" aria-label="Paste JSON" title="Paste JSON from the clipboard">&#x1f4cb;</button>
+
+
+
+          <button id="copyBtn" type="button" class="iconBtn" aria-label="Copy JSON" title="Copy the JSON to the clipboard">&#x1f4c4;</button>
+
+
+
+        </div>
+
+
+
+        <div class="statusRow">
+
+
+
+          <span id="apiStatus" class="statusMessage" aria-live="polite"></span>
+
+
+
+          <div id="apiLoading" class="apiLoading" aria-hidden="true">
+
+
+
+            <span id="apiCounter" class="apiCounter">0</span>
+
+
+
+            <button id="apiStopBtn" type="button" class="secondary stopBtn" title="Cancel the current API request">Stop</button>
+
+
+
+          </div>
+
+
+
+        </div>
+
+
+
+      </div>
+
+
+
+      <div id="jsonContent" class="panelBody collapsed" aria-hidden="true">
+
+
+
+        <p id="status">Paste or adjust the JSON, then click Render.</p>
+
+
+
+        <textarea id="model"></textarea>
+
+
+
+        <div class="actions">
+
+
+
+
+
+
+          <button id="saveBtn" type="button" class="iconBtn" aria-label="Export JSON" title="Export JSON">&#x1f4be;</button>
+
+
+
+          <button id="importBtn" type="button" class="iconBtn" aria-label="Import JSON" title="Import JSON from a file">&#x1f4c2;</button>
+
+
+
+
+
+
+        </div>
+
+
+
+        <input type="file" id="importFile" accept="application/json" hidden />
+
+
+
+        <select id="modelSelect" class="visually-hidden" aria-hidden="true"></select>
+
+
+
+      </div>
+
+
+
+    </section>
+
+
+
+
+
+
+
+    <div id="apiMenu" role="menu" aria-hidden="true">
+
+
+
+      <label for="modelSelectOverlay">Choose model</label>
+
+
+
+      <select id="modelSelectOverlay" aria-label="Model list"></select>
+
+
+
+      <div class="apiActions">
+
+
+
+        <button type="button" id="apiMenuEditKey">Update API Key</button>
+
+
+
+      </div>
+
+
+
+    </div>
+
+
+
+
+
+
+
+    <section class="panel comboPanel">
+
+
+
+      <h2>2 - Combination Explorer</h2>
+
+
+
+      <div id="comboMessage" class="comboNote"></div>
+
+
+
+      <div class="comboControls">
+
+
+
+        <div class="sliderRow">
+
+
+
+          <label for="sizeSlider" class="sliderLabel">Combination Size</label>
+
+
+
+          <input id="sizeSlider" type="range" min="2" max="2" step="1" value="2" />
+
+
+
+          <span id="sizeLabel" class="sliderValue">2 sets</span>
+
+
+
+        </div>
+
+
+
+        <div class="sliderRow">
+
+
+
+          <label for="rankSlider" class="sliderLabel">Combination Rank</label>
+
+
+
+          <input id="rankSlider" type="range" min="0" max="0" step="1" value="0" />
+
+
+
+          <span id="rankLabel" class="sliderValue">0 / 0</span>
+
+
+
+        </div>
+
+
+
+      </div>
+
+
+
+      <div>
+
+
+
+        <h3 style="margin:0;color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:0.05em;">Sets</h3>
+
+
+
+        <div id="setList" class="setList"></div>
+
+
+
+      </div>
+
+
+
+      <div class="summaryBox" id="summaryBox">
+
+
+
+        <div class="summaryTitle">Selected Overlap</div>
+
+        <div class="summaryRow summaryValue empty" id="comboTokenRow">None selected</div>
+
+
+
+      </div>
+
+
+
+      <div class="comboListWrap">
+
+
+
+        <h3>All Combinations</h3>
+
+
+
+        <div class="comboList" id="comboList"></div>
+
+
+
+      </div>
+
+
+
+    </section>
+
+
+
+  </main>
+
+
+
+  <footer>Sliders pick k-combinations; rank slider walks lexicographic order. Click any combo to sync.</footer>
+
+
+
+  <div id="helpOverlay" aria-hidden="true">
+
+
+
+    <div class="helpDialog" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+
+
+
+      <h2 id="helpTitle">About Combination Explorer</h2>
+
+
+
+      <p>Visualise how named sets overlap by loading or pasting a JSON model, then navigate combinations with the sliders and set checkboxes.</p>
+
+
+
+      <ul>
+
+
+
+        <li>Edit the comma-separated set names from the row under <strong>Data Model</strong>; <strong>Copy Prompt</strong> and <strong>API Render</strong> follow that list.</li>
+
+
+
+        <li>Use <strong>Copy Prompt</strong> to grab a JSON-ready instruction, then paste the reply into the data model or call <strong>API Render</strong> to fill it automatically.</li>
+
+
+
+        <li>Use <strong>Import</strong>, <strong>Export</strong>, and the clipboard buttons to manage JSON quickly.</li>
+
+
+
+        <li>Right-click or long-press <strong>API Render</strong> to choose a model or update your OpenAI API key.</li>
+
+
+
+        <li>Watch the live counter during <strong>API Render</strong>; press <strong>Stop</strong> to cancel a call.</li>
+
+
+
+        <li>Handles seven-set models; larger inputs may take longer to render.</li>
+
+
+
+        <li>Collapse the data model panel for more room and reopen it whenever you need to tweak the JSON.</li>
+
+
+
+        <li>The explorer highlights the active combination and keeps the summary panel in sync as you adjust filters.</li>
+
+
+
+      </ul>
+
+
+
+      <p class="overlayHint">Press anywhere to continue.</p>
+
+
+
+    </div>
+
+
+
+  </div>
+
+
+
+  <script>
+
+
+
+    const JSON_STORAGE = 'combo_json_model_v1';
+
+
+
+    const MODEL_STORAGE_KEY = 'openai_model';
+
+
+
+    const API_KEY_STORAGE = 'openai_api_key';
+
+
+
+    const textarea = document.getElementById('model');
+
+
+
+    const status = document.getElementById('status');
+
+
+
+    const apiStatus = document.getElementById('apiStatus');
+
+
+
+    const apiLoading = document.getElementById('apiLoading');
+
+
+
+    const apiCounter = document.getElementById('apiCounter');
+
+
+
+    const apiStopBtn = document.getElementById('apiStopBtn');
+
+
+
+    const renderBtn = document.getElementById('renderBtn');
+
+
+
+
+
+
+    const saveBtn = document.getElementById('saveBtn');
+
+
+
+    const pasteBtn = document.getElementById('pasteBtn');
+
+
+
+    const importBtn = document.getElementById('importBtn');
+
+
+
+    const importFile = document.getElementById('importFile');
+
+
+
+
+
+
+    const copyBtn = document.getElementById('copyBtn');
+
+
+
+    const promptBtn = document.getElementById('promptBtn');
+
+
+
+    const apiBtn = document.getElementById('apiBtn');
+
+
+
+    const apiMenuEditKey=document.getElementById('apiMenuEditKey');
+
+
+
+    const setNamesInput = document.getElementById('setNamesInput');
+    const setNamesChipWrapper = document.getElementById('setNamesChipWrapper');
+    const setChipList = document.getElementById('setChipList');
+    const setNamesClearBtn = document.getElementById('setNamesClearBtn');
+
+
+
+    const modelSelect = document.getElementById('modelSelect');
+
+
+
+    const comboMessage = document.getElementById('comboMessage');
+
+
+
+    const sizeSlider = document.getElementById('sizeSlider');
+
+
+
+    const rankSlider = document.getElementById('rankSlider');
+
+
+
+    const sizeLabel = document.getElementById('sizeLabel');
+
+
+
+    const rankLabel = document.getElementById('rankLabel');
+
+
+
+    const setList = document.getElementById('setList');
+
+
+
+    const comboList = document.getElementById('comboList');
+
+
+
+
+
+
+
+
+
+    const comboTokenRow = document.getElementById('comboTokenRow');
+
+
+
+    const toggleJsonBtn = document.getElementById('toggleJsonBtn');
+
+
+
+    const jsonContent = document.getElementById('jsonContent');
+
+
+
+    const setControls = document.getElementById('setControls');
+
+
+
+    const jsonPanelHeader = document.getElementById('jsonPanelHeader');
+
+
+
+    const modelSelectOverlay = document.getElementById('modelSelectOverlay');
+
+
+
+    const apiMenu = document.getElementById('apiMenu');
+
+
+
+    const helpBtn = document.getElementById('helpBtn');
+
+
+
+    const helpOverlay = document.getElementById('helpOverlay');
+
+
+
+    const getCleanText = () => extractJSON(sanitize(textarea.value || ''));
+
+
+
+    const resetExplorer = (message='')=>{
+
+
+
+      setList.innerHTML='';
+
+
+
+      comboList.innerHTML='';
+
+
+
+
+
+
+
+
+
+      renderSummaryToken('');
+
+
+
+      comboMessage.textContent=message;
+
+
+
+      sizeSlider.disabled=true;
+
+
+
+      rankSlider.disabled=true;
+
+
+
+      sizeSlider.value='2';
+
+
+
+      rankSlider.value='0';
+
+
+
+      sizeLabel.textContent='2 sets';
+
+
+
+      rankLabel.textContent='0 / 0';
+
+
+
+    };
+
+
+
+    const modelCategories={
+
+
+
+      'GPT-4.1':['gpt-4.1','gpt-4.1-mini','gpt-4.1-nano','gpt-4.1-nano-2025-04-14','gpt-4.1-mini-2025-04-14','gpt-4.1-2025-04-14'],
+
+
+
+      'REASONING':[
+
+
+
+        'gpt-5','gpt-5-chat-latest','gpt-5-mini','gpt-5-mini-2025-08-07','gpt-5-nano','gpt-5-nano-2025-08-07','gpt-5-2025-08-07',
+
+
+
+        'o3','o4-mini','o1-pro','o1','o1-2024-12-17','o1-mini','o1-mini-2024-09-12',
+
+
+
+        'o1-preview','o1-preview-2024-09-12','o1-pro-2025-03-19','o3-2025-04-16','o3-mini','o3-mini-2025-01-31',
+
+
+
+        'o4-mini','o4-mini-deep-research','o4-mini-deep-research-2025-06-26'
+
+
+
+      ],
+
+
+
+      'GPT-4o':[
+
+
+
+        'gpt-4o','gpt-4o-mini','gpt-4o-audio-preview','gpt-4o-search-preview',
+
+
+
+        'gpt-4o-search-preview-2025-03-11','gpt-4o-mini-search-preview-2025-03-11','gpt-4o-mini-search-preview',
+
+
+
+        'gpt-4o-mini-audio-preview-2024-12-17','gpt-4o-mini-audio-preview','gpt-4o-mini-2024-07-18',
+
+
+
+        'gpt-4o-audio-preview-2025-06-03','gpt-4o-audio-preview-2024-12-17','gpt-4o-audio-preview-2024-10-01',
+
+
+
+        'gpt-4o-2024-11-20','gpt-4o-2024-08-06','gpt-4o-2024-05-13'
+
+
+
+      ],
+
+
+
+      'GPT-4':['gpt-4-turbo-preview','gpt-4-turbo-2024-04-09','gpt-4-turbo','gpt-4-1106-preview','gpt-4-0613','gpt-4-0125-preview','gpt-4'],
+
+
+
+      'GPT-3.5':['gpt-3.5-turbo-16k','gpt-3.5-turbo-1106','gpt-3.5-turbo-0125','gpt-3.5-turbo'],
+
+
+
+      'OTHER':['chatgpt-4o-latest']
+
+
+
+    };
+
+
+
+    const reasoningModels = modelCategories['REASONING'] || [];
+
+
+
+    const flatModels=[].concat(...Object.values(modelCategories));
+
+
+
+    const defaultModels=flatModels.slice();
+
+
+
+    const NON_STREAM_REGEX=/^gpt-5/i;
+
+
+
+    const buildOverlayOptions=current=>{
+
+
+
+      if(!modelSelectOverlay) return;
+
+
+
+      modelSelectOverlay.innerHTML='';
+
+
+
+      Object.entries(modelCategories).forEach(([label,models])=>{
+
+
+
+        const group=document.createElement('optgroup');
+
+
+
+        group.label=label;
+
+
+
+        models.forEach(id=>{
+
+
+
+          const opt=document.createElement('option');
+
+
+
+          opt.value=id;
+
+
+
+          opt.textContent=id;
+
+
+
+          if(id===current) opt.selected=true;
+
+
+
+          group.appendChild(opt);
+
+
+
+        });
+
+
+
+        modelSelectOverlay.appendChild(group);
+
+
+
+      });
+
+
+
+    };
+
+
+
+    let lastModelSelection='';
+
+
+
+    const populateModelSelect=list=>{
+
+
+
+      modelSelect.innerHTML='';
+
+
+
+      list.forEach(m=>{
+
+
+
+        const id=typeof m==='string'?m:m.id;
+
+
+
+        if(!id) return;
+
+
+
+        const opt=document.createElement('option');
+
+
+
+        opt.value=id;
+
+
+
+        opt.textContent=id;
+
+
+
+        modelSelect.appendChild(opt);
+
+
+
+      });
+
+
+
+      let stored='';
+
+
+
+      try{ stored=localStorage.getItem(MODEL_STORAGE_KEY)||''; }catch{}
+
+
+
+      if(stored && Array.from(modelSelect.options).some(o=>o.value===stored)){
+
+
+
+        modelSelect.value=stored;
+
+
+
+      }else if(modelSelect.options.length){
+
+
+
+        modelSelect.selectedIndex=0;
+
+
+
+        try{ localStorage.setItem(MODEL_STORAGE_KEY, modelSelect.value); }catch{}
+
+
+
+      }
+
+
+
+      const current=modelSelect.value || (modelSelect.options[0]?.value || '');
+
+
+
+      buildOverlayOptions(current);
+
+
+
+    };
+
+
+
+
+
+
+
+    const MAX_MANUAL_SETS = 7;
+    let manualSetEntry=false;
+    let chipNames=[];
+
+    function renderChipNames(){
+      if(setChipList){
+        setChipList.innerHTML='';
+        chipNames.forEach((name, idx)=>{
+          const chip=document.createElement('span');
+          chip.className='chip';
+          const label=document.createElement('span');
+          label.textContent=name;
+          chip.appendChild(label);
+          const remove=document.createElement('button');
+          remove.type='button';
+          remove.className='chipRemove';
+          remove.setAttribute('aria-label', `Remove ${name}`);
+          remove.textContent='x';
+          remove.addEventListener('click', ()=>{ removeChipAt(idx); });
+          chip.appendChild(remove);
+          setChipList.appendChild(chip);
+        });
+      }
+      if(setNamesInput){
+        setNamesInput.placeholder = chipNames.length ? '' : 'Type a set name and press Enter';
+      }
+    }
+
+    function resetManualNames(){
+      chipNames = [];
+      manualSetEntry = false;
+      if(setNamesInput){
+        setNamesInput.value = '';
+      }
+      renderChipNames();
+    }
+
+    function removeChipAt(idx){
+      if(idx < 0 || idx >= chipNames.length) return;
+      chipNames.splice(idx,1);
+      if(!chipNames.length){
+        manualSetEntry = false;
+      }
+      renderChipNames();
+    }
+
+    function appendChipNames(source){
+      if(!source) return;
+      const parts = source.split(',').map(part=>part.trim()).filter(Boolean);
+      if(!parts.length) return;
+      let added=false;
+      for(const name of parts){
+        if(chipNames.length >= MAX_MANUAL_SETS){
+          updateStatus(`Manual set names capped at ${MAX_MANUAL_SETS}.`, 'error');
+          break;
+        }
+        if(chipNames.includes(name)) continue;
+        chipNames.push(name);
+        added=true;
+      }
+      if(added){
+        manualSetEntry = true;
+        renderChipNames();
+      }
+    }
+
+    function commitChipInput(){
+      if(!setNamesInput) return;
+      const raw=setNamesInput.value;
+      if(!raw || !raw.trim()) return;
+      appendChipNames(raw);
+      setNamesInput.value='';
+    }
+
+    function getManualChipNames(){
+      commitChipInput();
+      return chipNames.slice(0, MAX_MANUAL_SETS);
+    }
+
+    if(setNamesInput){
+      setNamesInput.addEventListener('keydown', e=>{
+        if(e.key === 'Enter'){
+          if(setNamesInput.value.trim()){
+            e.preventDefault();
+            commitChipInput();
+          }
+        }else if(e.key === ',' || e.key === 'Comma'){
+          e.preventDefault();
+          commitChipInput();
+        }else if(e.key === 'Backspace' && !setNamesInput.value && chipNames.length){
+          e.preventDefault();
+          removeChipAt(chipNames.length-1);
+        }
+      });
+      setNamesInput.addEventListener('input', ()=>{
+        if(setNamesInput.value.includes(',')){
+          commitChipInput();
+        }else{
+          manualSetEntry = chipNames.length > 0 || !!setNamesInput.value.trim();
+        }
+      });
+      setNamesInput.addEventListener('blur', ()=>{
+        commitChipInput();
+      });
+    }
+
+    if(setNamesClearBtn){
+      setNamesClearBtn.addEventListener('click', ()=>{
+        const hadManual = chipNames.length > 0 || (setNamesInput && setNamesInput.value.trim());
+        resetManualNames();
+        if(hadManual){
+          updateStatus('Manual set names cleared.', 'muted');
+        }
+      });
+    }
+
+    if(setNamesChipWrapper && setNamesInput){
+      setNamesChipWrapper.addEventListener('click', ()=>{ setNamesInput.focus(); });
+    }
+
+    renderChipNames();
+
+    const getSetNames=model=>{
+      const autoNames=(model.sets||[]).map(s=>(s.name||'').trim()).filter(Boolean);
+      if(chipNames.length){
+        return chipNames.slice();
+      }
+      if(manualSetEntry && setNamesInput){
+        const pending=setNamesInput.value.split(',').map(s=>s.trim()).filter(Boolean);
+        if(pending.length){
+          return pending;
+        }
+      }
+      return autoNames;
+    };
+
+    const deriveActiveSets=model=>{
+      const manualNames=getManualChipNames();
+      if(manualNames.length){
+        const limited=manualNames.slice(0,MAX_MANUAL_SETS);
+        return {
+          sets: limited.map((name,i)=>({ id:`S${i}`, name })),
+          names: limited
+        };
+      }
+      const autoSets=(model.sets||[]).map((set,i)=>({ id:`S${i}`, name:(set.name||'').toString().trim() }));
+      const normalized=autoSets.map((set,i)=>({ id:set.id, name:set.name || `Set ${i+1}` }));
+      return {
+        sets: normalized,
+        names: normalized.map(set=>set.name)
+      };
+    };
+    const loadModels=()=>{ populateModelSelect(flatModels); };
+
+
+
+    const getApiKey=()=>{
+
+
+
+      try{ return localStorage.getItem(API_KEY_STORAGE)||''; }catch{ return ''; }
+
+
+
+    };
+
+
+
+    const promptApiKey=(force=false)=>{
+
+
+
+      let key=getApiKey();
+
+
+
+      if(force || !key){
+
+
+
+        const entered=prompt('OpenAI API key', key||'');
+
+
+
+        if(entered===null) return key;
+
+
+
+        const trimmed=entered.trim();
+
+
+
+        if(trimmed){
+
+
+
+          try{ localStorage.setItem(API_KEY_STORAGE, trimmed); }catch{}
+
+
+
+          key=trimmed;
+
+
+
+          loadModels();
+
+
+
+        }
+
+
+
+      }
+
+
+
+      return key;
+
+
+
+    };
+
+
+
+
+
+
+
+    let apiAbortController=null;
+
+
+
+    let apiMenuOpen=false;
+
+
+
+    let apiHoldTimer=null;
+
+
+
+
+
+
+
+    const updateApiCounter=value=>{
+
+
+
+      if(!apiCounter) return;
+
+
+
+      apiCounter.textContent=String(value);
+
+
+
+    };
+
+
+
+    const showApiLoading=model=>{
+
+
+
+      const streamingPreferred=!(reasoningModels.includes(model)||NON_STREAM_REGEX.test(model));
+
+
+
+      if(apiLoading){
+
+
+
+        apiLoading.classList.add('active');
+
+
+
+        apiLoading.setAttribute('aria-hidden','false');
+
+
+
+        updateApiCounter(streamingPreferred?'0':'waiting...');
+
+
+
+      }
+
+
+
+      if(apiStopBtn){ apiStopBtn.disabled=false; }
+
+
+
+      if(apiBtn){ apiBtn.disabled=true; }
+
+
+
+      if(pasteBtn){ pasteBtn.disabled=true; }
+
+
+
+      if(copyBtn){ copyBtn.disabled=true; }
+
+
+
+      updateApiStatus('Calling OpenAI.', 'muted');
+
+
+
+    };
+
+
+
+    const hideApiLoading=()=>{
+
+
+
+      if(apiLoading){
+
+
+
+        apiLoading.classList.remove('active');
+
+
+
+        apiLoading.setAttribute('aria-hidden','true');
+
+
+
+      }
+
+
+
+      updateApiCounter('0');
+
+
+
+      if(apiStopBtn){ apiStopBtn.disabled=true; }
+
+
+
+      if(apiBtn){ apiBtn.disabled=false; }
+
+
+
+      if(pasteBtn){ pasteBtn.disabled=false; }
+
+
+
+      if(copyBtn){ copyBtn.disabled=false; }
+
+
+
+      apiAbortController=null;
+
+
+
+    };
+
+
+
+
+
+
+
+    if(apiStopBtn){
+
+
+
+      apiStopBtn.disabled=true;
+
+
+
+      apiStopBtn.addEventListener('click', ()=>{
+
+
+
+        if(apiAbortController){
+
+
+
+          try{ apiAbortController.abort(); }catch{}
+
+
+
+        }
+
+
+
+        updateApiStatus('API call cancelled.', 'muted');
+
+
+
+        hideApiLoading();
+
+
+
+      });
+
+
+
+    }
+
+
+
+
+
+
+
+    const populateApiMenu=()=>{
+
+
+
+      const current=modelSelect.value || defaultModels[0];
+
+
+
+      buildOverlayOptions(current);
+
+
+
+      if(modelSelectOverlay){
+
+
+
+        modelSelectOverlay.value=current;
+
+
+
+      }
+
+
+
+      lastModelSelection=current;
+
+
+
+    };
+
+
+
+
+
+
+
+    const openApiMenu=(evt)=>{
+
+
+
+      evt?.preventDefault();
+
+
+
+      lastModelSelection=modelSelect.value || defaultModels[0];
+
+
+
+      populateApiMenu();
+
+
+
+
+
+
+
+      apiMenu.style.display='block';
+
+
+
+      apiMenu.setAttribute('aria-hidden','false');
+
+
+
+      const rect=apiBtn.getBoundingClientRect();
+
+
+
+      const menuWidth=apiMenu.offsetWidth;
+
+
+
+      const menuHeight=apiMenu.offsetHeight;
+
+
+
+      const left=Math.max(10, Math.min(window.innerWidth - menuWidth - 10, rect.left));
+
+
+
+      const top=Math.max(10, Math.min(window.innerHeight - menuHeight - 10, rect.bottom + 6));
+
+
+
+      apiMenu.style.left=`${left}px`;
+
+
+
+      apiMenu.style.top=`${top}px`;
+
+
+
+      if(modelSelectOverlay){
+
+
+
+        modelSelectOverlay.focus();
+
+
+
+      }
+
+
+
+      apiMenuOpen=true;
+
+
+
+      clearApiHold();
+
+
+
+    };
+
+
+
+
+
+
+
+    const closeApiMenu=()=>{
+
+
+
+      if(!apiMenuOpen) return;
+
+
+
+      apiMenu.style.display='none';
+
+
+
+      apiMenu.setAttribute('aria-hidden','true');
+
+
+
+      apiMenuOpen=false;
+
+
+
+      clearApiHold();
+
+
+
+    };
+
+
+
+
+
+
+
+    const clearApiHold=()=>{
+
+
+
+      if(apiHoldTimer){
+
+
+
+        clearTimeout(apiHoldTimer);
+
+
+
+        apiHoldTimer=null;
+
+
+
+      }
+
+
+
+    };
+
+
+
+
+
+
+
+    const chatComplete=async(prompt, model, key, signal, onDelta)=>{
+
+
+
+      if(!key) throw new Error('Missing API key.');
+
+
+
+      const url='https://api.openai.com/v1/chat/completions';
+
+
+
+      const headers={'Content-Type':'application/json','Authorization':'Bearer '+key};
+
+
+
+      const temperature = reasoningModels.includes(model) ? 1 : 0;
+
+
+
+      const base={model,temperature,messages:[{role:'user',content:prompt}]};
+
+
+
+
+
+
+
+      const doNonStream=async()=>{
+
+
+
+        const res=await fetch(url,{method:'POST',headers,body:JSON.stringify(base),signal});
+
+
+
+        if(!res.ok){
+
+
+
+          const textResp=await res.text();
+
+
+
+          throw new Error(res.status+' '+textResp.slice(0,160));
+
+
+
+        }
+
+
+
+        const data=await res.json();
+
+
+
+        const text=data.choices?.[0]?.message?.content||'';
+
+
+
+        if(onDelta) onDelta(text.length);
+
+
+
+        return text;
+
+
+
+      };
+
+
+
+
+
+
+
+      const doStream=async()=>{
+
+
+
+        const res=await fetch(url,{method:'POST',headers,body:JSON.stringify({...base,stream:true}),signal});
+
+
+
+        if(!res.ok){
+
+
+
+          const textResp=await res.text();
+
+
+
+          const err=new Error(res.status+' '+textResp.slice(0,160));
+
+
+
+          err._raw=textResp;
+
+
+
+          throw err;
+
+
+
+        }
+
+
+
+        if(!res.body || typeof res.body.getReader!=='function'){
+
+
+
+          const textResp=await res.text();
+
+
+
+          try{
+
+
+
+            const data=JSON.parse(textResp);
+
+
+
+            const content=data.choices?.[0]?.message?.content||'';
+
+
+
+            if(onDelta) onDelta(content.length);
+
+
+
+            return content;
+
+
+
+          }catch{
+
+
+
+            if(onDelta) onDelta(textResp.length);
+
+
+
+            return textResp;
+
+
+
+          }
+
+
+
+        }
+
+
+
+        const reader=res.body.getReader();
+
+
+
+        const decoder=new TextDecoder('utf-8');
+
+
+
+        let buffer='',full='',count=0;
+
+
+
+        outer: while(true){
+
+
+
+          const {value,done}=await reader.read();
+
+
+
+          if(done) break;
+
+
+
+          buffer+=decoder.decode(value,{stream:true});
+
+
+
+          const lines=buffer.split(/\r?\n/);
+
+
+
+          buffer=lines.pop()||'';
+
+
+
+          for(const line of lines){
+
+
+
+            const trimmed=line.trim();
+
+
+
+            if(!trimmed.startsWith('data:')) continue;
+
+
+
+            const payload=trimmed.slice(5).trim();
+
+
+
+            if(!payload) continue;
+
+
+
+            if(payload==='[DONE]'){ break outer; }
+
+
+
+            try{
+
+
+
+              const parsed=JSON.parse(payload);
+
+
+
+              const delta=parsed.choices?.[0]?.delta?.content;
+
+
+
+              if(delta){
+
+
+
+                full+=delta;
+
+
+
+                count+=delta.length;
+
+
+
+                if(onDelta) onDelta(count);
+
+
+
+              }
+
+
+
+            }catch{}
+
+
+
+          }
+
+
+
+        }
+
+
+
+        return full;
+
+
+
+      };
+
+
+
+
+
+
+
+      const preferStream=!(reasoningModels.includes(model)||NON_STREAM_REGEX.test(model));
+
+
+
+      if(preferStream){
+
+
+
+        try{
+
+
+
+          return await doStream();
+
+
+
+        }catch(err){
+
+
+
+          const raw=String(err._raw||err.message||'');
+
+
+
+          if(/"param"\s*:\s*"stream"/i.test(raw)||/unsupported_value/i.test(raw)||/must be verified to stream/i.test(raw)){
+
+
+
+            return await doNonStream();
+
+
+
+          }
+
+
+
+          throw err;
+
+
+
+        }
+
+
+
+      }
+
+
+
+      return await doNonStream();
+
+
+
+    };
+
+
+
+
+
+
+
+    const sample = {
+
+
+
+      title: "Antifragility | Goodharting | Min/Max | Feedback-Delay | Exploration-Exploitation",
+
+
+
+      sets: [
+
+
+
+        {id:'S0', name:'Antifragility'},
+
+
+
+        {id:'S1', name:'Goodharting'},
+
+
+
+        {id:'S2', name:'Min/Max'},
+
+
+
+        {id:'S3', name:'Feedback-Delay'},
+
+
+
+        {id:'S4', name:'Exploration-Exploitation'}
+
+
+
+      ],
+
+
+
+      regions: {
+        'S0':['optionality'],
+        'S1':['proxy'],
+        'S2':['extremes'],
+        'S3':['latency'],
+        'S4':['bandits'],
+        'S0+S1':['robustness'],
+        'S0+S2':['barbell'],
+        'S0+S3':['buffering'],
+        'S0+S4':['serendipity'],
+        'S1+S2':['overfitting'],
+        'S1+S3':['misalignment'],
+        'S1+S4':['wireheading'],
+        'S2+S3':['overshoot'],
+        'S2+S4':['annealing'],
+        'S3+S4':['credit'],
+        'S0+S1+S2':['safety'],
+        'S0+S1+S3':['tempering'],
+        'S0+S1+S4':['novelty'],
+        'S0+S2+S3':['stabilization'],
+        'S0+S2+S4':['convexity'],
+        'S0+S3+S4':['patience'],
+        'S1+S2+S3':['runaway'],
+        'S1+S2+S4':['greed'],
+        'S1+S3+S4':['thrashing'],
+        'S2+S3+S4':['oscillation'],
+        'S0+S1+S2+S3':['resilience'],
+        'S0+S1+S2+S4':['regularization'],
+        'S0+S1+S3+S4':['prudence'],
+        'S0+S2+S3+S4':['damping'],
+        'S1+S2+S3+S4':['pathologies'],
+        'S0+S1+S2+S3+S4':['sustainability']
+      }
+
+
+
+    };
+
+
+
+
+
+
+
+    const jsonPretty = obj => JSON.stringify(obj, null, 2);
+
+
+
+    const sanitize = t => t.replace(/^```[^\n]*\n?/, '').replace(/```$/, '').replace(/```/g,'')
+
+
+
+      .replace(/\\(?!["/bfnrtu])/g,'').replace(/\\(?=[\\[\\]{}])/g,'').trim();
+
+
+
+    const extractJSON = str => { const match = str.match(/({[\s\S]*})/m); return match ? match[1].trim() : str.trim(); };
+
+
+
+    function updateStatus(message, tone='muted'){
+
+
+
+      const color = tone==='error' ? 'var(--error)' : tone==='success' ? 'var(--success)' : 'var(--muted)';
+
+
+
+      status.textContent = message;
+
+
+
+      status.style.color = color;
+
+
+
+    }
+
+
+
+    function updateApiStatus(message, tone='muted'){
+
+
+
+      const color = tone==='error' ? 'var(--error)' : tone==='success' ? 'var(--success)' : 'var(--muted)';
+
+
+
+      apiStatus.textContent = message || '';
+
+
+
+      apiStatus.style.color = color;
+
+
+
+    }
+
+
+
+    const keyNorm = key => (key || '').split('+').map(part=>part.trim()).filter(Boolean).sort().join('+');
+
+
+
+    function listCombos(ids){
+
+
+
+      const out=[];
+
+
+
+      (function dfs(start, path){
+
+
+
+        for(let i=start;i<ids.length;i++){
+
+
+
+          path.push(ids[i]);
+
+
+
+          out.push(path.slice());
+
+
+
+          dfs(i+1, path);
+
+
+
+          path.pop();
+
+
+
+        }
+
+
+
+      })(0, []);
+
+
+
+      return out;
+
+
+
+    }
+
+
+
+    function ensureCombos(model){
+
+
+
+      if(!model || typeof model!=='object') return {title:'', sets:[], regions:{}};
+
+
+
+      model.sets = Array.isArray(model.sets) ? model.sets.map((s,i)=>({id:s.id || `S${i}`, name:String(s.name||'').trim()})) : [];
+
+
+
+      model.regions = model.regions && typeof model.regions==='object' ? {...model.regions} : {};
+      const normalizedRegions = {};
+      if(model.regions && typeof model.regions==='object'){
+        Object.entries(model.regions).forEach(([rawKey, rawValue])=>{
+          const key = keyNorm(rawKey);
+          if(!key) return;
+          let token = '';
+          if(Array.isArray(rawValue)){
+            token = (rawValue[0] ?? '').toString().trim();
+          }else if(rawValue !== undefined && rawValue !== null){
+            token = rawValue.toString().trim();
+          }
+          if(!normalizedRegions.hasOwnProperty(key)){
+            normalizedRegions[key] = token ? [token] : [];
+          }
+        });
+      }
+      model.regions = normalizedRegions;
+
+
+
+      const ids = model.sets.map(s=>s.id);
+
+
+
+      listCombos(ids).forEach(combo=>{
+
+
+
+        const key = keyNorm(combo.join('+'));
+
+
+
+        if(!model.regions[key]) model.regions[key] = [];
+
+
+
+        if(Array.isArray(model.regions[key])){
+
+
+
+          const tok = (model.regions[key][0]|| '').toString().trim();
+
+
+
+          model.regions[key] = tok ? [tok] : [];
+
+
+
+        } else {
+
+
+
+          model.regions[key] = [];
+
+
+
+        }
+
+
+
+      });
+
+
+
+      model.sets.forEach(set=>{
+
+
+
+        const key = keyNorm(set.id);
+
+
+
+        const token = (model.regions[key] && model.regions[key][0]) || '';
+
+
+
+        if(!token){
+
+
+
+          model.regions[key] = [set.name];
+
+
+
+        }
+
+
+
+      });
+
+
+
+      return model;
+
+
+
+    }
+
+
+
+    const nCr = (n,k)=>{
+
+
+
+      if(k<0 || k>n) return 0;
+
+
+
+      if(k===0 || k===n) return 1;
+
+
+
+      let result = 1;
+
+
+
+      k = Math.min(k, n-k);
+
+
+
+      for(let i=1;i<=k;i++) result = result * (n - k + i) / i;
+
+
+
+      return Math.round(result);
+
+
+
+    };
+
+
+
+    const unrankCombination = (n,k,r)=>{
+
+
+
+      if(k<0 || k>n) return [];
+
+
+
+      let remaining = r;
+
+
+
+      const out=[];
+
+
+
+      let start = 0;
+
+
+
+      for(let i=0;i<k;i++){
+
+
+
+        for(let idx=start; idx<n; idx++){
+
+
+
+          const rem = k - i - 1;
+
+
+
+          const count = rem<=0 ? 1 : nCr(n - idx - 1, rem);
+
+
+
+          if(remaining < count){
+
+
+
+            out.push(idx);
+
+
+
+            start = idx + 1;
+
+
+
+            break;
+
+
+
+          }
+
+
+
+          remaining -= count;
+
+
+
+        }
+
+
+
+      }
+
+
+
+      return out;
+
+
+
+    };
+
+
+
+    const rankCombination = (n,k,indices)=>{
+
+
+
+      if(!Array.isArray(indices)) return 0;
+
+
+
+      const sorted = indices.slice().sort((a,b)=>a-b);
+
+
+
+      let rank = 0;
+
+
+
+      let prev = -1;
+
+
+
+      for(let t=0;t<k;t++){
+
+
+
+        const idx = sorted[t];
+
+
+
+        for(let s=prev+1; s<idx; s++) rank += nCr(n - s - 1, k - t - 1);
+
+
+
+        prev = idx;
+
+
+
+      }
+
+
+
+      return rank;
+
+
+
+    };
+
+
+
+    let currentModel = null;
+
+
+
+    let comboState = {k:2, r:0};
+
+
+
+    function loadInitial(){
+
+
+
+      textarea.value = jsonPretty(sample);
+
+
+
+      try{ localStorage.setItem(JSON_STORAGE, textarea.value); }catch{}
+
+
+
+      updateStatus('Sample loaded.', 'muted');
+
+
+
+    }
+
+
+
+    loadModels();
+
+
+
+    populateApiMenu();
+
+
+
+    if(apiMenuEditKey){
+
+
+
+      apiMenuEditKey.addEventListener('click',()=>{
+
+
+
+        const key=promptApiKey(true);
+
+
+
+        updateApiStatus(key ? 'API key stored locally.' : 'API key unchanged.', 'muted');
+
+
+
+        populateApiMenu();
+
+
+
+        closeApiMenu();
+
+
+
+      });
+
+
+
+    }
+
+
+
+
+
+
+
+    loadInitial();
+
+
+
+    textarea.addEventListener('input', ()=>{
+
+
+
+      try{ localStorage.setItem(JSON_STORAGE, textarea.value); }catch{}
+
+
+
+    });
+
+
+
+    modelSelect.addEventListener('change',()=>{
+
+
+
+      if(modelSelectOverlay){
+
+
+
+        buildOverlayOptions(modelSelect.value);
+
+
+
+        modelSelectOverlay.value=modelSelect.value;
+
+
+
+      }
+
+
+
+      lastModelSelection=modelSelect.value;
+
+
+
+      try{ localStorage.setItem(MODEL_STORAGE_KEY, modelSelect.value); }catch{}
+
+
+
+    });
+
+
+
+    if(modelSelectOverlay){
+
+
+
+      modelSelectOverlay.addEventListener('change',()=>{
+
+
+
+        const selected=modelSelectOverlay.value;
+
+
+
+        if(modelSelect.value !== selected){
+
+
+
+          modelSelect.value = selected;
+
+
+
+          lastModelSelection=selected;
+
+
+
+          try{ localStorage.setItem(MODEL_STORAGE_KEY, modelSelect.value); }catch{}
+
+
+
+        }
+
+
+
+        buildOverlayOptions(modelSelect.value);
+
+
+
+        closeApiMenu();
+
+
+
+      });
+
+
+
+    }
+
+
+
+    toggleJsonBtn.setAttribute('aria-controls','jsonContent');
+
+
+
+    const updatePanelVisibility=()=>{
+
+
+
+      const collapsed=jsonContent.classList.contains('collapsed');
+
+
+
+      toggleJsonBtn.textContent=collapsed?'Expand':'Collapse';
+
+
+
+      toggleJsonBtn.setAttribute('aria-expanded',collapsed?'false':'true');
+
+
+
+      toggleJsonBtn.title = collapsed ? 'Expand the data model editor' : 'Collapse the data model editor';
+
+
+
+    };
+
+
+
+    const togglePanel=()=>{
+
+
+
+      const collapsed=jsonContent.classList.toggle('collapsed');
+
+
+
+      jsonContent.setAttribute('aria-hidden', collapsed ? 'true' : 'false');
+
+
+
+      updatePanelVisibility();
+
+
+
+      closeApiMenu();
+
+
+
+    };
+
+
+
+    const openModelPanel=()=>{
+
+
+
+      if(jsonContent.classList.contains('collapsed')){
+
+
+
+        jsonContent.classList.remove('collapsed');
+
+
+
+        jsonContent.setAttribute('aria-hidden','false');
+
+
+
+        updatePanelVisibility();
+
+
+
+      }
+
+
+
+    };
+
+
+
+    const handleJsonRegionClick=(evt)=>{
+
+
+
+      if(jsonInteractive.isAllowedTarget(evt.target)) return;
+
+
+
+      openModelPanel();
+
+
+
+    };
+
+
+
+    toggleJsonBtn.addEventListener('click',togglePanel);
+
+
+
+    if(jsonPanelHeader){
+
+
+
+      jsonPanelHeader.addEventListener('click',handleJsonRegionClick);
+
+
+
+    }
+
+
+
+    if(setControls){
+
+
+
+      setControls.addEventListener('click',handleJsonRegionClick);
+
+
+
+    }
+
+
+
+    updatePanelVisibility();
+
+
+
+
+
+
+
+    const openHelp=()=>{
+
+
+
+      closeApiMenu();
+
+
+
+      helpOverlay.classList.add('active');
+
+
+
+      helpOverlay.setAttribute('aria-hidden','false');
+
+
+
+    };
+
+
+
+    const closeHelp=()=>{
+
+
+
+      helpOverlay.classList.remove('active');
+
+
+
+      helpOverlay.setAttribute('aria-hidden','true');
+
+
+
+    };
+
+
+
+    helpBtn.addEventListener('click', openHelp);
+
+
+
+    helpOverlay.addEventListener('click', closeHelp);
+
+
+
+    document.addEventListener('keydown', e=>{
+
+
+
+      if(e.key==='Escape'){
+
+
+
+        closeHelp();
+
+
+
+        closeApiMenu();
+
+
+
+      }
+
+
+
+    });
+
+
+
+    document.addEventListener('click', e=>{
+
+
+
+      if(apiMenuOpen && !apiMenu.contains(e.target) && e.target!==apiBtn){
+
+
+
+        closeApiMenu();
+
+
+
+      }
+
+
+
+    });
+
+
+
+    window.addEventListener('resize', closeApiMenu);
+
+
+
+    window.addEventListener('scroll', closeApiMenu, true);
+
+
+
+    function buildExplorer(model){
+
+
+
+      const sets = model.sets || [];
+
+
+
+      const regions = model.regions || {};
+
+
+
+      const ids = sets.map(s=>s.id);
+
+
+
+      const names = sets.map(s=>s.name || '');
+
+
+
+      const N = sets.length;
+
+
+
+      const setKeyToToken = key => {
+
+
+
+        const entry = regions[keyNorm(key)] || [];
+
+
+
+        return (entry[0] || '').toString().trim();
+
+
+
+      };
+      const renderSummaryToken = token => {
+        if(!comboTokenRow) return;
+        const value = (token || '').toString().trim();
+        comboTokenRow.textContent = value || 'None selected';
+        comboTokenRow.classList.toggle('empty', !value);
+      };
+
+
+
+      const combos = listCombos(ids)
+
+
+
+        .filter(arr=>arr.length>=2)
+
+
+
+        .map(arr=>{
+
+
+
+          const key = keyNorm(arr.join('+'));
+
+
+
+          const token = setKeyToToken(key);
+
+
+
+          const indices = arr.map(id=>ids.indexOf(id));
+
+
+
+          return {
+
+
+
+            ids: arr,
+
+
+
+            indices,
+
+
+
+            key,
+
+
+
+            token,
+
+
+
+            label: arr.map(id=>names[ids.indexOf(id)]).join(' | '),
+
+
+
+            size: arr.length
+
+
+
+          };
+
+
+
+        })
+
+
+
+        .sort((a,b)=> a.size===b.size ? a.key.localeCompare(b.key) : a.size-b.size);
+
+
+
+      setList.innerHTML='';
+
+
+
+      comboList.innerHTML='';
+
+
+
+
+
+
+
+
+
+      renderSummaryToken('');
+
+
+
+      if(N<2){
+
+
+
+        sizeSlider.disabled = true;
+
+
+
+        rankSlider.disabled = true;
+
+
+
+        sizeSlider.value = '2';
+
+
+
+        rankSlider.value = '0';
+
+
+
+        sizeLabel.textContent = '2 sets';
+
+
+
+        rankLabel.textContent = '0 / 0';
+
+
+
+        setList.innerHTML = '<div class="emptyState">Add at least two sets to explore overlaps.</div>';
+
+
+
+        comboList.innerHTML = '';
+
+
+
+        comboMessage.textContent='';
+
+
+
+        return;
+
+
+
+      }
+
+
+
+      sizeSlider.disabled = false;
+
+
+
+      rankSlider.disabled = false;
+
+
+
+      comboState.k = Math.max(2, Math.min(N, comboState.k || 2));
+
+
+
+      let maxRank = nCr(N, comboState.k) - 1;
+
+
+
+      comboState.r = Math.max(0, Math.min(maxRank >=0 ? maxRank : 0, comboState.r || 0));
+
+
+
+      sizeSlider.min = '2';
+
+
+
+      sizeSlider.max = String(N);
+
+
+
+      sizeSlider.value = String(comboState.k);
+
+
+
+      sizeLabel.textContent = `${comboState.k} sets`;
+
+
+
+      rankSlider.min = '0';
+
+
+
+      rankSlider.max = String(Math.max(0, maxRank));
+
+
+
+      rankSlider.value = String(Math.max(0, Math.min(comboState.r, Math.max(0, maxRank))));
+
+
+
+      rankLabel.textContent = maxRank>0 ? `${comboState.r} / ${maxRank}` : '0 / 0';
+
+
+
+      rankSlider.disabled = maxRank <= 0;
+
+
+
+      const selectors = sets.map((set, idx)=>{
+
+
+
+        const row = document.createElement('label');
+
+
+
+        row.className = 'setRow';
+
+
+
+        const checkbox = document.createElement('input');
+
+
+
+        checkbox.type = 'checkbox';
+
+
+
+        checkbox.checked = true;
+
+
+
+        checkbox.dataset.index = String(idx);
+
+
+
+        const nameSpan = document.createElement('span');
+
+
+
+        nameSpan.className = 'setName';
+
+
+
+        nameSpan.textContent = set.name || `Set ${idx+1}`;
+
+
+
+        const idSpan = document.createElement('span');
+
+
+
+        idSpan.className = 'setId';
+
+
+
+        idSpan.textContent = set.id;
+        row.appendChild(checkbox);
+        row.appendChild(nameSpan);
+        row.appendChild(idSpan);
+
+
+
+        let tokenSpan = null;
+        const tokenText = setKeyToToken(set.id);
+        const baseName = (set.name || '').trim();
+        if(tokenText && tokenText.toLowerCase() !== baseName.toLowerCase()){
+          tokenSpan = document.createElement('span');
+          tokenSpan.className = 'setToken';
+          tokenSpan.textContent = tokenText;
+          row.appendChild(tokenSpan);
+        }
+
+
+
+        setList.appendChild(row);
+
+
+
+        return {row, checkbox, tokenSpan, index:idx};
+
+
+
+      });
+
+
+
+      const comboRows = combos.map(entry=>{
+
+
+
+        const row = document.createElement('div');
+
+
+
+        row.className = 'comboRow';
+
+
+
+        row.dataset.key = entry.key;
+
+
+
+        const keyDiv = document.createElement('div'); keyDiv.className='comboKey'; keyDiv.textContent = entry.key;
+
+
+
+        const namesDiv = document.createElement('div'); namesDiv.className='comboNames'; namesDiv.textContent = entry.label;
+
+
+
+        const tokenDiv = document.createElement('div'); tokenDiv.className='comboToken'; tokenDiv.textContent = entry.token || '(empty)';
+
+
+
+        row.appendChild(keyDiv);
+
+
+
+        row.appendChild(namesDiv);
+
+
+
+        row.appendChild(tokenDiv);
+
+
+
+        comboList.appendChild(row);
+
+
+
+        return {entry, row};
+
+
+
+      });
+
+
+
+      let suppress = false;
+
+
+
+      const setActiveRows = indices=>{
+
+
+
+        const setIndices = new Set(indices);
+
+
+
+        selectors.forEach(sel=>{
+
+
+
+          const active = setIndices.has(sel.index);
+
+
+
+          sel.checkbox.checked = active;
+
+
+
+          sel.row.classList.toggle('off', !active);
+
+
+
+        });
+
+
+
+      };
+
+
+
+      const updateSummary = indices=>{
+        if(indices.length < 2){
+          renderSummaryToken('');
+          comboRows.forEach(({row})=>row.classList.remove('active'));
+          return;
+        }
+        const sorted = indices.slice().sort((a,b)=>a-b);
+        const key = keyNorm(sorted.map(i=>ids[i]).join('+'));
+        const token = setKeyToToken(key);
+        renderSummaryToken(token);
+        comboRows.forEach(({row, entry})=>{
+          row.classList.toggle('active', entry.key === key);
+        });
+      };
+
+      const applyState = ()=>{
+
+
+
+        const maxRankLocal = nCr(N, comboState.k) - 1;
+
+
+
+        rankSlider.max = String(Math.max(0, maxRankLocal));
+
+
+
+        if(comboState.r > maxRankLocal) comboState.r = Math.max(0, maxRankLocal);
+
+
+
+        sizeSlider.value = String(comboState.k);
+
+
+
+        sizeLabel.textContent = `${comboState.k} sets`;
+
+
+
+        rankSlider.value = String(comboState.r);
+
+
+
+        rankLabel.textContent = maxRankLocal>0 ? `${comboState.r} / ${maxRankLocal}` : '0 / 0';
+
+
+
+        rankSlider.disabled = maxRankLocal <= 0;
+
+
+
+        const indices = unrankCombination(N, comboState.k, comboState.r);
+
+
+
+        suppress = true;
+
+
+
+        setActiveRows(indices);
+
+
+
+        suppress = false;
+
+
+
+        updateSummary(indices);
+
+
+
+        comboMessage.textContent = `Showing combination size ${comboState.k} of ${N} sets (${nCr(N, comboState.k)} total).`;
+
+
+
+      };
+
+
+
+      sizeSlider.oninput = ()=>{
+
+
+
+        comboState.k = Math.max(2, Math.min(N, Number(sizeSlider.value) || 2));
+
+
+
+        comboState.r = Math.max(0, Math.min(nCr(N, comboState.k) - 1, comboState.r));
+
+
+
+        comboState = {...comboState};
+
+
+
+        applyState();
+
+
+
+      };
+
+
+
+      rankSlider.oninput = ()=>{
+
+
+
+        const maxRankLocal = nCr(N, comboState.k) - 1;
+
+
+
+        comboState.r = Math.max(0, Math.min(maxRankLocal, Number(rankSlider.value) || 0));
+
+
+
+        comboState = {...comboState};
+
+
+
+        applyState();
+
+
+
+      };
+
+
+
+      selectors.forEach(sel=>{
+
+
+
+        sel.checkbox.addEventListener('input', ()=>{
+
+
+
+          if(suppress) return;
+
+
+
+          const activeIndices = selectors.filter(s=>s.checkbox.checked).map(s=>s.index).sort((a,b)=>a-b);
+
+
+
+          if(activeIndices.length < 2){
+
+
+
+            updateSummary(activeIndices);
+
+
+
+            comboMessage.textContent = 'Select at least two sets to form an overlap.';
+
+
+
+            return;
+
+
+
+          }
+
+
+
+          comboState.k = activeIndices.length;
+
+
+
+          comboState.r = rankCombination(N, comboState.k, activeIndices);
+
+
+
+          comboState = {...comboState};
+
+
+
+          applyState();
+
+
+
+        });
+
+
+
+      });
+
+
+
+      comboRows.forEach(({entry, row})=>{
+
+
+
+        row.addEventListener('click', ()=>{
+
+
+
+          comboState.k = entry.indices.length;
+
+
+
+          comboState.r = rankCombination(N, comboState.k, entry.indices);
+
+
+
+          comboState = {...comboState};
+
+
+
+          applyState();
+
+
+
+        });
+
+
+
+      });
+
+
+
+      applyState();
+
+
+
+    }
+
+
+
+    function render(){
+
+
+
+      const clean = getCleanText();
+
+
+
+      if(!clean){
+
+
+
+        currentModel = null;
+
+
+
+        resetExplorer('Load or import a JSON model to begin.');
+
+
+
+        resetManualNames();
+
+
+
+
+
+
+
+        updateStatus('Provide JSON to explore combinations.', 'muted');
+
+
+
+        return;
+
+
+
+      }
+
+
+
+      let model;
+
+
+
+      try{
+
+
+
+        model = ensureCombos(JSON.parse(clean));
+
+
+
+      }catch(err){
+
+
+
+        updateStatus('JSON parse error: ' + err.message, 'error');
+
+
+
+        resetExplorer('Fix JSON errors to explore combinations.');
+
+
+
+        return;
+
+
+
+      }
+
+
+
+      textarea.value = jsonPretty(model);
+
+
+
+      const namesForPrompt = getSetNames(model);
+
+
+
+
+
+
+
+
+
+      try{ localStorage.setItem(JSON_STORAGE, textarea.value); }catch{}
+
+
+
+      currentModel = model;
+
+
+
+      updateStatus('Rendered. Adjust sliders or click a combination to inspect.', 'muted');
+
+
+
+      buildExplorer(model);
+
+
+
+    }
+
+
+
+
+
+
+
+    function copyPrompt(){
+
+
+
+      let model;
+
+
+
+      try{
+
+
+
+        const clean = getCleanText();
+
+
+
+        if(!clean) throw new Error('No JSON found.');
+
+
+
+        model = ensureCombos(JSON.parse(clean));
+
+
+
+      }catch(err){ updateStatus('Cannot build prompt: ' + err.message, 'error'); return; }
+
+
+
+      const { sets, names: resolvedNames } = deriveActiveSets(model);
+
+
+
+      if(!sets.length){
+
+
+
+        updateStatus('Add sets before copying the prompt.', 'error');
+
+
+
+        return;
+
+
+
+      }
+
+
+
+      if(!resolvedNames.some(name => name && name.trim())){
+
+
+
+        updateStatus('Add set names before copying the prompt.', 'error');
+
+
+
+        return;
+
+
+
+      }
+
+
+
+      const ids = sets.map(set=>set.id);
+
+
+
+      const regionKeys = listCombos(ids).map(c=>c.join('+')).join(', ');
+
+
+
+      const setsJson = JSON.stringify(sets);
+
+      const promptText = `Instruction Combine sets:
+TERMS: ${resolvedNames.join(', ')}
+
+Return ONLY JSON with keys "title","sets","regions".
+
+* No region should be blank. You need to make best approximation.
+* IMPORTANT: Only output one word for each.
+
+Example:
+{
+"title": "Bread | Cheese",
+"sets": [
+{"id":"S0","name":"Bread"},
+{"id":"S1","name":"Cheese"}
+],
+"regions": {
+"S0+S1": ["Sandwich"]
+}
+}`;
+
+
+
+
+
+
+      navigator.clipboard.writeText(promptText).then(()=>{
+
+
+
+        updateStatus('Prompt copied to clipboard.', 'success');
+
+
+
+      }).catch(err=>{
+
+
+
+        updateStatus('Prompt copy failed: ' + err.message, 'error');
+
+
+
+      });
+
+
+
+    }
+
+
+
+async function apiRender(){
+
+
+
+      if(apiAbortController){
+
+
+
+        updateApiStatus('API call already running.', 'muted');
+
+
+
+        return;
+
+
+
+      }
+
+
+
+      let model;
+
+
+
+      try{
+
+
+
+        const clean = getCleanText();
+
+
+
+        if(!clean) throw new Error('No JSON found.');
+
+
+
+        model = ensureCombos(JSON.parse(clean));
+
+
+
+      }catch(err){ updateStatus('JSON parse error: ' + err.message, 'error'); return; }
+
+
+
+      const { sets, names: resolvedNames } = deriveActiveSets(model);
+
+
+
+      if(!sets.length){ updateStatus('Need at least one set before calling the API.', 'error'); return; }
+
+
+
+      if(!resolvedNames.some(name => name && name.trim())){
+
+
+
+        updateStatus('Need at least one set name before calling the API.', 'error');
+
+
+
+        return;
+
+
+
+      }
+
+
+
+      const ids = sets.map(set=>set.id);
+
+
+
+      const regionKeys = listCombos(ids).map(c=>c.join('+')).join(', ');
+
+
+
+      const setsJson = JSON.stringify(sets);
+
+      const promptText = `Instruction Combine sets:
+TERMS: ${resolvedNames.join(', ')}
+
+Return ONLY JSON with keys "title","sets","regions".
+
+* No region should be blank. You need to make best approximation.
+* IMPORTANT: Only output one word for each.
+
+Example:
+{
+"title": "Bread | Cheese",
+"sets": [
+{"id":"S0","name":"Bread"},
+{"id":"S1","name":"Cheese"}
+],
+"regions": {
+"S0+S1": ["Sandwich"]
+}
+}`;
+
+
+
+
+
+
+      let key = getApiKey();
+
+
+
+      if(!key){
+
+
+
+        key = promptApiKey(true);
+
+
+
+        if(!key){ updateStatus('Set your OpenAI API key first.', 'error'); return; }
+
+
+
+      }
+
+
+
+      const modelId = modelSelect.value || defaultModels[0];
+
+
+
+      apiAbortController = new AbortController();
+
+
+
+      const signal = apiAbortController.signal;
+
+
+
+      showApiLoading(modelId);
+
+
+
+      try{
+
+
+
+        const content = await chatComplete(promptText, modelId, key, signal, count=>updateApiCounter(count));
+
+
+
+        const match = content.match(/({[\s\S]*})/);
+
+
+
+        if(!match){ throw new Error('No JSON payload returned'); }
+
+
+
+        const parsed = ensureCombos(JSON.parse(match[1]));
+
+
+
+        textarea.value = jsonPretty(parsed);
+
+
+
+        try{ localStorage.setItem(JSON_STORAGE, textarea.value); }catch{}
+
+
+
+        render();
+
+
+
+        updateApiStatus('API response merged.', 'success');
+
+
+
+        updateStatus('API response merged.', 'success');
+
+
+
+      }catch(err){
+
+
+
+        if(err.name === 'AbortError'){
+
+
+
+          updateApiStatus('API call cancelled.', 'muted');
+
+
+
+        }else{
+
+
+
+          updateApiStatus('API error: ' + err.message, 'error');
+
+
+
+        }
+
+
+
+      }finally{
+
+
+
+        hideApiLoading();
+
+
+
+      }
+
+
+
+    }
+
+
+
+renderBtn.addEventListener('click', render);
+
+
+
+
+
+
+    const exportJson=(message)=>{
+
+
+
+      const clean=getCleanText();
+
+
+
+      const payload=clean || jsonPretty(currentModel || sample);
+
+
+
+      const blob=new Blob([payload],{type:'application/json'});
+
+
+
+      const url=URL.createObjectURL(blob);
+
+
+
+      const a=document.createElement('a');
+
+
+
+      a.href=url;
+
+
+
+      a.download='combination-model.json';
+
+
+
+      a.click();
+
+
+
+      setTimeout(()=>URL.revokeObjectURL(url),2000);
+
+
+
+      if(message) updateStatus(message,'success');
+
+
+
+    };
+
+
+
+    saveBtn.addEventListener('click', ()=>{ exportJson('JSON exported.'); });
+
+
+
+
+
+
+    pasteBtn.addEventListener('click', async()=>{
+
+
+
+      try{
+
+
+
+        const clip=await navigator.clipboard.readText();
+
+
+
+        if(!clip || !clip.trim()){ updateStatus('Clipboard is empty.', 'error'); return; }
+
+
+
+        textarea.value=extractJSON(sanitize(clip));
+
+
+
+        try{ localStorage.setItem(JSON_STORAGE, textarea.value); }catch{}
+
+
+
+        render();
+
+
+
+        updateStatus('JSON pasted from clipboard.', 'success');
+
+
+
+      }catch(err){
+
+
+
+        alert('Clipboard access denied. Paste manually when prompted.');
+
+
+
+      }
+
+
+
+    });
+
+
+
+    importBtn.addEventListener('click', ()=>{ importFile.click(); });
+
+
+
+    importFile.addEventListener('change', async e=>{
+
+
+
+      const file = e.target.files && e.target.files[0];
+
+
+
+      if(!file){ return; }
+
+
+
+      try{
+
+
+
+        const textContent = await file.text();
+
+
+
+        const extracted = extractJSON(sanitize(textContent));
+
+
+
+        if(!extracted){
+
+
+
+          alert('Could not find a valid JSON object in that file.');
+
+
+
+          return;
+
+
+
+        }
+
+
+
+        textarea.value = extracted;
+
+
+
+        try{ localStorage.setItem(JSON_STORAGE, textarea.value); }catch{}
+
+
+
+        render();
+
+
+
+        updateStatus('JSON imported.', 'success');
+
+
+
+      }catch(err){
+
+
+
+        alert('Failed to import file:\n' + err.message);
+
+
+
+      }finally{
+
+
+
+        importFile.value = '';
+
+
+
+      }
+
+
+
+    });
+
+
+
+    copyBtn.addEventListener('click', async ()=>{
+
+
+
+      try{
+
+
+
+        await navigator.clipboard.writeText(getCleanText() || textarea.value || '');
+
+
+
+        updateStatus('JSON copied to clipboard.', 'success');
+
+
+
+      }catch(err){
+
+
+
+        updateStatus('Copy failed: ' + err.message, 'error');
+
+
+
+      }
+
+
+
+    });
+
+
+
+    promptBtn.addEventListener('click', copyPrompt);
+
+
+
+    apiBtn.addEventListener('click', ()=>{
+
+
+
+      if(apiMenuOpen){
+
+
+
+        return;
+
+
+
+      }
+
+
+
+      apiRender();
+
+
+
+    });
+
+
+
+    apiBtn.addEventListener('pointerdown', e=>{
+
+
+
+      if(apiMenuOpen) return;
+
+
+
+      if((e.button===0 || e.pointerType==='touch') && !apiHoldTimer){
+
+
+
+        apiHoldTimer=setTimeout(()=>openApiMenu(e),600);
+
+
+
+      }
+
+
+
+    });
+
+
+
+    apiBtn.addEventListener('pointerup', clearApiHold);
+
+
+
+    apiBtn.addEventListener('pointerleave', clearApiHold);
+
+
+
+    apiBtn.addEventListener('pointercancel', clearApiHold);
+
+
+
+    apiBtn.addEventListener('contextmenu', e=>{
+
+
+
+      e.preventDefault();
+
+
+
+      openApiMenu(e);
+
+
+
+    });
+
+
+
+    render();
+
+
+
+  </script>
+
+
+
+</body>
+
+
+
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
