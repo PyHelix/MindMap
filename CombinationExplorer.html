@@ -4505,55 +4505,55 @@ renderBtn.addEventListener('click', render);
 
 
 
-    const exportJson=(message)=>{
-
-
+    const exportJson=(message,fileName)=>{
 
       const clean=getCleanText();
 
-
-
       const payload=clean || jsonPretty(currentModel || sample);
-
-
 
       const blob=new Blob([payload],{type:'application/json'});
 
-
-
       const url=URL.createObjectURL(blob);
-
-
 
       const a=document.createElement('a');
 
+      const baseName=(fileName && fileName.trim()) ? fileName.trim() : 'combination-model';
 
+      const filename=baseName.toLowerCase().endsWith('.json') ? baseName : `${baseName}.json`;
 
       a.href=url;
 
-
-
-      a.download='combination-model.json';
-
-
+      a.download=filename;
 
       a.click();
 
-
-
       setTimeout(()=>URL.revokeObjectURL(url),2000);
 
-
-
       if(message) updateStatus(message,'success');
-
-
 
     };
 
 
 
-    saveBtn.addEventListener('click', ()=>{ exportJson('JSON exported.'); });
+    saveBtn.addEventListener('click', ()=>{
+
+      const defaultName='combination-model';
+
+      const input=window.prompt('Name the JSON file:', defaultName);
+
+      if(input===null){
+
+        updateStatus('Export canceled.');
+
+        return;
+
+      }
+
+      const chosen=input.trim() || defaultName;
+
+      exportJson('JSON exported.', chosen);
+
+    });
 
 
 
