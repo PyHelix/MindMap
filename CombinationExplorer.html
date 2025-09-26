@@ -1651,6 +1651,11 @@
     let manualSetEntry=false;
     let chipNames=[];
 
+    function normalizeSetName(name){
+      if(!name) return '';
+      return name.trim().replace(/\s+/g,'-');
+    }
+
     function renderChipNames(){
       if(setChipList){
         setChipList.innerHTML='';
@@ -1695,7 +1700,7 @@
 
     function appendChipNames(source){
       if(!source) return;
-      const parts = source.split(',').map(part=>part.trim()).filter(Boolean);
+      const parts = source.split(',').map(part=>normalizeSetName(part)).filter(Boolean);
       if(!parts.length) return;
       let added=false;
       for(const name of parts){
@@ -1775,7 +1780,7 @@
         return chipNames.slice();
       }
       if(manualSetEntry && setNamesInput){
-        const pending=setNamesInput.value.split(',').map(s=>s.trim()).filter(Boolean);
+        const pending=setNamesInput.value.split(',').map(s=>normalizeSetName(s)).filter(Boolean);
         if(pending.length){
           return pending;
         }
