@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 
 
 
@@ -4505,58 +4505,235 @@ renderBtn.addEventListener('click', render);
 
 
 
-    const exportJson=(message,fileName)=>{
+    const exportJson=async(message,fileName)=>{
+
+
 
       const clean=getCleanText();
 
+
+
       const payload=clean || jsonPretty(currentModel || sample);
+
+
 
       const blob=new Blob([payload],{type:'application/json'});
 
-      const url=URL.createObjectURL(blob);
 
-      const a=document.createElement('a');
 
       const baseName=(fileName && fileName.trim()) ? fileName.trim() : 'combination-model';
 
+
+
       const filename=baseName.toLowerCase().endsWith('.json') ? baseName : `${baseName}.json`;
+
+
+
+      const isIOS=/iphone|ipad|ipod/i.test((navigator && navigator.userAgent) || '');
+
+
+
+      const tryShare=async()=>{
+
+
+
+        if(!navigator || !navigator.share || typeof File==='undefined'){ return false; }
+
+
+
+        let file;
+
+
+
+        try{ file=new File([blob], filename, {type:'application/json'}); }catch(err){ return false; }
+
+
+
+        if(navigator.canShare){
+
+
+
+          try{ if(!navigator.canShare({files:[file]})) return false; }catch(err){ return false; }
+
+
+
+        }
+
+
+
+        try{
+
+
+
+          await navigator.share({ files:[file], title:'Combination Explorer', text:filename });
+
+
+
+          if(message) updateStatus(message,'success');
+
+
+
+          return true;
+
+
+
+        }catch(error){
+
+
+
+          if(error && error.name==='AbortError'){ updateStatus('Share canceled.'); return true; }
+
+
+
+          console.warn('Share failed', error);
+
+
+
+          return false;
+
+
+
+        }
+
+
+
+      };
+
+
+
+      if(await tryShare()) return;
+
+
+
+      if(isIOS){
+
+
+
+        const dataUrl=`data:application/json;charset=utf-8,${encodeURIComponent(payload)}`;
+
+
+
+        const popup=window.open(dataUrl,'_blank');
+
+
+
+        if(!popup){ window.location.href=dataUrl; }
+
+
+
+        if(message) updateStatus('JSON opened in new tab. Use Share -> Save to Files.','success');
+
+
+
+        return;
+
+
+
+      }
+
+
+
+      const url=URL.createObjectURL(blob);
+
+
+
+      const a=document.createElement('a');
+
+
 
       a.href=url;
 
+
+
       a.download=filename;
+
+
+
+      a.style.display='none';
+
+
+
+      document.body.appendChild(a);
+
+
 
       a.click();
 
+
+
+      requestAnimationFrame(()=>a.remove());
+
+
+
       setTimeout(()=>URL.revokeObjectURL(url),2000);
 
+
+
       if(message) updateStatus(message,'success');
+
+
 
     };
 
 
 
-    saveBtn.addEventListener('click', ()=>{
+    saveBtn.addEventListener('click', async()=>{
+
+
 
       const defaultName='combination-model';
 
+
+
       const input=window.prompt('Name the JSON file:', defaultName);
+
+
 
       if(input===null){
 
+
+
         updateStatus('Export canceled.');
+
+
 
         return;
 
+
+
       }
+
+
 
       const chosen=input.trim() || defaultName;
 
-      exportJson('JSON exported.', chosen);
+
+
+      try{
+
+
+
+        await exportJson('JSON exported.', chosen);
+
+
+
+      }catch(error){
+
+
+
+        console.error('Export failed', error);
+
+
+
+        updateStatus('Export failed. Check console for details.', 'error');
+
+
+
+      }
+
+
 
     });
-
-
-
 
 
 
