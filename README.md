@@ -20,3 +20,7 @@ NodeTrellis powers an interactive mind-mapping workspace where you can generate,
 - Main app: https://nodetrellis.com/
 - Combination Explorer: https://nodetrellis.com/combinationexplorer
 - Feedback: Foxes.owo@gmail.com
+
+## Support citizen science
+- Gridcoin (BOINC research): `SG5RCw9cf2RhbopCuXLzYYpXciARaZNCF8`
+- Curecoin (Folding@home research): `BRaK31UtcWKM6wqbFFU8bXDSc1b8NkvP7h`
