@@ -1,1 +1,2 @@
 2025-10-02 21:48:06 If you look closely at Sora reels you'll notice a frame-to-frame shimmer. Keeping that shimmer for future models could express Chain of Thought.
+2025-10-02 22:22:25 This is a test
