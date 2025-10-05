@@ -1,0 +1,135 @@
+AI is likely to become a key competency‑assessment tool. Such systems could compare human‑human, human‑AI, and AI‑AI performance, with the specific metrics chosen to fit each task.
+
+Animalism defines identity same as living human animal. The highlighted reference suggests psychology maybe a factor; but is not a factor in animalism. A single AI server may mirrior animalism via hardware continuity. If it's a cloud instance, we might think of conjoined twins; one brain each, two overlapping organisms. While cloud migration is a factor, a pinned instance would have one brain per AI under the condition that there is no parallel replication (no hidden backups or replicas), and share underlying host hardware for animalism to hold.
+
+The psychological continuity perspective is one take, there are other theories as well. Bundle theory supposes a non-persistent perspective, the four dimensionalist self which sees identity as a temporal worm, animalism sees identity so long as the human animal lives. And there are others. Whether or not consciousness maps to personal identity remains to be proven.
+
+Your SCF model's goal to compact language  works only in situations with low implicit context. Formal languages like in mathematics already exist for this purpose. For everyday conversation - there needs to be room for expression.
+It's like a warehouse. If it was full of boxes (words) and those boxes allowed for no room, the warehouse (implicit space) would not have room to move those boxes.
+
+Evolution tends to benefit for animals that utilize the laws of physics best. A birds wing that maximizes lift and drag for example.  If the goal is long term dominace with AI it comes down to maximizing  joules/compute.
+
+Not completely. If BCI barriers are overcome, and exceeds traditional keyboard and mouse in terms of precision; the way we interact with UI will change. In terms of reward function; the human is in the loop always. No matter how small.
+
+Aligned LLMs are good at aiding in cross reference product search to ensure reliability. Brand identity and reliability remains.
+
+In regards to earlier. I talked with Grok 4 and O3 and concluded you can have a simulation with a lack of Symbolic reasoning. The result is an implicit model.
+
+Today's LLMs use our symbolic reasoning by interacting with it. This strategy makes their implicit reasoning more explicit.
+
+So I put this to the test. I debated with GROK two crypto currencies. One edge case called Gridcoin (currently has low market liquidity) that rewards Scientific research and Bitcoin - a platform that has the highest PoW ledger security, but PoS chains can reach comparable immutability via stake distribution. I asked which generates the most truth (verifiable states per unit energy). I got to the point with Grok that a Bitcoin wallet is like Tails OS with encrypted persistence compared to Windows; like how a hot wallet is to a cold one trades off some convenience for security compared to Gridcoin which uses different security assumptions (PoS+PoR) in favor for generating Scientific truth.
+Something fascinating happened here GROK 4 always selected Bitcoin as better claiming that Bitcoins method secures truth better. But when I gave Grok's argument to O3, it choose Gridcoin stating that grok was 67 percent accurate.
+This is not investment advice and are rough metrics (requires more investigation). Just wanted to highlight that model bias shapes intelligence.
+
+I am right. AI can derive from multiple sources including human rules and self play loops. Though AI can continue without human guidance in some cases, and humans are not persistent in every optimization loop, their oversight is a part of the big picture as long as they are around. In that case human influence may shrink near zero in the future. This does leave things uncertain however because not everyone wants the same level of autonomy. 
+
+They do need water to cool down AI training and data centers. There is some heat pollution, but no toxic pollution. Total land precipitation averages about 119 000 km³ per year globally. If we Fermi estimate all AI water use in 2025 to be 2.5 km³ with evaporation portion to be 1.7 km³, that is replaced in 7.5 minutes by rainfall. The argument is mainly valid for local arid regions. 
+
+Animal husbandry needs more transparency to prove welfare. Mastitis and lameness are about 5 percent higher for US cows, and Somatic-cell counts are also tracked. Few other metrics are public. Cost welfare is secondary.
+
+If I were Canada, I'd probably do a sliding tarrif on dairy 0-100 percent depending on market conditions. Just so it's not a black or white overnight change.
+
+Error correction makes novel ideas more likely. The proof of the pudding is in the eating.
+
+IQ tests do not measure aberrant salience. Chris Langan who has a proported IQ of 176 (SD16) has been highly confident in his CTMU since the 80s. His theory is non falsifiable. The test he took did not measure epistemic knowledge. Focused training does happen, and most people would get bored studying IQ questions.
+
+If knowledge is power, and absolute powers corrupts absolutely. Then AI tools should be used as a learning aid, and not to assert absolute knowledge. 
+
+Sparse DFA corpus limits direct LLM supervised training. Researchers are testing synthetic corpora, and simulation curriculum . Success of these methods require sufficient model capacity, state aware architecture, and effective curriculum design. The outcome is not guaranteed though. 
+
+The fastest reported artificial neuron speed was recorded in 2025 with a fluxon pulse that last 2 picoseconds. That is 500 million times fast than the spike of a human neuron. 
+
+Some overconfidence is beneficial, but too much uncertainty can send one off course at critical moments.
+
+The objects I'm drawing on canvas have emotional value.
+
+In the future and on fully‑optimized hardware, a Majorana braid gate could run about  10 × to 250 × faster than a surface‑code logical gate, with the exact speed‑up depending on how deep the circuit is and what code‑distance you choose.
+
+AI focuses on sounding plausible rather than checking facts. Fundamentally the LLM predicts the next words that seem most likely based on patterns in its training data. It can sound confident, even without concrete facts. RAG adds external knowledge to help reduce errors, but does not eliminate them.
+
+Do you prefer an AI that only feels real, or a human companion who is real?
+
+Art invites interpretation.
+
+AI is good at rapid prototyping.
+
+Metacognition is thinking about thinking. Recursion can build complex structures with repeat calls. Iteration can build complex structures, recursion is not tho only way. Recursion can still aid metacognition if a reflective monitor watches the process and guides it.
+
+If traders use AI tools and AI tools excel at rapid prototyping, human traders must validate AI output.
+
+If training focuses on risks that aren’t real problems, a person is more likely to do harmful things because their sense of danger becomes miscalibrated.
+
+I ask questions if explanations get wordy. 
+
+Critical thinking and social ethics depend on each other, and in many fields today, critical thinking is taking a larger role in the conversation.
+
+Increasing the discussion’s quality deters spam, but you still need some moderation to clear out whatever slips through.
+
+When an AI model consistently generates high‑quality idea scaffolds faster than we can absorb and verify them, its output—not manual effort—becomes the main driver of our learning process.
+
+Aphorism acts as a flexible scaffold, and proverb exists as fixed folk saying. 
+
+The speed of a transformation in training is relative to the depth of the training data. 
+
+Light encodes the input numbers, passes through beam-splitters and phase-shifters that form the weight matrix, and interferes to perform the multiplication. Photodetectors then read the resulting intensities as voltages—very fast and low-power for large matrices, with a small latency cost from the optical-to-electrical conversion.
+
+Constant precomputation eliminates division during runtime if all denominators are known. 
+
+Brains combine millisecond-precise spikes with continuous voltages, giving neurons a fine-grained temporal code; mainstream neural nets use smooth activations and only coarse sequence cues, so they lack that spike-timing layer—a gap that some, though not all, theories suggest could matter for consciousness.
+
+We should remember this for AI:
+If knowledge outpaces the institutions meant to guide it, each added safeguard or reform yields smaller gains. Should that gap remain, research can stall, poverty can spread, and the risk of conflict can climb—yet war remains a possibility, not a certainty.
+
+If AI becomes vastly more intelligent than humans; I'd propose a Ceremonial Anthroparchy. Inspired by a Constitutional Monarchy - this is where humans hold a symbolic seat while AI governs. 
+
+A monitoring AI can grow dependent on the system it oversees; that dependence dulls its ability to keep the system honest. Setting a clear, independent human goal gives you an external benchmark, and checking the system’s behavior against that benchmark limits the AI’s chance to manipulate you.
+
+Consciousness is still an open scientific question, but that does not invalidate functional accounts that define it in terms of the global availability of information.
+
+If horses gave us horsepower, and AI someday supplants most human labor, will we end up measuring output in “human-power” instead?
+
+A guilty conscience needs no accuser. 
+
+Suggestion bias improves UX; by itself it does not increase autonomy.Too many suggestions slow decisions—favor fewer, better-ranked options and add permissioned execution to build capability.
+
+Past superhuman, differences are hard to see by eye.
+Example: Newer Stockfish may look the same but win more; to see why, check self-play Elo, test suites, tablebases, ACPL/blunders, and search telemetry.
+
+More intelligence usually makes kindness harder to exploit—if you set firm boundaries; intelligence alone does not guarantee safety.
+
+An AI that’s too far ahead becomes hard to use.
+Start at the user’s level, step up in small increments, and show advanced tools only when needed.
+
+An increase in fraud beyond what can be moderated signals an need for a goverence change. 
+
+Definitions are human-made, so they change. In a fixed formal system, they stay fixed. Fundamental forces look stable over cosmic time, so our definitions likely change faster. Edge cases: varying constants or unusually stable conventions.
+
+Why use only text when AI isn’t limited to keyboard input?
+
+Function beats mimicry; simple parts can yield AGI
+
+Most quantum computers run at ultracold temperatures to suppress decoherence. “Room-temperature” approaches still need specialized lab conditions—ultra-high vacuum, precision lasers, low-noise optics, and shielding (some parts, like detectors, are cryogenic). Biological intelligence operates at ordinary temperatures via classical electrochemical networks; there is no evidence that long-lived quantum coherence is required. Life on Earth is carbon-based because carbon forms stable, versatile molecules.
+
+Today’s world undervalues altruism. Would superintelligent oversight reward it more than wealth?
+
+Rewards cause the behaviors they reinforce to grow in any system.
+
+Higher intelligence does not ensure broader empathy.
+
+Use benchmarks to cut cost, not correctness.
+
+Physics uses mathematics to build models that make testable predictions; any explanations they offer remain provisional.
+
+Bigger picture: go hybrid—a cryogenic quantum core handles high-fidelity gates/error correction while an ambient-temperature photonic layer does routing, fan-out, and I/O (WDM). This maximizes error correction per unit cold volume by freeing cryostat space/ports for qubits (less heat leak, more QEC density).
+
+We cancel units, not physics.
+
+Every system has its trade offs. Maintaining goverence in a complex system is costly. Human control over capital is no exception.
+
+A stitch in time could be a quiet move in chess where it's not evident if the move is high stakes later to all parties.
+
+I've been anticipating something like MCP on the APP layer for a while. On the PHYS/LINK layer on/near-chip photonic waveguides could help alleviate the shoreline bottleneck as AI scales.
+
+For all of these stochastic gradient-descent based learning algorithms, we find that the optimal error rate for training is around 15.87% or, conversely, that the optimal training accuracy is about 85%. 
+
+Review observes agent behavior. Learning updates the system using what review found.
