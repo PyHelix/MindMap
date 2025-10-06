@@ -133,3 +133,8 @@ I've been anticipating something like MCP on the APP layer for a while. On the P
 For all of these stochastic gradient-descent based learning algorithms, we find that the optimal error rate for training is around 15.87% or, conversely, that the optimal training accuracy is about 85%. 
 
 Review observes agent behavior. Learning updates the system using what review found.
+
+You cannot automate lasting happiness.
+
+Euphoria is not happiness.
+
