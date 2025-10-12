@@ -3993,11 +3993,20 @@
 
         const wheelOptions = passiveOptions || false;
 
+        const HOLD_INTERVAL_MS = 160;
+
         let activeSlider = null;
+
+        let activeDirection = 0;
+        let accumulatedHold = 0;
+        let lastWheelTimestamp = 0;
 
         const stopTracking = ()=>{
           if (!activeSlider) return;
           activeSlider = null;
+          activeDirection = 0;
+          accumulatedHold = 0;
+          lastWheelTimestamp = 0;
           window.removeEventListener('wheel', handleWheel, wheelOptions);
           document.removeEventListener('pointerdown', handlePointerDown, true);
         };
@@ -4007,12 +4016,13 @@
           const min = Number(slider.min);
           const max = Number(slider.max);
           const current = Number(slider.value);
-          if (Number.isNaN(current) || Number.isNaN(min) || Number.isNaN(max)) return;
+          if (Number.isNaN(current) || Number.isNaN(min) || Number.isNaN(max)) return false;
           const next = Math.max(min, Math.min(max, current + step * direction));
-          if (next === current) return;
+          if (next === current) return false;
           slider.value = String(next);
           slider.dispatchEvent(new Event('input', {bubbles:true}));
           slider.dispatchEvent(new Event('change', {bubbles:true}));
+          return true;
         };
 
         function handleWheel(event){
@@ -4027,8 +4037,25 @@
           }
           const primaryDelta = Math.abs(event.deltaY) >= Math.abs(event.deltaX) ? event.deltaY : event.deltaX;
           if (!primaryDelta) return;
+          const direction = primaryDelta > 0 ? 1 : -1;
+          const now = typeof event.timeStamp === 'number' ? event.timeStamp : performance.now();
+          if (direction !== activeDirection){
+            activeDirection = direction;
+            accumulatedHold = 0;
+          }
+          const reference = lastWheelTimestamp || now;
+          const elapsed = Math.max(0, Math.min(now - reference, 250));
+          lastWheelTimestamp = now;
+          accumulatedHold += elapsed;
+          if (accumulatedHold <= 0) return;
           event.preventDefault();
-          nudgeSlider(activeSlider, primaryDelta > 0 ? 1 : -1);
+          while (accumulatedHold >= HOLD_INTERVAL_MS){
+            if (!nudgeSlider(activeSlider, activeDirection)){
+              accumulatedHold = 0;
+              break;
+            }
+            accumulatedHold -= HOLD_INTERVAL_MS;
+          }
         }
 
         function handlePointerDown(event){
@@ -4059,6 +4086,9 @@
               return;
             }
             activeSlider = slider;
+            activeDirection = 0;
+            accumulatedHold = 0;
+            lastWheelTimestamp = 0;
             window.addEventListener('wheel', handleWheel, wheelOptions);
             document.addEventListener('pointerdown', handlePointerDown, true);
           });
