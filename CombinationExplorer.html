@@ -1291,6 +1291,14 @@
 
 
 
+    const sizeSliderLabel = document.querySelector('label[for="sizeSlider"]');
+
+
+
+    const rankSliderLabel = document.querySelector('label[for="rankSlider"]');
+
+
+
     const setList = document.getElementById('setList');
 
 
@@ -3800,7 +3808,9 @@
 
 
 
-        selectors.forEach(sel=>{
+  
+
+      selectors.forEach(sel=>{
 
 
 
@@ -3950,6 +3960,122 @@
       };
 
 
+
+
+
+      (()=>{
+
+        if (typeof window === 'undefined' || typeof document === 'undefined') return;
+
+        const desktopQuery = typeof window.matchMedia === 'function' ? window.matchMedia('(hover: hover) and (pointer: fine)') : null;
+
+        const labelBindings = [
+          {label: sizeSliderLabel, slider: sizeSlider},
+          {label: rankSliderLabel, slider: rankSlider}
+        ].filter(binding=>binding.label && binding.slider);
+
+        if (!labelBindings.length) return;
+
+        const labelSet = new Set(labelBindings.map(binding=>binding.label));
+
+        let passiveOptions = false;
+        try{
+          const opts = Object.defineProperty({}, 'passive', {
+            get(){
+              passiveOptions = {passive:false};
+              return false;
+            }
+          });
+          const noop = ()=>{};
+          window.addEventListener('combo-passive-test', noop, opts);
+          window.removeEventListener('combo-passive-test', noop, opts);
+        }catch{}
+
+        const wheelOptions = passiveOptions || false;
+
+        let activeSlider = null;
+
+        const stopTracking = ()=>{
+          if (!activeSlider) return;
+          activeSlider = null;
+          window.removeEventListener('wheel', handleWheel, wheelOptions);
+          document.removeEventListener('pointerdown', handlePointerDown, true);
+        };
+
+        const nudgeSlider = (slider, direction)=>{
+          const step = Number(slider.step) || 1;
+          const min = Number(slider.min);
+          const max = Number(slider.max);
+          const current = Number(slider.value);
+          if (Number.isNaN(current) || Number.isNaN(min) || Number.isNaN(max)) return;
+          const next = Math.max(min, Math.min(max, current + step * direction));
+          if (next === current) return;
+          slider.value = String(next);
+          slider.dispatchEvent(new Event('input', {bubbles:true}));
+          slider.dispatchEvent(new Event('change', {bubbles:true}));
+        };
+
+        function handleWheel(event){
+          if (!activeSlider) return;
+          if (desktopQuery && !desktopQuery.matches){
+            stopTracking();
+            return;
+          }
+          if (activeSlider.disabled){
+            stopTracking();
+            return;
+          }
+          const primaryDelta = Math.abs(event.deltaY) >= Math.abs(event.deltaX) ? event.deltaY : event.deltaX;
+          if (!primaryDelta) return;
+          event.preventDefault();
+          nudgeSlider(activeSlider, primaryDelta > 0 ? 1 : -1);
+        }
+
+        function handlePointerDown(event){
+          if (!activeSlider) return;
+          const path = typeof event.composedPath === 'function' ? event.composedPath() : null;
+          if (path){
+            for(const node of path){
+              if (labelSet.has(node)) return;
+            }
+          }else{
+            let node = event.target;
+            while(node){
+              if (labelSet.has(node)) return;
+              node = node.parentNode;
+            }
+          }
+          stopTracking();
+        }
+
+        labelBindings.forEach(({label, slider})=>{
+          label.addEventListener('click', ()=>{
+            if (desktopQuery && !desktopQuery.matches){
+              stopTracking();
+              return;
+            }
+            if (slider.disabled){
+              stopTracking();
+              return;
+            }
+            activeSlider = slider;
+            window.addEventListener('wheel', handleWheel, wheelOptions);
+            document.addEventListener('pointerdown', handlePointerDown, true);
+          });
+        });
+
+        if (desktopQuery){
+          const handleDeviceChange = event=>{
+            if (!event.matches) stopTracking();
+          };
+          if (typeof desktopQuery.addEventListener === 'function'){
+            desktopQuery.addEventListener('change', handleDeviceChange);
+          }else if (typeof desktopQuery.addListener === 'function'){
+            desktopQuery.addListener(handleDeviceChange);
+          }
+        }
+
+      })();
 
       selectors.forEach(sel=>{
 
@@ -4510,278 +4636,550 @@ renderBtn.addEventListener('click', render);
 
 
 
-    const exportJson=async(message,fileName)=>{
-
-
-
-      const clean=getCleanText();
-
-
-
-      const payload=clean || jsonPretty(currentModel || sample);
-
-
-
-      const blob=new Blob([payload],{type:'application/json'});
-
-
-
-      const baseName=(fileName && fileName.trim()) ? fileName.trim() : 'combination-model';
-
-
-
-      const filename=baseName.toLowerCase().endsWith('.json') ? baseName : `${baseName}.json`;
-
-
-
-      const isIOS=/iphone|ipad|ipod/i.test((navigator && navigator.userAgent) || '');
-
-
-
-      const supportsDownload=(()=>{
-
-
-
-        try{ return typeof document.createElement('a').download==='string'; }catch(error){ return false; }
-
-
-
-      })();
-
-
-
-      const tryFilePicker=async()=>{
-
-
-
-        if(typeof window==='undefined' || !window.showSaveFilePicker || !window.isSecureContext){ return false; }
-
-
-
-        try{
-
-
-
-          const handle=await window.showSaveFilePicker({
-
-
-
-            suggestedName:filename,
-
-
-
-            types:[{ description:'JSON', accept:{'application/json':['.json']} }]
-
-
-
-          });
-
-
-
-          const writable=await handle.createWritable();
-
-
-
-          await writable.write(blob);
-
-
-
-          await writable.close();
-
-
-
-          if(message) updateStatus(message,'success');
-
-
-
-          return true;
-
-
-
-        }catch(error){
-
-
-
-          if(error && error.name==='AbortError'){ updateStatus('Save canceled.'); return true; }
-
-
-
-          console.warn('File picker save failed', error);
-
-
-
-          return false;
-
-
-
-        }
-
-
-
-      };
-
-
-
-      const tryShare=async()=>{
-
-
-
-        if(!navigator || !navigator.share || typeof File==='undefined'){ return false; }
-
-
-
-        let file;
-
-
-
-        try{ file=new File([blob], filename, {type:'application/json'}); }catch(err){ return false; }
-
-
-
-        if(navigator.canShare){
-
-
-
-          try{ if(!navigator.canShare({files:[file]})) return false; }catch(err){ return false; }
-
-
-
-        }
-
-
-
-        try{
-
-
-
-          await navigator.share({ files:[file], title:'Combination Explorer', text:filename });
-
-
-
-          if(message) updateStatus(message,'success');
-
-
-
-          return true;
-
-
-
-        }catch(error){
-
-
-
-          if(error && error.name==='AbortError'){ updateStatus('Share canceled.'); return true; }
-
-
-
-          console.warn('Share failed', error);
-
-
-
-          return false;
-
-
-
-        }
-
-
-
-      };
-
-
-
-      if(await tryFilePicker()) return;
-
-
-
-      if(await tryShare()) return;
-
-
-
-      if(isIOS || !supportsDownload){
-
-
-
-        const dataUrl=`data:application/json;charset=utf-8,${encodeURIComponent(payload)}`;
-
-
-
-        const popup=window.open(dataUrl,'_blank');
-
-
-
-        if(!popup){ window.location.href=dataUrl; }
-
-
-
-        const notice=isIOS ? 'Use Share -> Save to Files.' : 'Use browser download or share options to store the JSON.';
-
-
-
-        updateStatus(`JSON opened in new tab. ${notice}`,'success');
-
-
-
-        return;
-
-
-
-      }
-
-
-
-      const url=URL.createObjectURL(blob);
-
-
-
-      const a=document.createElement('a');
-
-
-
-      a.href=url;
-
-
-
-      a.download=filename;
-
-
-
-      a.style.display='none';
-
-
-
-      document.body.appendChild(a);
-
-
-
-      const clickEvent=new MouseEvent('click',{ bubbles:true, cancelable:true, view:window });
-
-
-
-      const clicked=a.dispatchEvent(clickEvent);
-
-
-
-      if(!clicked){ a.click(); }
-
-
-
-      requestAnimationFrame(()=>a.remove());
-
-
-
-      setTimeout(()=>URL.revokeObjectURL(url),2000);
-
-
-
-      if(message) updateStatus(message,'success');
-
-
-
-    };
-
-
-
+    const exportJson=async(message,fileName)=>{
+
+
+
+
+
+
+
+      const clean=getCleanText();
+
+
+
+
+
+
+
+      const payload=clean || jsonPretty(currentModel || sample);
+
+
+
+
+
+
+
+      const blob=new Blob([payload],{type:'application/json'});
+
+
+
+
+
+
+
+      const baseName=(fileName && fileName.trim()) ? fileName.trim() : 'combination-model';
+
+
+
+
+
+
+
+      const filename=baseName.toLowerCase().endsWith('.json') ? baseName : `${baseName}.json`;
+
+
+
+
+
+
+
+      const isIOS=/iphone|ipad|ipod/i.test((navigator && navigator.userAgent) || '');
+
+
+
+
+
+
+
+      const supportsDownload=(()=>{
+
+
+
+
+
+
+
+        try{ return typeof document.createElement('a').download==='string'; }catch(error){ return false; }
+
+
+
+
+
+
+
+      })();
+
+
+
+
+
+
+
+      const tryFilePicker=async()=>{
+
+
+
+
+
+
+
+        if(typeof window==='undefined' || !window.showSaveFilePicker || !window.isSecureContext){ return false; }
+
+
+
+
+
+
+
+        try{
+
+
+
+
+
+
+
+          const handle=await window.showSaveFilePicker({
+
+
+
+
+
+
+
+            suggestedName:filename,
+
+
+
+
+
+
+
+            types:[{ description:'JSON', accept:{'application/json':['.json']} }]
+
+
+
+
+
+
+
+          });
+
+
+
+
+
+
+
+          const writable=await handle.createWritable();
+
+
+
+
+
+
+
+          await writable.write(blob);
+
+
+
+
+
+
+
+          await writable.close();
+
+
+
+
+
+
+
+          if(message) updateStatus(message,'success');
+
+
+
+
+
+
+
+          return true;
+
+
+
+
+
+
+
+        }catch(error){
+
+
+
+
+
+
+
+          if(error && error.name==='AbortError'){ updateStatus('Save canceled.'); return true; }
+
+
+
+
+
+
+
+          console.warn('File picker save failed', error);
+
+
+
+
+
+
+
+          return false;
+
+
+
+
+
+
+
+        }
+
+
+
+
+
+
+
+      };
+
+
+
+
+
+
+
+      const tryShare=async()=>{
+
+
+
+
+
+
+
+        if(!navigator || !navigator.share || typeof File==='undefined'){ return false; }
+
+
+
+
+
+
+
+        let file;
+
+
+
+
+
+
+
+        try{ file=new File([blob], filename, {type:'application/json'}); }catch(err){ return false; }
+
+
+
+
+
+
+
+        if(navigator.canShare){
+
+
+
+
+
+
+
+          try{ if(!navigator.canShare({files:[file]})) return false; }catch(err){ return false; }
+
+
+
+
+
+
+
+        }
+
+
+
+
+
+
+
+        try{
+
+
+
+
+
+
+
+          await navigator.share({ files:[file], title:'Combination Explorer', text:filename });
+
+
+
+
+
+
+
+          if(message) updateStatus(message,'success');
+
+
+
+
+
+
+
+          return true;
+
+
+
+
+
+
+
+        }catch(error){
+
+
+
+
+
+
+
+          if(error && error.name==='AbortError'){ updateStatus('Share canceled.'); return true; }
+
+
+
+
+
+
+
+          console.warn('Share failed', error);
+
+
+
+
+
+
+
+          return false;
+
+
+
+
+
+
+
+        }
+
+
+
+
+
+
+
+      };
+
+
+
+
+
+
+
+      if(await tryFilePicker()) return;
+
+
+
+
+
+
+
+      if(await tryShare()) return;
+
+
+
+
+
+
+
+      if(isIOS || !supportsDownload){
+
+
+
+
+
+
+
+        const dataUrl=`data:application/json;charset=utf-8,${encodeURIComponent(payload)}`;
+
+
+
+
+
+
+
+        const popup=window.open(dataUrl,'_blank');
+
+
+
+
+
+
+
+        if(!popup){ window.location.href=dataUrl; }
+
+
+
+
+
+
+
+        const notice=isIOS ? 'Use Share -> Save to Files.' : 'Use browser download or share options to store the JSON.';
+
+
+
+
+
+
+
+        updateStatus(`JSON opened in new tab. ${notice}`,'success');
+
+
+
+
+
+
+
+        return;
+
+
+
+
+
+
+
+      }
+
+
+
+
+
+
+
+      const url=URL.createObjectURL(blob);
+
+
+
+
+
+
+
+      const a=document.createElement('a');
+
+
+
+
+
+
+
+      a.href=url;
+
+
+
+
+
+
+
+      a.download=filename;
+
+
+
+
+
+
+
+      a.style.display='none';
+
+
+
+
+
+
+
+      document.body.appendChild(a);
+
+
+
+
+
+
+
+      const clickEvent=new MouseEvent('click',{ bubbles:true, cancelable:true, view:window });
+
+
+
+
+
+
+
+      const clicked=a.dispatchEvent(clickEvent);
+
+
+
+
+
+
+
+      if(!clicked){ a.click(); }
+
+
+
+
+
+
+
+      requestAnimationFrame(()=>a.remove());
+
+
+
+
+
+
+
+      setTimeout(()=>URL.revokeObjectURL(url),2000);
+
+
+
+
+
+
+
+      if(message) updateStatus(message,'success');
+
+
+
+
+
+
+
+    };
+
+
+
+
+
+
+
     saveBtn.addEventListener('click', async()=>{
 
 
