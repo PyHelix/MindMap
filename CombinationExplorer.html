@@ -3993,20 +3993,16 @@
 
         const wheelOptions = passiveOptions || false;
 
-        const HOLD_INTERVAL_MS = 160;
+        const WHEEL_TICK = 120;
 
         let activeSlider = null;
 
-        let activeDirection = 0;
-        let accumulatedHold = 0;
-        let lastWheelTimestamp = 0;
+        let residualDelta = 0;
 
         const stopTracking = ()=>{
           if (!activeSlider) return;
           activeSlider = null;
-          activeDirection = 0;
-          accumulatedHold = 0;
-          lastWheelTimestamp = 0;
+          residualDelta = 0;
           window.removeEventListener('wheel', handleWheel, wheelOptions);
           document.removeEventListener('pointerdown', handlePointerDown, true);
         };
@@ -4025,6 +4021,15 @@
           return true;
         };
 
+        const normalizeWheelDelta = event=>{
+          if (typeof event.wheelDeltaY === 'number' && event.wheelDeltaY !== 0) return -event.wheelDeltaY;
+          if (typeof event.wheelDelta === 'number' && event.wheelDelta !== 0) return -event.wheelDelta;
+          const primary = Math.abs(event.deltaY) >= Math.abs(event.deltaX) ? event.deltaY : event.deltaX;
+          if (event.deltaMode === 1) return primary * 40;
+          if (event.deltaMode === 2) return primary * (window.innerHeight || 800);
+          return primary;
+        };
+
         function handleWheel(event){
           if (!activeSlider) return;
           if (desktopQuery && !desktopQuery.matches){
@@ -4035,26 +4040,28 @@
             stopTracking();
             return;
           }
-          const primaryDelta = Math.abs(event.deltaY) >= Math.abs(event.deltaX) ? event.deltaY : event.deltaX;
-          if (!primaryDelta) return;
-          const direction = primaryDelta > 0 ? 1 : -1;
-          const now = typeof event.timeStamp === 'number' ? event.timeStamp : performance.now();
-          if (direction !== activeDirection){
-            activeDirection = direction;
-            accumulatedHold = 0;
+          const delta = normalizeWheelDelta(event);
+          if (!delta) return;
+          const magnitude = Math.abs(delta);
+          const direction = delta > 0 ? 1 : -1;
+          if (magnitude >= WHEEL_TICK){
+            event.preventDefault();
+            residualDelta = 0;
+            nudgeSlider(activeSlider, direction);
+            return;
           }
-          const reference = lastWheelTimestamp || now;
-          const elapsed = Math.max(0, Math.min(now - reference, 250));
-          lastWheelTimestamp = now;
-          accumulatedHold += elapsed;
-          if (accumulatedHold <= 0) return;
-          event.preventDefault();
-          while (accumulatedHold >= HOLD_INTERVAL_MS){
-            if (!nudgeSlider(activeSlider, activeDirection)){
-              accumulatedHold = 0;
-              break;
+          residualDelta += delta;
+          if (Math.abs(residualDelta) >= WHEEL_TICK){
+            event.preventDefault();
+            const stepDirection = residualDelta > 0 ? 1 : -1;
+            if (nudgeSlider(activeSlider, stepDirection)){
+              residualDelta -= WHEEL_TICK * stepDirection;
+              if (Math.abs(residualDelta) >= WHEEL_TICK){
+                residualDelta = stepDirection * (WHEEL_TICK - 1);
+              }
+            }else{
+              residualDelta = 0;
             }
-            accumulatedHold -= HOLD_INTERVAL_MS;
           }
         }
 
@@ -4086,9 +4093,7 @@
               return;
             }
             activeSlider = slider;
-            activeDirection = 0;
-            accumulatedHold = 0;
-            lastWheelTimestamp = 0;
+            residualDelta = 0;
             window.addEventListener('wheel', handleWheel, wheelOptions);
             document.addEventListener('pointerdown', handlePointerDown, true);
           });
