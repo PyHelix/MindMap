@@ -140,4 +140,6 @@ Euphoria is not happiness.
 
 Training is more important than benchmarks.
 
+AI lets us update libraries faster and safer, so ecosystems are consolidating around fewer, more capable core libraries.
 
+What if AI could write you a personalized OS from scratch one day?
