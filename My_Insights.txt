@@ -143,3 +143,6 @@ Training is more important than benchmarks.
 AI lets us update libraries faster and safer, so ecosystems are consolidating around fewer, more capable core libraries.
 
 What if AI could write you a personalized OS from scratch one day?
+
+If mitocaundria make use of maximal surface area in precessing energy - we could use that stucture in solid state capactior. I will call this a mitocapacitor.
+
