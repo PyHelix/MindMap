@@ -1,0 +1,2 @@
+I did something really interesting with my T Watch S3 Plus. It's a programmable watch. With the help of Codex I made it so that if my movement triggers the accelerometer beyond a certain point, it will reduce the threshold to stay on and map its brightness to a range where higher acceleration makes it brighter.
+So when I  move my hands to talk, the brightness of my watch will change to add expression.
